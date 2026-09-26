@@ -72,6 +72,19 @@ def put_policy(body: PolicyIn, request: Request, db: Session = Depends(get_db),
     return get_policy(db)
 
 
+@router.get("/api/metrics")
+def metrics() -> dict:
+    """E15-05: latest evaluation run (python -m app.eval.run), dated and tied to a git commit."""
+    import json
+
+    from app.config import settings
+
+    path = settings.data_dir / "eval" / "results.json"
+    if not path.exists():
+        raise HTTPException(404, "no evaluation run yet — run: python -m app.eval.run")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 @router.get("/api/users", response_model=list[UserOut])
 def users(db: Session = Depends(get_db), user: User = Depends(current_user)):
     if user.role not in ("CA", "AUDITOR"):

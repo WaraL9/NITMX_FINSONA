@@ -1,0 +1,629 @@
+{
+ "generated_at": "2026-09-26T10:55:09+00:00",
+ "git_commit": "bf72bf3",
+ "run_seconds": 34.0,
+ "extraction": {
+  "cases": 3,
+  "rows": 3601,
+  "pages": 131,
+  "field_accuracy": 1.0,
+  "per_field": {
+   "date": 1.0,
+   "time": 1.0,
+   "debit": 1.0,
+   "credit": 1.0,
+   "balance": 1.0,
+   "code": 1.0
+  },
+  "description_cer": 0.0,
+  "bbox_on_row": 1.0,
+  "row_count_mismatches": 0,
+  "parse_seconds": 27.19,
+  "pages_per_second": 4.8,
+  "rows_per_second": 132.4,
+  "note": "Synthetic statement layout (FINSONA-SYNTH v1). Real-bank accuracy needs real statements (T-01)."
+ },
+ "engine": {
+  "cases": 50,
+  "transactions": 59914,
+  "tier_accuracy": 1.0,
+  "tier_confusion": {},
+  "loop_precision": 1.0,
+  "loop_recall": 1.0,
+  "loop_false_positive_rate": 0.0,
+  "loops_found_equals_true": 50,
+  "waterfall_reconciles": 50,
+  "cash_flow_exact": 50,
+  "engine_ms_median": 24.9
+ },
+ "performance": {
+  "1205_txns_ms": 31.8,
+  "9640_txns_ms": 237.9,
+  "parse_seconds_per_case": 9.1
+ },
+ "time_saved": {
+  "machine_seconds_per_case": 9.12,
+  "manual_hours_assumed": [
+   15,
+   20
+  ],
+  "ca_review_minutes_assumed": [
+   30,
+   45
+  ],
+  "reduction_pct_assumed": [
+   95.0,
+   97.5
+  ],
+  "note": "Manual effort and CA review time are ITMX.md assumptions; machine time is measured."
+ },
+ "fairness": {
+  "micro": {
+   "cases": 25,
+   "pass_rate_at_request": 0.0,
+   "median_safe_limit_to_request": 0.724
+  },
+  "medium": {
+   "cases": 25,
+   "pass_rate_at_request": 0.0,
+   "median_safe_limit_to_request": 0.711
+  },
+  "split": "median verified revenue 5,312,500 THB/month",
+  "pass_rate_ratio": null,
+  "coverage_ratio": 0.982,
+  "four_fifths_rule": true,
+  "inputs_used": "transactions, invoices, tax filings, utility payments only — no gender, religion, ethnicity, hometown or age"
+ },
+ "cases": [
+  {
+   "name": "kitti",
+   "scale": 1.0,
+   "revenue_monthly": 4166666.6666666665,
+   "requested": 5000000.0,
+   "safe_limit": 3500000.0,
+   "passes_min_at_request": false,
+   "loops_true": 4,
+   "loops_found": 4,
+   "txns": 1205
+  },
+  {
+   "name": "variant_01",
+   "scale": 0.77,
+   "revenue_monthly": 3208333.3333333335,
+   "requested": 3850000.0,
+   "safe_limit": 2160000.0,
+   "passes_min_at_request": false,
+   "loops_true": 1,
+   "loops_found": 1,
+   "txns": 1191
+  },
+  {
+   "name": "variant_02",
+   "scale": 1.19,
+   "revenue_monthly": 4958333.333333333,
+   "requested": 5950000.0,
+   "safe_limit": 4970000.0,
+   "passes_min_at_request": false,
+   "loops_true": 4,
+   "loops_found": 4,
+   "txns": 1205
+  },
+  {
+   "name": "variant_03",
+   "scale": 1.23,
+   "revenue_monthly": 5125000.0,
+   "requested": 6150000.0,
+   "safe_limit": 4630000.0,
+   "passes_min_at_request": false,
+   "loops_true": 4,
+   "loops_found": 4,
+   "txns": 1205
+  },
+  {
+   "name": "variant_04",
+   "scale": 1.73,
+   "revenue_monthly": 7208333.333333333,
+   "requested": 8650000.0,
+   "safe_limit": 7290000.0,
+   "passes_min_at_request": false,
+   "loops_true": 1,
+   "loops_found": 1,
+   "txns": 1189
+  },
+  {
+   "name": "variant_05",
+   "scale": 1.01,
+   "revenue_monthly": 4208333.333333333,
+   "requested": 5050000.0,
+   "safe_limit": 2920000.0,
+   "passes_min_at_request": false,
+   "loops_true": 4,
+   "loops_found": 4,
+   "txns": 1205
+  },
+  {
+   "name": "variant_06",
+   "scale": 1.11,
+   "revenue_monthly": 4625000.0,
+   "requested": 5550000.0,
+   "safe_limit": 4020000.0,
+   "passes_min_at_request": false,
+   "loops_true": 4,
+   "loops_found": 4,
+   "txns": 1205
+  },
+  {
+   "name": "variant_07",
+   "scale": 1.83,
+   "revenue_monthly": 7625000.0,
+   "requested": 9150000.0,
+   "safe_limit": 6160000.0,
+   "passes_min_at_request": false,
+   "loops_true": 4,
+   "loops_found": 4,
+   "txns": 1205
+  },
+  {
+   "name": "variant_08",
+   "scale": 1.75,
+   "revenue_monthly": 7291666.666666667,
+   "requested": 8750000.0,
+   "safe_limit": 6210000.0,
+   "passes_min_at_request": false,
+   "loops_true": 1,
+   "loops_found": 1,
+   "txns": 1191
+  },
+  {
+   "name": "variant_09",
+   "scale": 1.84,
+   "revenue_monthly": 7666666.666666667,
+   "requested": 9200000.0,
+   "safe_limit": 5870000.0,
+   "passes_min_at_request": false,
+   "loops_true": 1,
+   "loops_found": 1,
+   "txns": 1191
+  },
+  {
+   "name": "variant_10",
+   "scale": 0.95,
+   "revenue_monthly": 3958333.3333333335,
+   "requested": 4750000.0,
+   "safe_limit": 3430000.0,
+   "passes_min_at_request": false,
+   "loops_true": 4,
+   "loops_found": 4,
+   "txns": 1205
+  },
+  {
+   "name": "variant_11",
+   "scale": 1.76,
+   "revenue_monthly": 7333333.333333333,
+   "requested": 8800000.0,
+   "safe_limit": 7230000.0,
+   "passes_min_at_request": false,
+   "loops_true": 1,
+   "loops_found": 1,
+   "txns": 1189
+  },
+  {
+   "name": "variant_12",
+   "scale": 1.94,
+   "revenue_monthly": 8083333.333333333,
+   "requested": 9700000.0,
+   "safe_limit": 6900000.0,
+   "passes_min_at_request": false,
+   "loops_true": 4,
+   "loops_found": 4,
+   "txns": 1205
+  },
+  {
+   "name": "variant_13",
+   "scale": 1.73,
+   "revenue_monthly": 7208333.333333333,
+   "requested": 8650000.0,
+   "safe_limit": 6610000.0,
+   "passes_min_at_request": false,
+   "loops_true": 1,
+   "loops_found": 1,
+   "txns": 1189
+  },
+  {
+   "name": "variant_14",
+   "scale": 1.21,
+   "revenue_monthly": 5041666.666666667,
+   "requested": 6050000.0,
+   "safe_limit": 3500000.0,
+   "passes_min_at_request": false,
+   "loops_true": 3,
+   "loops_found": 3,
+   "txns": 1201
+  },
+  {
+   "name": "variant_15",
+   "scale": 1.92,
+   "revenue_monthly": 8000000.0,
+   "requested": 9600000.0,
+   "safe_limit": 7740000.0,
+   "passes_min_at_request": false,
+   "loops_true": 3,
+   "loops_found": 3,
+   "txns": 1201
+  },
+  {
+   "name": "variant_16",
+   "scale": 0.8,
+   "revenue_monthly": 3333333.3333333335,
+   "requested": 4000000.0,
+   "safe_limit": 3490000.0,
+   "passes_min_at_request": false,
+   "loops_true": 1,
+   "loops_found": 1,
+   "txns": 1189
+  },
+  {
+   "name": "variant_17",
+   "scale": 1.37,
+   "revenue_monthly": 5708333.333333333,
+   "requested": 6850000.0,
+   "safe_limit": 5390000.0,
+   "passes_min_at_request": false,
+   "loops_true": 1,
+   "loops_found": 1,
+   "txns": 1191
+  },
+  {
+   "name": "variant_18",
+   "scale": 1.65,
+   "revenue_monthly": 6875000.0,
+   "requested": 8250000.0,
+   "safe_limit": 6310000.0,
+   "passes_min_at_request": false,
+   "loops_true": 3,
+   "loops_found": 3,
+   "txns": 1199
+  },
+  {
+   "name": "variant_19",
+   "scale": 1.4,
+   "revenue_monthly": 5833333.333333333,
+   "requested": 7000000.0,
+   "safe_limit": 4680000.0,
+   "passes_min_at_request": false,
+   "loops_true": 4,
+   "loops_found": 4,
+   "txns": 1205
+  },
+  {
+   "name": "variant_20",
+   "scale": 1.83,
+   "revenue_monthly": 7625000.0,
+   "requested": 9150000.0,
+   "safe_limit": 5010000.0,
+   "passes_min_at_request": false,
+   "loops_true": 3,
+   "loops_found": 3,
+   "txns": 1201
+  },
+  {
+   "name": "variant_21",
+   "scale": 1.03,
+   "revenue_monthly": 4291666.666666667,
+   "requested": 5150000.0,
+   "safe_limit": 4480000.0,
+   "passes_min_at_request": false,
+   "loops_true": 4,
+   "loops_found": 4,
+   "txns": 1205
+  },
+  {
+   "name": "variant_22",
+   "scale": 1.15,
+   "revenue_monthly": 4791666.666666667,
+   "requested": 5750000.0,
+   "safe_limit": 3350000.0,
+   "passes_min_at_request": false,
+   "loops_true": 1,
+   "loops_found": 1,
+   "txns": 1189
+  },
+  {
+   "name": "variant_23",
+   "scale": 1.91,
+   "revenue_monthly": 7958333.333333333,
+   "requested": 9550000.0,
+   "safe_limit": 6650000.0,
+   "passes_min_at_request": false,
+   "loops_true": 1,
+   "loops_found": 1,
+   "txns": 1189
+  },
+  {
+   "name": "variant_24",
+   "scale": 1.56,
+   "revenue_monthly": 6500000.0,
+   "requested": 7800000.0,
+   "safe_limit": 5260000.0,
+   "passes_min_at_request": false,
+   "loops_true": 4,
+   "loops_found": 4,
+   "txns": 1205
+  },
+  {
+   "name": "variant_25",
+   "scale": 0.82,
+   "revenue_monthly": 3416666.6666666665,
+   "requested": 4100000.0,
+   "safe_limit": 3100000.0,
+   "passes_min_at_request": false,
+   "loops_true": 2,
+   "loops_found": 2,
+   "txns": 1195
+  },
+  {
+   "name": "variant_26",
+   "scale": 0.93,
+   "revenue_monthly": 3875000.0,
+   "requested": 4650000.0,
+   "safe_limit": 4010000.0,
+   "passes_min_at_request": false,
+   "loops_true": 1,
+   "loops_found": 1,
+   "txns": 1191
+  },
+  {
+   "name": "variant_27",
+   "scale": 0.66,
+   "revenue_monthly": 2750000.0,
+   "requested": 3300000.0,
+   "safe_limit": 1880000.0,
+   "passes_min_at_request": false,
+   "loops_true": 1,
+   "loops_found": 1,
+   "txns": 1191
+  },
+  {
+   "name": "variant_28",
+   "scale": 1.28,
+   "revenue_monthly": 5333333.333333333,
+   "requested": 6400000.0,
+   "safe_limit": 4150000.0,
+   "passes_min_at_request": false,
+   "loops_true": 1,
+   "loops_found": 1,
+   "txns": 1191
+  },
+  {
+   "name": "variant_29",
+   "scale": 1.7,
+   "revenue_monthly": 7083333.333333333,
+   "requested": 8500000.0,
+   "safe_limit": 4920000.0,
+   "passes_min_at_request": false,
+   "loops_true": 2,
+   "loops_found": 2,
+   "txns": 1195
+  },
+  {
+   "name": "variant_30",
+   "scale": 0.98,
+   "revenue_monthly": 4083333.3333333335,
+   "requested": 4900000.0,
+   "safe_limit": 3690000.0,
+   "passes_min_at_request": false,
+   "loops_true": 4,
+   "loops_found": 4,
+   "txns": 1205
+  },
+  {
+   "name": "variant_31",
+   "scale": 1.25,
+   "revenue_monthly": 5208333.333333333,
+   "requested": 6250000.0,
+   "safe_limit": 4330000.0,
+   "passes_min_at_request": false,
+   "loops_true": 4,
+   "loops_found": 4,
+   "txns": 1205
+  },
+  {
+   "name": "variant_32",
+   "scale": 0.77,
+   "revenue_monthly": 3208333.3333333335,
+   "requested": 3850000.0,
+   "safe_limit": 3360000.0,
+   "passes_min_at_request": false,
+   "loops_true": 3,
+   "loops_found": 3,
+   "txns": 1199
+  },
+  {
+   "name": "variant_33",
+   "scale": 1.83,
+   "revenue_monthly": 7625000.0,
+   "requested": 9150000.0,
+   "safe_limit": 4920000.0,
+   "passes_min_at_request": false,
+   "loops_true": 3,
+   "loops_found": 3,
+   "txns": 1199
+  },
+  {
+   "name": "variant_34",
+   "scale": 1.79,
+   "revenue_monthly": 7458333.333333333,
+   "requested": 8950000.0,
+   "safe_limit": 6090000.0,
+   "passes_min_at_request": false,
+   "loops_true": 3,
+   "loops_found": 3,
+   "txns": 1201
+  },
+  {
+   "name": "variant_35",
+   "scale": 1.62,
+   "revenue_monthly": 6750000.0,
+   "requested": 8100000.0,
+   "safe_limit": 6790000.0,
+   "passes_min_at_request": false,
+   "loops_true": 3,
+   "loops_found": 3,
+   "txns": 1199
+  },
+  {
+   "name": "variant_36",
+   "scale": 0.74,
+   "revenue_monthly": 3083333.3333333335,
+   "requested": 3700000.0,
+   "safe_limit": 2300000.0,
+   "passes_min_at_request": false,
+   "loops_true": 4,
+   "loops_found": 4,
+   "txns": 1205
+  },
+  {
+   "name": "variant_37",
+   "scale": 1.5,
+   "revenue_monthly": 6250000.0,
+   "requested": 7500000.0,
+   "safe_limit": 5830000.0,
+   "passes_min_at_request": false,
+   "loops_true": 1,
+   "loops_found": 1,
+   "txns": 1189
+  },
+  {
+   "name": "variant_38",
+   "scale": 1.01,
+   "revenue_monthly": 4208333.333333333,
+   "requested": 5050000.0,
+   "safe_limit": 4300000.0,
+   "passes_min_at_request": false,
+   "loops_true": 3,
+   "loops_found": 3,
+   "txns": 1201
+  },
+  {
+   "name": "variant_39",
+   "scale": 1.81,
+   "revenue_monthly": 7541666.666666667,
+   "requested": 9050000.0,
+   "safe_limit": 7610000.0,
+   "passes_min_at_request": false,
+   "loops_true": 3,
+   "loops_found": 3,
+   "txns": 1199
+  },
+  {
+   "name": "variant_40",
+   "scale": 1.03,
+   "revenue_monthly": 4291666.666666667,
+   "requested": 5150000.0,
+   "safe_limit": 3930000.0,
+   "passes_min_at_request": false,
+   "loops_true": 1,
+   "loops_found": 1,
+   "txns": 1189
+  },
+  {
+   "name": "variant_41",
+   "scale": 1.45,
+   "revenue_monthly": 6041666.666666667,
+   "requested": 7250000.0,
+   "safe_limit": 5540000.0,
+   "passes_min_at_request": false,
+   "loops_true": 1,
+   "loops_found": 1,
+   "txns": 1191
+  },
+  {
+   "name": "variant_42",
+   "scale": 1.43,
+   "revenue_monthly": 5958333.333333333,
+   "requested": 7150000.0,
+   "safe_limit": 5280000.0,
+   "passes_min_at_request": false,
+   "loops_true": 4,
+   "loops_found": 4,
+   "txns": 1205
+  },
+  {
+   "name": "variant_43",
+   "scale": 0.68,
+   "revenue_monthly": 2833333.3333333335,
+   "requested": 3400000.0,
+   "safe_limit": 2100000.0,
+   "passes_min_at_request": false,
+   "loops_true": 4,
+   "loops_found": 4,
+   "txns": 1205
+  },
+  {
+   "name": "variant_44",
+   "scale": 1.02,
+   "revenue_monthly": 4250000.0,
+   "requested": 5100000.0,
+   "safe_limit": 4110000.0,
+   "passes_min_at_request": false,
+   "loops_true": 4,
+   "loops_found": 4,
+   "txns": 1205
+  },
+  {
+   "name": "variant_45",
+   "scale": 1.61,
+   "revenue_monthly": 6708333.333333333,
+   "requested": 8050000.0,
+   "safe_limit": 5290000.0,
+   "passes_min_at_request": false,
+   "loops_true": 1,
+   "loops_found": 1,
+   "txns": 1191
+  },
+  {
+   "name": "variant_46",
+   "scale": 0.65,
+   "revenue_monthly": 2708333.3333333335,
+   "requested": 3250000.0,
+   "safe_limit": 2180000.0,
+   "passes_min_at_request": false,
+   "loops_true": 3,
+   "loops_found": 3,
+   "txns": 1199
+  },
+  {
+   "name": "variant_47",
+   "scale": 1.18,
+   "revenue_monthly": 4916666.666666667,
+   "requested": 5900000.0,
+   "safe_limit": 4780000.0,
+   "passes_min_at_request": false,
+   "loops_true": 4,
+   "loops_found": 4,
+   "txns": 1205
+  },
+  {
+   "name": "variant_48",
+   "scale": 1.53,
+   "revenue_monthly": 6375000.0,
+   "requested": 7650000.0,
+   "safe_limit": 6640000.0,
+   "passes_min_at_request": false,
+   "loops_true": 4,
+   "loops_found": 4,
+   "txns": 1205
+  },
+  {
+   "name": "variant_49",
+   "scale": 1.27,
+   "revenue_monthly": 5291666.666666667,
+   "requested": 6350000.0,
+   "safe_limit": 3690000.0,
+   "passes_min_at_request": false,
+   "loops_true": 3,
+   "loops_found": 3,
+   "txns": 1199
+  }
+ ]
+}
