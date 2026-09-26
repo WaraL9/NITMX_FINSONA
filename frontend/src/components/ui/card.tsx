@@ -16,7 +16,7 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export function Card({ accent = "none", className, ...props }: CardProps) {
-  return <div className={cn("rounded-lg border border-line bg-white p-5", accents[accent], className)} {...props} />;
+  return <div className={cn("rounded-lg border border-line bg-panel p-5", accents[accent], className)} {...props} />;
 }
 
 export function CardHeader({ title, subtitle, action }: { title: ReactNode; subtitle?: ReactNode; action?: ReactNode }) {

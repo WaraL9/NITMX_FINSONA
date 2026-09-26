@@ -1,5 +1,5 @@
 import { CheckCircle2, MessageSquareMore, XCircle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge, SourceBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -7,43 +7,54 @@ import { Modal } from "@/components/ui/modal";
 import { Slider } from "@/components/ui/slider";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { Toggle } from "@/components/ui/toggle";
+import { useTheme } from "@/lib/theme";
 
 const swatches = [
-  ["canvas", "#FFFFFF"],
-  ["surface", "#F8FAFC"],
-  ["surface-2", "#F1F5F9"],
-  ["line", "#E2E8F0"],
-  ["ink", "#0F172A"],
-  ["body", "#334155"],
-  ["muted", "#64748B"],
-  ["verified", "#059669"],
-  ["tax", "#2563EB"],
-  ["judge", "#D97706"],
-  ["navy", "#1E3A8A"],
-  ["risk", "#DC2626"],
+  "canvas", "panel", "surface", "surface-2", "line", "ink", "body", "muted",
+  "verified", "tax", "judge", "navy", "risk",
 ] as const;
+
+/** Reads the token's current value, so the gallery reflects the active theme. */
+function useTokenValues(theme: string) {
+  const [values, setValues] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const cs = getComputedStyle(document.documentElement);
+    setValues(Object.fromEntries(swatches.map((n) => [n, cs.getPropertyValue(`--color-${n}`).trim()])));
+  }, [theme]);
+  return values;
+}
 
 /** Living style guide for E0-04. Every UI primitive in one place. */
 export default function DesignSystem() {
   const [open, setOpen] = useState(false);
   const [household, setHousehold] = useState(true);
   const [amount, setAmount] = useState(5.0);
+  const { theme, setTheme } = useTheme();
+  const tokens = useTokenValues(theme);
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-ink">Design system — Clean White</h1>
+        <h1 className="text-2xl font-semibold text-ink">Design system</h1>
         <p className="mt-1 text-sm text-muted">Enterprise Functional Minimalism · ตัวอักษร IBM Plex Sans Thai</p>
+        <div className="mt-3 flex gap-2">
+          <Button size="sm" variant={theme === "dim" ? "primary" : "secondary"} onClick={() => setTheme("dim")}>
+            Dim
+          </Button>
+          <Button size="sm" variant={theme === "light" ? "primary" : "secondary"} onClick={() => setTheme("light")}>
+            Light
+          </Button>
+        </div>
       </div>
 
       <Card>
         <CardHeader title="สี (Tokens)" />
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-          {swatches.map(([name, hex]) => (
+          {swatches.map((name) => (
             <div key={name} className="text-xs">
-              <div className="h-12 rounded-md border border-line" style={{ background: hex }} />
+              <div className="h-12 rounded-md border border-line" style={{ background: `var(--color-${name})` }} />
               <div className="mt-1 font-medium text-ink">{name}</div>
-              <div className="font-mono text-muted">{hex}</div>
+              <div className="font-mono text-muted">{tokens[name]}</div>
             </div>
           ))}
         </div>

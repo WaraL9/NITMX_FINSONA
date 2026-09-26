@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
+import { Moon, Sun } from "lucide-react";
 import { Link, NavLink, Route, Routes } from "react-router-dom";
 import { api, unwrap } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
+import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import CaseList from "@/pages/CaseList";
 import CaseWorkbench from "@/pages/CaseWorkbench";
@@ -24,6 +26,21 @@ function HealthIndicator() {
   );
 }
 
+function ThemeToggle() {
+  const { theme, toggle } = useTheme();
+  const next = theme === "dim" ? "light" : "dim";
+  return (
+    <button
+      onClick={toggle}
+      className="grid size-8 place-items-center rounded-md text-muted hover:bg-surface-2 hover:text-ink"
+      aria-label={`Switch to ${next} theme`}
+      title={`Switch to ${next} theme`}
+    >
+      {theme === "dim" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+    </button>
+  );
+}
+
 function NavItem({ to, children }: { to: string; children: string }) {
   return (
     <NavLink
@@ -41,7 +58,7 @@ function NavItem({ to, children }: { to: string; children: string }) {
 export default function App() {
   return (
     <div className="min-h-screen bg-canvas">
-      <header className="sticky top-0 z-10 border-b border-line bg-white/90 backdrop-blur">
+      <header className="sticky top-0 z-10 border-b border-line bg-panel/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-6 px-6">
           <Link to="/" className="flex items-center gap-2">
             <span className="grid size-7 place-items-center rounded-md bg-navy text-xs font-bold text-white">F</span>
@@ -52,8 +69,9 @@ export default function App() {
             <NavItem to="/">แฟ้มสินเชื่อ</NavItem>
             <NavItem to="/design">Design system</NavItem>
           </nav>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-3">
             <HealthIndicator />
+            <ThemeToggle />
           </div>
         </div>
       </header>

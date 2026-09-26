@@ -1,13 +1,19 @@
 @import "tailwindcss";
 
-/* Clean White design system (ITMX.md, "ข้อกำหนดการออกแบบต้นแบบส่วนหน้า" §1). */
+/*
+ * Design tokens. Two themes share the same token names, so components never
+ * hard-code colours:
+ *   light — Clean White (ITMX.md, "ข้อกำหนดการออกแบบต้นแบบส่วนหน้า" §1)
+ *   dim   — soft dark slate (default): easy on the eyes on a projector, not pitch black
+ */
 @theme {
   --font-sans: "IBM Plex Sans Thai", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
-  --color-canvas: #ffffff;
-  --color-surface: #f8fafc;
-  --color-surface-2: #f1f5f9;
+  --color-canvas: #ffffff; /* page background */
+  --color-panel: #ffffff; /* cards, header, modals */
+  --color-surface: #f8fafc; /* inset areas, table header */
+  --color-surface-2: #f1f5f9; /* hover, chips */
   --color-line: #e2e8f0;
 
   --color-ink: #0f172a;
@@ -29,6 +35,31 @@
   /* Tax-verified tier */
   --color-tax: #2563eb;
   --color-tax-soft: #eff6ff;
+}
+
+:root[data-theme="dim"] {
+  color-scheme: dark;
+
+  --color-canvas: #1c2230;
+  --color-panel: #242b3a;
+  --color-surface: #2a3243;
+  --color-surface-2: #323b4e;
+  --color-line: #3a4458;
+
+  --color-ink: #eef1f7;
+  --color-body: #c9d0dc;
+  --color-muted: #8f9ab0;
+
+  --color-verified: #34d399;
+  --color-verified-soft: #34d3991f;
+  --color-judge: #fbbf24;
+  --color-judge-soft: #fbbf241f;
+  --color-navy: #4f6ef7;
+  --color-navy-hover: #6380f8;
+  --color-risk: #f87171;
+  --color-risk-soft: #f871711f;
+  --color-tax: #60a5fa;
+  --color-tax-soft: #60a5fa1f;
 }
 
 html,

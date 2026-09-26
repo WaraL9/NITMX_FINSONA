@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Finsona AI — Underwriting Workbench</title>
+    <script>
+      // Apply the saved theme before first paint (default: dim). Kept in sync by src/lib/theme.ts.
+      (function () {
+        var t = "dim";
+        try {
+          var s = localStorage.getItem("finsona.theme");
+          if (s === "light" || s === "dim") t = s;
+        } catch (e) {}
+        document.documentElement.dataset.theme = t;
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />

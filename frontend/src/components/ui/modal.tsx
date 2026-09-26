@@ -30,7 +30,7 @@ export function Modal({ open, onClose, title, children, footer, size = "md" }: M
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
       className={cn(
-        "m-auto w-full rounded-xl border border-line bg-white p-0 shadow-xl backdrop:bg-ink/40",
+        "m-auto w-full rounded-xl border border-line bg-panel p-0 shadow-xl backdrop:bg-black/50",
         widths[size],
       )}
     >
