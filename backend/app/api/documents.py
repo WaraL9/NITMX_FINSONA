@@ -44,7 +44,11 @@ async def upload_document(
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ):
-    _require_case(db, case_id)
+    case = _require_case(db, case_id)
+    if user.role == "SME" and case.owner_user_id != user.id:
+        raise HTTPException(404, "case not found")
+    if user.role == "SME" and case.submitted_at is not None:
+        raise HTTPException(409, "application already submitted — documents are locked")
     data = await file.read()
     try:
         result = ingest_document(

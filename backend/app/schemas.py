@@ -476,3 +476,140 @@ class LlmStatusOut(BaseModel):
     provider: str
     model: str
     note: str | None
+
+
+# ---------- field: queries, evidence, RM, SME ----------
+
+class EvidenceOut(BaseModel):
+    id: int
+    filename: str
+    mime: str
+    size: int
+    sha256: str
+    uploaded_by: str | None
+    uploaded_at: datetime
+
+
+class QueryOut(BaseModel):
+    id: int
+    case_id: int
+    transaction_id: int
+    watchlist_item_id: int | None
+    audience: Literal["rm", "sme"]
+    question: str
+    status: Literal["open", "answered", "closed"]
+    created_by: str | None
+    created_at: datetime
+    answer_note: str | None
+    answered_by: str | None
+    answered_at: datetime | None
+    amount: str
+    txn_date: str
+    counterparty: str | None
+    description: str
+    evidence: list[EvidenceOut]
+
+
+class ForwardIn(BaseModel):
+    note: str | None = Field(None, max_length=1000)
+
+
+class GapOut(BaseModel):
+    kind: Literal["data", "evidence", "structure", "risk", "consent", "opportunity"]
+    title: str
+    starter: str
+    impact: str | None
+
+
+class LeadOut(BaseModel):
+    case_id: int
+    company_name: str
+    industry: str
+    requested_amount: MoneyStr
+    status: CaseStatus
+    submission_mode: str
+    contact_phone: str | None
+    score: int
+    group: Literal["ready", "restructure", "needs_data"]
+    reasons: list[str]
+    dscr_at_request: str | None
+    safe_limit: str | None
+    open_queries: int
+
+
+class LeadDetailOut(LeadOut):
+    gaps: list[GapOut]
+    queries: list[QueryOut]
+
+
+class IndustryOut(BaseModel):
+    key: str
+    label: str
+
+
+class PrequalIn(BaseModel):
+    requested_amount: MoneyStr = Field(gt=0, le=Decimal("100000000"))
+    industry: str
+    monthly_revenue: MoneyStr = Field(gt=0)
+    existing_debt_monthly: MoneyStr = Field(Decimal("0"), ge=0)
+    annual_rate: DecimalStr = Field(Decimal("0.07"), ge=0, lt=1)
+    tenor_months: int = Field(12, gt=0, le=120)
+
+
+class PrequalOut(BaseModel):
+    result: Literal["high", "conditional", "mismatch"]
+    indicative_cfo: MoneyStr
+    dscr: str | None
+    safe_limit: MoneyStr
+    reasons: list[str]
+    unlocks: list[str]
+    disclaimer: str
+
+
+class ConsentState(BaseModel):
+    purpose: str
+    label: str
+    granted: bool
+    recorded_at: datetime | None
+
+
+class ApplicationIn(BaseModel):
+    company_name: str = Field(min_length=2, max_length=200)
+    tax_id: str = Field(pattern=r"^\d{13}$")
+    industry: str
+    business_age_years: int = Field(ge=0, le=200)
+    requested_amount: MoneyStr = Field(gt=0, le=Decimal("100000000"))
+    purpose: str = Field(min_length=2, max_length=300)
+    tenor_months: int = Field(12, gt=0, le=120)
+    mode: Literal["fast_track", "rm_assisted"]
+    contact_phone: str = Field(pattern=r"^[0-9+\- ]{9,20}$")
+    consents: dict[str, bool]
+
+
+class TrackerStage(BaseModel):
+    key: str
+    label: str
+    status: Literal["done", "current", "todo"]
+
+
+class TrackerOut(BaseModel):
+    stages: list[TrackerStage]
+    sla_due: str | None
+    sla_hours_left: float | None
+    outcome: dict | None
+
+
+class ApplicationOut(BaseModel):
+    case_id: int
+    company_name: str
+    industry: str
+    requested_amount: MoneyStr
+    purpose: str
+    tenor_months: int
+    status: CaseStatus
+    submission_mode: str
+    submitted_at: datetime | None
+    documents: int
+    tracker: TrackerOut
+    consents: list[ConsentState]
+    questions: list[QueryOut]

@@ -84,6 +84,10 @@ def decide(case_id: int, item_id: int, body: DecisionIn, request: Request, db: S
     item.decided_by = user.id
     item.decided_at = datetime.now(timezone.utc)
     t = db.get(Transaction, item.transaction_id)
+    if body.action == "query_rm":
+        from app.services import queries as qsvc
+
+        qsvc.create_from_watchlist(db, item, user, item.reason)
     audit.log(db, "watchlist_decision", case_id=case_id, user_id=user.id, ip=client_ip(request),
               target_type="transaction", target_id=t.id, before=before,
               after={"status": new_status, "amount": f"{t.credit:.2f}", "date": t.posted_at.date().isoformat()},

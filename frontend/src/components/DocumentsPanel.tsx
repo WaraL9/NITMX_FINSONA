@@ -207,6 +207,7 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
       qc.invalidateQueries({ queryKey: ["case", caseId] });
       qc.invalidateQueries({ queryKey: ["transactions", caseId] });
       qc.invalidateQueries({ queryKey: ["analysis", caseId] });
+      qc.invalidateQueries({ queryKey: ["sme-app", caseId] });
     },
     onError: (err, { file }) => {
       if (err instanceof UploadError && err.body.code === "password_required") {

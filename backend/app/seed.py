@@ -12,6 +12,9 @@ import argparse
 from app.db import Base, SessionLocal, create_all, engine
 from app.models import Account, Case, Transaction, User
 from app.scenario import load_scenario
+from datetime import datetime, timedelta, timezone
+
+from app.services import consent
 from app.services.analysis import run_analysis
 from app.services.ingest import ingest_document
 from app.synth.build import build_case
@@ -57,6 +60,13 @@ def seed(reset: bool = True) -> int:
             ],
         )
         db.add(case)
+        db.flush()
+        users = {u.role: u for u in db.query(User)}
+        case.owner_user_id, case.rm_user_id = users["SME"].id, users["RM"].id
+        # Submitted "yesterday" relative to seeding, so the 48h SLA countdown is live in the demo.
+        case.submitted_at = datetime.now(timezone.utc) - timedelta(hours=20)
+        case.contact_phone = "081-234-5678"
+        consent.record(db, case.id, {p: True for p in consent.PURPOSES}, users["SME"].id)
         db.commit()
         for built in build_case("kitti"):
             ingest_document(db, case.id, built.path.read_bytes(), built.path.name, kind=built.kind,

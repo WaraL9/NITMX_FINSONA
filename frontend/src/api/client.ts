@@ -88,3 +88,26 @@ export function errorMessage(err: unknown): string {
 export type MemoPackage = components["schemas"]["MemoPackageOut"];
 export type Driver = components["schemas"]["DriverOut"];
 export type SignBody = components["schemas"]["SignIn"];
+export type QueryItem = components["schemas"]["QueryOut"];
+export type Lead = components["schemas"]["LeadOut"];
+export type LeadDetail = components["schemas"]["LeadDetailOut"];
+export type Prequal = components["schemas"]["PrequalOut"];
+export type Application = components["schemas"]["ApplicationOut"];
+export type ApplicationBody = components["schemas"]["ApplicationIn"];
+
+/** Answer a pinpoint question with a note and photos (multipart). */
+export async function answerQuery(queryId: number, note: string, files: File[]): Promise<QueryItem> {
+  const form = new FormData();
+  form.append("note", note);
+  for (const f of files) form.append("files", f);
+  const res = await fetch(`/api/queries/${queryId}/answer`, {
+    method: "POST",
+    body: form,
+    headers: { "X-User-Id": String(getUserId()) },
+  });
+  const body = await res.json().catch(() => ({ detail: res.statusText }));
+  if (!res.ok) throw new Error(typeof body.detail === "string" ? body.detail : "ส่งคำตอบไม่สำเร็จ");
+  return body as QueryItem;
+}
+
+export const evidenceUrl = (id: number) => `/api/evidence/${id}/file`;

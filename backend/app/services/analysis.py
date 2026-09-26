@@ -35,7 +35,7 @@ from app.models import (
 
 # Bank credit policy (E6-08 makes this editable per product).
 DEFAULT_POLICY = Policy()
-from app.services import audit
+from app.services import audit, consent
 
 
 class AnalysisError(Exception):
@@ -45,10 +45,15 @@ class AnalysisError(Exception):
 def sync_promptbiz(db: Session, case: Case) -> dict:
     """Pull the seller's e-invoices through the PromptBiz connector (sandbox today)."""
     source = get_invoice_source()
+    grant = consent.has(db, case.id, "promptbiz_data")
+    if grant is None:
+        # No consent: never fetch, and drop anything fetched under an earlier grant.
+        db.execute(delete(Invoice).where(Invoice.case_id == case.id, Invoice.source.like("promptbiz_%")))
+        return {"source": source.name, "mode": source.mode, "fetched": 0, "consent": False,
+                "note": "ไม่มีความยินยอมให้ดึงข้อมูล PromptBiz"}
     if not case.tax_id:
         return {"source": source.name, "mode": source.mode, "fetched": 0, "note": "case has no tax ID"}
-    # Consent capture is E14-02; until then the case id stands in as the consent reference.
-    records = source.fetch_invoices(case.tax_id, consent_token=f"case-{case.id}")
+    records = source.fetch_invoices(case.tax_id, consent_token=f"consent-{grant.id}")
     db.execute(delete(Invoice).where(Invoice.case_id == case.id, Invoice.source.like("promptbiz_%")))
     db.add_all(Invoice(
         case_id=case.id, source=f"promptbiz_{source.mode}", invoice_no=r.invoice_no, issue_date=r.issue_date,
@@ -57,15 +62,20 @@ def sync_promptbiz(db: Session, case: Case) -> dict:
         paid_at=r.paid_at, settlement_ref=r.settlement_ref,
     ) for r in records)
     db.flush()
-    return {"source": source.name, "mode": source.mode, "fetched": len(records)}
+    return {"source": source.name, "mode": source.mode, "fetched": len(records), "consent": True}
 
 
 def sync_alt_data(db: Session, case: Case) -> dict:
     """Pull utility & rent payment history through the utility connector (sandbox today)."""
     source = get_utility_source()
+    grant = consent.has(db, case.id, "utility_data")
+    if grant is None:
+        db.execute(delete(AltDataRecord).where(AltDataRecord.case_id == case.id))
+        return {"source": source.name, "mode": source.mode, "fetched": 0, "consent": False,
+                "note": "ไม่มีความยินยอมให้ดึงประวัติค่าสาธารณูปโภค/ค่าเช่า"}
     if not case.tax_id:
         return {"source": source.name, "mode": source.mode, "fetched": 0, "note": "case has no tax ID"}
-    bills = source.fetch_bills(case.tax_id, consent_token=f"case-{case.id}", scenario=case.sandbox_alt_scenario)
+    bills = source.fetch_bills(case.tax_id, consent_token=f"consent-{grant.id}", scenario=case.sandbox_alt_scenario)
     db.execute(delete(AltDataRecord).where(AltDataRecord.case_id == case.id))
     db.add_all(AltDataRecord(
         case_id=case.id, kind=b["kind"], period=b["period"], due_date=date.fromisoformat(b["due_date"]),

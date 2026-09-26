@@ -451,6 +451,228 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/queries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Case Queries */
+        get: operations["case_queries_api_cases__case_id__queries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/queries/{query_id}/forward": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Forward */
+        post: operations["forward_api_queries__query_id__forward_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/queries/{query_id}/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Answer */
+        post: operations["answer_api_queries__query_id__answer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/evidence/{evidence_id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Evidence File */
+        get: operations["evidence_file_api_evidence__evidence_id__file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rm/leads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Leads */
+        get: operations["leads_api_rm_leads_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rm/leads/{case_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lead Detail */
+        get: operations["lead_detail_api_rm_leads__case_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rm/queries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rm Inbox */
+        get: operations["rm_inbox_api_rm_queries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sme/industries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Industries */
+        get: operations["industries_api_sme_industries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sme/prequal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Prequal */
+        post: operations["prequal_api_sme_prequal_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sme/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Applications */
+        get: operations["my_applications_api_sme_applications_get"];
+        put?: never;
+        /** Create Application */
+        post: operations["create_application_api_sme_applications_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sme/applications/{case_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Application */
+        get: operations["my_application_api_sme_applications__case_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sme/applications/{case_id}/consents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Consents */
+        put: operations["update_consents_api_sme_applications__case_id__consents_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sme/applications/{case_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit */
+        post: operations["submit_api_sme_applications__case_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sandbox/utility/v1/customers/{tax_id}/bills": {
         parameters: {
             query?: never;
@@ -638,6 +860,68 @@ export interface components {
             /** Existing Document Id */
             existing_document_id?: number | null;
         };
+        /** ApplicationIn */
+        ApplicationIn: {
+            /** Company Name */
+            company_name: string;
+            /** Tax Id */
+            tax_id: string;
+            /** Industry */
+            industry: string;
+            /** Business Age Years */
+            business_age_years: number;
+            /** Requested Amount */
+            requested_amount: number | string;
+            /** Purpose */
+            purpose: string;
+            /**
+             * Tenor Months
+             * @default 12
+             */
+            tenor_months: number;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "fast_track" | "rm_assisted";
+            /** Contact Phone */
+            contact_phone: string;
+            /** Consents */
+            consents: {
+                [key: string]: boolean;
+            };
+        };
+        /** ApplicationOut */
+        ApplicationOut: {
+            /** Case Id */
+            case_id: number;
+            /** Company Name */
+            company_name: string;
+            /** Industry */
+            industry: string;
+            /** Requested Amount */
+            requested_amount: string;
+            /** Purpose */
+            purpose: string;
+            /** Tenor Months */
+            tenor_months: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "processing" | "in_review" | "decided";
+            /** Submission Mode */
+            submission_mode: string;
+            /** Submitted At */
+            submitted_at: string | null;
+            /** Documents */
+            documents: number;
+            tracker: components["schemas"]["TrackerOut"];
+            /** Consents */
+            consents: components["schemas"]["ConsentState"][];
+            /** Questions */
+            questions: components["schemas"]["QueryOut"][];
+        };
         /** AuditEntryOut */
         AuditEntryOut: {
             /** Id */
@@ -675,6 +959,19 @@ export interface components {
             prev_hash: string;
             /** Hash */
             hash: string;
+        };
+        /** Body_answer_api_queries__query_id__answer_post */
+        Body_answer_api_queries__query_id__answer_post: {
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Files
+             * @default []
+             */
+            files: string[];
         };
         /** Body_upload_document_api_cases__case_id__documents_post */
         Body_upload_document_api_cases__case_id__documents_post: {
@@ -818,6 +1115,17 @@ export interface components {
             /** Detail */
             detail: string | null;
         };
+        /** ConsentState */
+        ConsentState: {
+            /** Purpose */
+            purpose: string;
+            /** Label */
+            label: string;
+            /** Granted */
+            granted: boolean;
+            /** Recorded At */
+            recorded_at: string | null;
+        };
         /** DecisionIn */
         DecisionIn: {
             /**
@@ -894,6 +1202,45 @@ export interface components {
             /** Metric */
             metric: string | null;
         };
+        /** EvidenceOut */
+        EvidenceOut: {
+            /** Id */
+            id: number;
+            /** Filename */
+            filename: string;
+            /** Mime */
+            mime: string;
+            /** Size */
+            size: number;
+            /** Sha256 */
+            sha256: string;
+            /** Uploaded By */
+            uploaded_by: string | null;
+            /**
+             * Uploaded At
+             * Format: date-time
+             */
+            uploaded_at: string;
+        };
+        /** ForwardIn */
+        ForwardIn: {
+            /** Note */
+            note?: string | null;
+        };
+        /** GapOut */
+        GapOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "data" | "evidence" | "structure" | "risk" | "consent" | "opportunity";
+            /** Title */
+            title: string;
+            /** Starter */
+            starter: string;
+            /** Impact */
+            impact: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -914,6 +1261,87 @@ export interface components {
             live_ocr: boolean;
             /** Live Llm */
             live_llm: boolean;
+        };
+        /** IndustryOut */
+        IndustryOut: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+        };
+        /** LeadDetailOut */
+        LeadDetailOut: {
+            /** Case Id */
+            case_id: number;
+            /** Company Name */
+            company_name: string;
+            /** Industry */
+            industry: string;
+            /** Requested Amount */
+            requested_amount: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "processing" | "in_review" | "decided";
+            /** Submission Mode */
+            submission_mode: string;
+            /** Contact Phone */
+            contact_phone: string | null;
+            /** Score */
+            score: number;
+            /**
+             * Group
+             * @enum {string}
+             */
+            group: "ready" | "restructure" | "needs_data";
+            /** Reasons */
+            reasons: string[];
+            /** Dscr At Request */
+            dscr_at_request: string | null;
+            /** Safe Limit */
+            safe_limit: string | null;
+            /** Open Queries */
+            open_queries: number;
+            /** Gaps */
+            gaps: components["schemas"]["GapOut"][];
+            /** Queries */
+            queries: components["schemas"]["QueryOut"][];
+        };
+        /** LeadOut */
+        LeadOut: {
+            /** Case Id */
+            case_id: number;
+            /** Company Name */
+            company_name: string;
+            /** Industry */
+            industry: string;
+            /** Requested Amount */
+            requested_amount: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "processing" | "in_review" | "decided";
+            /** Submission Mode */
+            submission_mode: string;
+            /** Contact Phone */
+            contact_phone: string | null;
+            /** Score */
+            score: number;
+            /**
+             * Group
+             * @enum {string}
+             */
+            group: "ready" | "restructure" | "needs_data";
+            /** Reasons */
+            reasons: string[];
+            /** Dscr At Request */
+            dscr_at_request: string | null;
+            /** Safe Limit */
+            safe_limit: string | null;
+            /** Open Queries */
+            open_queries: number;
         };
         /** LineageOut */
         LineageOut: {
@@ -1187,6 +1615,96 @@ export interface components {
             /** Max Dsr */
             max_dsr: string;
         };
+        /** PrequalIn */
+        PrequalIn: {
+            /** Requested Amount */
+            requested_amount: number | string;
+            /** Industry */
+            industry: string;
+            /** Monthly Revenue */
+            monthly_revenue: number | string;
+            /**
+             * Existing Debt Monthly
+             * @default 0
+             */
+            existing_debt_monthly: number | string;
+            /**
+             * Annual Rate
+             * @default 0.07
+             */
+            annual_rate: number | string;
+            /**
+             * Tenor Months
+             * @default 12
+             */
+            tenor_months: number;
+        };
+        /** PrequalOut */
+        PrequalOut: {
+            /**
+             * Result
+             * @enum {string}
+             */
+            result: "high" | "conditional" | "mismatch";
+            /** Indicative Cfo */
+            indicative_cfo: string;
+            /** Dscr */
+            dscr: string | null;
+            /** Safe Limit */
+            safe_limit: string;
+            /** Reasons */
+            reasons: string[];
+            /** Unlocks */
+            unlocks: string[];
+            /** Disclaimer */
+            disclaimer: string;
+        };
+        /** QueryOut */
+        QueryOut: {
+            /** Id */
+            id: number;
+            /** Case Id */
+            case_id: number;
+            /** Transaction Id */
+            transaction_id: number;
+            /** Watchlist Item Id */
+            watchlist_item_id: number | null;
+            /**
+             * Audience
+             * @enum {string}
+             */
+            audience: "rm" | "sme";
+            /** Question */
+            question: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "answered" | "closed";
+            /** Created By */
+            created_by: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Answer Note */
+            answer_note: string | null;
+            /** Answered By */
+            answered_by: string | null;
+            /** Answered At */
+            answered_at: string | null;
+            /** Amount */
+            amount: string;
+            /** Txn Date */
+            txn_date: string;
+            /** Counterparty */
+            counterparty: string | null;
+            /** Description */
+            description: string;
+            /** Evidence */
+            evidence: components["schemas"]["EvidenceOut"][];
+        };
         /** ReasonIn */
         ReasonIn: {
             /** Reason */
@@ -1275,6 +1793,31 @@ export interface components {
             T3_operational: string;
             /** T4 Unverified */
             T4_unverified: string;
+        };
+        /** TrackerOut */
+        TrackerOut: {
+            /** Stages */
+            stages: components["schemas"]["TrackerStage"][];
+            /** Sla Due */
+            sla_due: string | null;
+            /** Sla Hours Left */
+            sla_hours_left: number | null;
+            /** Outcome */
+            outcome: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** TrackerStage */
+        TrackerStage: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "done" | "current" | "todo";
         };
         /** TransactionOut */
         TransactionOut: {
@@ -2338,6 +2881,463 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LlmStatusOut"];
+                };
+            };
+        };
+    };
+    case_queries_api_cases__case_id__queries_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueryOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    forward_api_queries__query_id__forward_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path: {
+                query_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForwardIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    answer_api_queries__query_id__answer_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path: {
+                query_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_answer_api_queries__query_id__answer_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    evidence_file_api_evidence__evidence_id__file_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path: {
+                evidence_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    leads_api_rm_leads_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lead_detail_api_rm_leads__case_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeadDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rm_inbox_api_rm_queries_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueryOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    industries_api_sme_industries_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IndustryOut"][];
+                };
+            };
+        };
+    };
+    prequal_api_sme_prequal_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrequalIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrequalOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_applications_api_sme_applications_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_application_api_sme_applications_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_application_api_sme_applications__case_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_consents_api_sme_applications__case_id__consents_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_api_sme_applications__case_id__submit_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

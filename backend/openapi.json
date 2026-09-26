@@ -1639,6 +1639,782 @@
         }
       }
     },
+    "/api/cases/{case_id}/queries": {
+      "get": {
+        "tags": [
+          "field"
+        ],
+        "summary": "Case Queries",
+        "operationId": "case_queries_api_cases__case_id__queries_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QueryOut"
+                  },
+                  "title": "Response Case Queries Api Cases  Case Id  Queries Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/queries/{query_id}/forward": {
+      "post": {
+        "tags": [
+          "field"
+        ],
+        "summary": "Forward",
+        "operationId": "forward_api_queries__query_id__forward_post",
+        "parameters": [
+          {
+            "name": "query_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Query Id"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForwardIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/queries/{query_id}/answer": {
+      "post": {
+        "tags": [
+          "field"
+        ],
+        "summary": "Answer",
+        "operationId": "answer_api_queries__query_id__answer_post",
+        "parameters": [
+          {
+            "name": "query_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Query Id"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_answer_api_queries__query_id__answer_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/evidence/{evidence_id}/file": {
+      "get": {
+        "tags": [
+          "field"
+        ],
+        "summary": "Evidence File",
+        "operationId": "evidence_file_api_evidence__evidence_id__file_get",
+        "parameters": [
+          {
+            "name": "evidence_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Evidence Id"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rm/leads": {
+      "get": {
+        "tags": [
+          "field"
+        ],
+        "summary": "Leads",
+        "operationId": "leads_api_rm_leads_get",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LeadOut"
+                  },
+                  "title": "Response Leads Api Rm Leads Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rm/leads/{case_id}": {
+      "get": {
+        "tags": [
+          "field"
+        ],
+        "summary": "Lead Detail",
+        "operationId": "lead_detail_api_rm_leads__case_id__get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadDetailOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rm/queries": {
+      "get": {
+        "tags": [
+          "field"
+        ],
+        "summary": "Rm Inbox",
+        "operationId": "rm_inbox_api_rm_queries_get",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QueryOut"
+                  },
+                  "title": "Response Rm Inbox Api Rm Queries Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sme/industries": {
+      "get": {
+        "tags": [
+          "field"
+        ],
+        "summary": "Industries",
+        "operationId": "industries_api_sme_industries_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IndustryOut"
+                  },
+                  "type": "array",
+                  "title": "Response Industries Api Sme Industries Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sme/prequal": {
+      "post": {
+        "tags": [
+          "field"
+        ],
+        "summary": "Prequal",
+        "operationId": "prequal_api_sme_prequal_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrequalIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrequalOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sme/applications": {
+      "get": {
+        "tags": [
+          "field"
+        ],
+        "summary": "My Applications",
+        "operationId": "my_applications_api_sme_applications_get",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApplicationOut"
+                  },
+                  "title": "Response My Applications Api Sme Applications Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "field"
+        ],
+        "summary": "Create Application",
+        "operationId": "create_application_api_sme_applications_post",
+        "parameters": [
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sme/applications/{case_id}": {
+      "get": {
+        "tags": [
+          "field"
+        ],
+        "summary": "My Application",
+        "operationId": "my_application_api_sme_applications__case_id__get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sme/applications/{case_id}/consents": {
+      "put": {
+        "tags": [
+          "field"
+        ],
+        "summary": "Update Consents",
+        "operationId": "update_consents_api_sme_applications__case_id__consents_put",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "boolean"
+                },
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sme/applications/{case_id}/submit": {
+      "post": {
+        "tags": [
+          "field"
+        ],
+        "summary": "Submit",
+        "operationId": "submit_api_sme_applications__case_id__submit_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/sandbox/utility/v1/customers/{tax_id}/bills": {
       "get": {
         "tags": [
@@ -2147,6 +2923,183 @@
         ],
         "title": "ApiError"
       },
+      "ApplicationIn": {
+        "properties": {
+          "company_name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Company Name"
+          },
+          "tax_id": {
+            "type": "string",
+            "pattern": "^\\d{13}$",
+            "title": "Tax Id"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry"
+          },
+          "business_age_years": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 0.0,
+            "title": "Business Age Years"
+          },
+          "requested_amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100000000.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Requested Amount"
+          },
+          "purpose": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 2,
+            "title": "Purpose"
+          },
+          "tenor_months": {
+            "type": "integer",
+            "maximum": 120.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Tenor Months",
+            "default": 12
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "fast_track",
+              "rm_assisted"
+            ],
+            "title": "Mode"
+          },
+          "contact_phone": {
+            "type": "string",
+            "pattern": "^[0-9+\\- ]{9,20}$",
+            "title": "Contact Phone"
+          },
+          "consents": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object",
+            "title": "Consents"
+          }
+        },
+        "type": "object",
+        "required": [
+          "company_name",
+          "tax_id",
+          "industry",
+          "business_age_years",
+          "requested_amount",
+          "purpose",
+          "mode",
+          "contact_phone",
+          "consents"
+        ],
+        "title": "ApplicationIn"
+      },
+      "ApplicationOut": {
+        "properties": {
+          "case_id": {
+            "type": "integer",
+            "title": "Case Id"
+          },
+          "company_name": {
+            "type": "string",
+            "title": "Company Name"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry"
+          },
+          "requested_amount": {
+            "type": "string",
+            "title": "Requested Amount"
+          },
+          "purpose": {
+            "type": "string",
+            "title": "Purpose"
+          },
+          "tenor_months": {
+            "type": "integer",
+            "title": "Tenor Months"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "processing",
+              "in_review",
+              "decided"
+            ],
+            "title": "Status"
+          },
+          "submission_mode": {
+            "type": "string",
+            "title": "Submission Mode"
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At"
+          },
+          "documents": {
+            "type": "integer",
+            "title": "Documents"
+          },
+          "tracker": {
+            "$ref": "#/components/schemas/TrackerOut"
+          },
+          "consents": {
+            "items": {
+              "$ref": "#/components/schemas/ConsentState"
+            },
+            "type": "array",
+            "title": "Consents"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/QueryOut"
+            },
+            "type": "array",
+            "title": "Questions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id",
+          "company_name",
+          "industry",
+          "requested_amount",
+          "purpose",
+          "tenor_months",
+          "status",
+          "submission_mode",
+          "submitted_at",
+          "documents",
+          "tracker",
+          "consents",
+          "questions"
+        ],
+        "title": "ApplicationOut"
+      },
       "AuditEntryOut": {
         "properties": {
           "id": {
@@ -2289,6 +3242,26 @@
           "hash"
         ],
         "title": "AuditEntryOut"
+      },
+      "Body_answer_api_queries__query_id__answer_post": {
+        "properties": {
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "default": ""
+          },
+          "files": {
+            "items": {
+              "type": "string",
+              "format": "binary"
+            },
+            "type": "array",
+            "title": "Files",
+            "default": []
+          }
+        },
+        "type": "object",
+        "title": "Body_answer_api_queries__query_id__answer_post"
       },
       "Body_upload_document_api_cases__case_id__documents_post": {
         "properties": {
@@ -2705,6 +3678,42 @@
         ],
         "title": "ChainStatusOut"
       },
+      "ConsentState": {
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "title": "Purpose"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "granted": {
+            "type": "boolean",
+            "title": "Granted"
+          },
+          "recorded_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorded At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "purpose",
+          "label",
+          "granted",
+          "recorded_at"
+        ],
+        "title": "ConsentState"
+      },
       "DecisionIn": {
         "properties": {
           "action": {
@@ -2909,6 +3918,118 @@
         ],
         "title": "DriverOut"
       },
+      "EvidenceOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "mime": {
+            "type": "string",
+            "title": "Mime"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "uploaded_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uploaded By"
+          },
+          "uploaded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Uploaded At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "filename",
+          "mime",
+          "size",
+          "sha256",
+          "uploaded_by",
+          "uploaded_at"
+        ],
+        "title": "EvidenceOut"
+      },
+      "ForwardIn": {
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "title": "ForwardIn"
+      },
+      "GapOut": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "data",
+              "evidence",
+              "structure",
+              "risk",
+              "consent",
+              "opportunity"
+            ],
+            "title": "Kind"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "starter": {
+            "type": "string",
+            "title": "Starter"
+          },
+          "impact": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impact"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "title",
+          "starter",
+          "impact"
+        ],
+        "title": "GapOut"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -2955,6 +4076,256 @@
           "live_llm"
         ],
         "title": "Health"
+      },
+      "IndustryOut": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label"
+        ],
+        "title": "IndustryOut"
+      },
+      "LeadDetailOut": {
+        "properties": {
+          "case_id": {
+            "type": "integer",
+            "title": "Case Id"
+          },
+          "company_name": {
+            "type": "string",
+            "title": "Company Name"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry"
+          },
+          "requested_amount": {
+            "type": "string",
+            "title": "Requested Amount"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "processing",
+              "in_review",
+              "decided"
+            ],
+            "title": "Status"
+          },
+          "submission_mode": {
+            "type": "string",
+            "title": "Submission Mode"
+          },
+          "contact_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Phone"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "group": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "restructure",
+              "needs_data"
+            ],
+            "title": "Group"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "dscr_at_request": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dscr At Request"
+          },
+          "safe_limit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safe Limit"
+          },
+          "open_queries": {
+            "type": "integer",
+            "title": "Open Queries"
+          },
+          "gaps": {
+            "items": {
+              "$ref": "#/components/schemas/GapOut"
+            },
+            "type": "array",
+            "title": "Gaps"
+          },
+          "queries": {
+            "items": {
+              "$ref": "#/components/schemas/QueryOut"
+            },
+            "type": "array",
+            "title": "Queries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id",
+          "company_name",
+          "industry",
+          "requested_amount",
+          "status",
+          "submission_mode",
+          "contact_phone",
+          "score",
+          "group",
+          "reasons",
+          "dscr_at_request",
+          "safe_limit",
+          "open_queries",
+          "gaps",
+          "queries"
+        ],
+        "title": "LeadDetailOut"
+      },
+      "LeadOut": {
+        "properties": {
+          "case_id": {
+            "type": "integer",
+            "title": "Case Id"
+          },
+          "company_name": {
+            "type": "string",
+            "title": "Company Name"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry"
+          },
+          "requested_amount": {
+            "type": "string",
+            "title": "Requested Amount"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "processing",
+              "in_review",
+              "decided"
+            ],
+            "title": "Status"
+          },
+          "submission_mode": {
+            "type": "string",
+            "title": "Submission Mode"
+          },
+          "contact_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Phone"
+          },
+          "score": {
+            "type": "integer",
+            "title": "Score"
+          },
+          "group": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "restructure",
+              "needs_data"
+            ],
+            "title": "Group"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "dscr_at_request": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dscr At Request"
+          },
+          "safe_limit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safe Limit"
+          },
+          "open_queries": {
+            "type": "integer",
+            "title": "Open Queries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id",
+          "company_name",
+          "industry",
+          "requested_amount",
+          "status",
+          "submission_mode",
+          "contact_phone",
+          "score",
+          "group",
+          "reasons",
+          "dscr_at_request",
+          "safe_limit",
+          "open_queries"
+        ],
+        "title": "LeadOut"
       },
       "LineageOut": {
         "properties": {
@@ -3837,6 +5208,294 @@
         ],
         "title": "PolicyOut"
       },
+      "PrequalIn": {
+        "properties": {
+          "requested_amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100000000.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Requested Amount"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry"
+          },
+          "monthly_revenue": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Monthly Revenue"
+          },
+          "existing_debt_monthly": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Existing Debt Monthly",
+            "default": "0"
+          },
+          "annual_rate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMaximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Annual Rate",
+            "default": "0.07"
+          },
+          "tenor_months": {
+            "type": "integer",
+            "maximum": 120.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Tenor Months",
+            "default": 12
+          }
+        },
+        "type": "object",
+        "required": [
+          "requested_amount",
+          "industry",
+          "monthly_revenue"
+        ],
+        "title": "PrequalIn"
+      },
+      "PrequalOut": {
+        "properties": {
+          "result": {
+            "type": "string",
+            "enum": [
+              "high",
+              "conditional",
+              "mismatch"
+            ],
+            "title": "Result"
+          },
+          "indicative_cfo": {
+            "type": "string",
+            "title": "Indicative Cfo"
+          },
+          "dscr": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dscr"
+          },
+          "safe_limit": {
+            "type": "string",
+            "title": "Safe Limit"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "unlocks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unlocks"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "result",
+          "indicative_cfo",
+          "dscr",
+          "safe_limit",
+          "reasons",
+          "unlocks",
+          "disclaimer"
+        ],
+        "title": "PrequalOut"
+      },
+      "QueryOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "case_id": {
+            "type": "integer",
+            "title": "Case Id"
+          },
+          "transaction_id": {
+            "type": "integer",
+            "title": "Transaction Id"
+          },
+          "watchlist_item_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Watchlist Item Id"
+          },
+          "audience": {
+            "type": "string",
+            "enum": [
+              "rm",
+              "sme"
+            ],
+            "title": "Audience"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "answered",
+              "closed"
+            ],
+            "title": "Status"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "answer_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer Note"
+          },
+          "answered_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answered By"
+          },
+          "answered_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answered At"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          },
+          "txn_date": {
+            "type": "string",
+            "title": "Txn Date"
+          },
+          "counterparty": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counterparty"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceOut"
+            },
+            "type": "array",
+            "title": "Evidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "case_id",
+          "transaction_id",
+          "watchlist_item_id",
+          "audience",
+          "question",
+          "status",
+          "created_by",
+          "created_at",
+          "answer_note",
+          "answered_by",
+          "answered_at",
+          "amount",
+          "txn_date",
+          "counterparty",
+          "description",
+          "evidence"
+        ],
+        "title": "QueryOut"
+      },
       "ReasonIn": {
         "properties": {
           "reason": {
@@ -4093,6 +5752,87 @@
           "T4_unverified"
         ],
         "title": "Tiers"
+      },
+      "TrackerOut": {
+        "properties": {
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/TrackerStage"
+            },
+            "type": "array",
+            "title": "Stages"
+          },
+          "sla_due": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sla Due"
+          },
+          "sla_hours_left": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sla Hours Left"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          }
+        },
+        "type": "object",
+        "required": [
+          "stages",
+          "sla_due",
+          "sla_hours_left",
+          "outcome"
+        ],
+        "title": "TrackerOut"
+      },
+      "TrackerStage": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "done",
+              "current",
+              "todo"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "status"
+        ],
+        "title": "TrackerStage"
       },
       "TransactionOut": {
         "properties": {

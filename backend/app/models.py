@@ -50,6 +50,12 @@ class Case(Base):
     period_end: Mapped[date | None] = mapped_column(Date)
     # Sandbox-only what-if for the utility connector (demo control; never on live data).
     sandbox_alt_scenario: Mapped[str] = mapped_column(String(32), default="clean")
+    # Who owns and serves the application (E12/E13).
+    owner_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    rm_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    submission_mode: Mapped[str] = mapped_column(String(16), default="fast_track")  # fast_track | rm_assisted | branch
+    contact_phone: Mapped[str | None] = mapped_column(String(32))
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     accounts: Mapped[list["Account"]] = relationship(back_populates="case", cascade="all, delete-orphan")
@@ -277,3 +283,51 @@ class CreditMemo(Base):
     pdf_sha256: Mapped[str | None] = mapped_column(String(64))
     audit_head: Mapped[str | None] = mapped_column(String(64))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class Consent(Base):
+    """Purpose-bound PDPA consent (E13-03, E14-02). Connectors refuse without a live grant."""
+
+    __tablename__ = "consents"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), index=True)
+    purpose: Mapped[str] = mapped_column(String(32))  # credit_assessment | promptbiz_data | utility_data
+    granted: Mapped[bool] = mapped_column(default=True)
+    version: Mapped[str] = mapped_column(String(16), default="v1")
+    recorded_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Query(Base):
+    """A pinpoint question about one transaction (E12-04). CA -> RM, optionally forwarded to the SME."""
+
+    __tablename__ = "queries"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), index=True)
+    transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id", ondelete="CASCADE"))
+    watchlist_item_id: Mapped[int | None] = mapped_column(ForeignKey("watchlist.id", ondelete="SET NULL"))
+    audience: Mapped[str] = mapped_column(String(8), default="rm")  # rm | sme
+    question: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(12), default="open")  # open | answered | closed
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    answer_note: Mapped[str | None] = mapped_column(Text)
+    answered_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Evidence(Base):
+    """Photo/file evidence attached to a query or transaction (E12-05, E10-05)."""
+
+    __tablename__ = "evidence"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), index=True)
+    query_id: Mapped[int | None] = mapped_column(ForeignKey("queries.id", ondelete="SET NULL"))
+    transaction_id: Mapped[int | None] = mapped_column(ForeignKey("transactions.id", ondelete="SET NULL"))
+    filename: Mapped[str] = mapped_column(String(255))
+    mime: Mapped[str] = mapped_column(String(100))
+    size: Mapped[int] = mapped_column(Integer)
+    sha256: Mapped[str] = mapped_column(String(64))
+    storage_path: Mapped[str] = mapped_column(String(500))
+    uploaded_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

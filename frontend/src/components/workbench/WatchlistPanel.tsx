@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Loader2, MessageSquareMore, RotateCcw, ShieldAlert, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api, errorMessage, unwrap, type WatchlistAction, type WatchlistEntry } from "@/api/client";
+import { QueryCard } from "@/components/field/QueryCard";
 import { TxnLineage } from "@/components/lineage/LineageDrawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,7 @@ function Detail({ caseId, item, onDone }: { caseId: number; item: WatchlistEntry
       qc.invalidateQueries({ queryKey: ["transactions", caseId] });
       qc.invalidateQueries({ queryKey: ["audit", caseId] });
       qc.invalidateQueries({ queryKey: ["memo", caseId] });
+      qc.invalidateQueries({ queryKey: ["queries", caseId] });
       const amt = formatTHB(item.transaction.credit, 0);
       const moved = before && before !== after ? ` · วงเงินปลอดภัย ${formatMillions(before, 2)} → ${formatMillions(after, 2)}` : "";
       onDone(
@@ -103,6 +105,8 @@ function Detail({ caseId, item, onDone }: { caseId: number; item: WatchlistEntry
           {item.system_note}
         </div>
       </div>
+
+      <QueryThread caseId={caseId} itemId={item.id} live={item.status === "queried"} />
 
       <TxnLineage txnId={t.id} compact />
 
@@ -154,6 +158,23 @@ function Detail({ caseId, item, onDone }: { caseId: number; item: WatchlistEntry
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** E10-05: the RM/SME answers and photo evidence for this item, live while a question is open. */
+function QueryThread({ caseId, itemId, live }: { caseId: number; itemId: number; live: boolean }) {
+  const { data } = useQuery({
+    queryKey: ["queries", caseId],
+    queryFn: async () => unwrap(await api.GET("/api/cases/{case_id}/queries", { params: { path: { case_id: caseId } } })),
+    refetchInterval: live ? 5000 : false,
+  });
+  const mine = data?.filter((q) => q.watchlist_item_id === itemId) ?? [];
+  if (!mine.length) return null;
+  return (
+    <div className="space-y-2">
+      <div className="text-xs font-medium text-muted">คำถามเจาะจงและหลักฐานจากหน้างาน</div>
+      {mine.map((q) => <QueryCard key={q.id} q={q} invalidate={[]} />)}
     </div>
   );
 }

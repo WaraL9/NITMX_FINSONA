@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.ai import gateway
-from app.api import analysis, cases, documents, memo, review, sandbox
+from app.api import analysis, cases, documents, field, memo, review, sandbox
 from app.config import settings
 from app.db import create_all
 from app.schemas import Health
@@ -31,6 +31,7 @@ app.include_router(documents.router)
 app.include_router(analysis.router)
 app.include_router(review.router)
 app.include_router(memo.router)
+app.include_router(field.router)
 app.include_router(sandbox.router)
 
 

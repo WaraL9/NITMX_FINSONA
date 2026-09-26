@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Moon, Sun, UserRound } from "lucide-react";
-import { Link, NavLink, Route, Routes } from "react-router-dom";
+import { Link, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import { api, unwrap } from "@/api/client";
 import { LineageProvider } from "@/components/lineage/LineageDrawer";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,10 @@ import { cn } from "@/lib/utils";
 import CaseList from "@/pages/CaseList";
 import CaseWorkbench from "@/pages/CaseWorkbench";
 import DesignSystem from "@/pages/DesignSystem";
+import RmApp from "@/pages/RmApp";
+import SmePortal from "@/pages/SmePortal";
+
+const ROLE_HOME: Record<string, string> = { CA: "/", AUDITOR: "/", RM: "/rm", SME: "/sme" };
 
 function HealthIndicator() {
   const { data, isError } = useQuery({
@@ -46,8 +50,15 @@ function ThemeToggle() {
 }
 
 /** "Viewing as" — attributes decisions in the audit log; only CAs may decide (server-enforced). */
+function useCurrentRole(): string | undefined {
+  const userId = useUserId();
+  const { data: users } = useQuery({ queryKey: ["users"], queryFn: async () => unwrap(await api.GET("/api/users")) });
+  return users?.find((u) => u.id === userId)?.role;
+}
+
 function UserPicker() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const userId = useUserId();
   const { data: users } = useQuery({ queryKey: ["users"], queryFn: async () => unwrap(await api.GET("/api/users")) });
   if (!users) return null;
@@ -57,8 +68,11 @@ function UserPicker() {
       <select
         value={userId}
         onChange={(e) => {
-          setUserId(Number(e.target.value));
+          const id = Number(e.target.value);
+          setUserId(id);
           qc.invalidateQueries();
+          const role = users.find((u) => u.id === id)?.role;
+          if (role) navigate(ROLE_HOME[role] ?? "/");
         }}
         className="h-8 rounded-md border border-line bg-surface px-2 text-xs text-ink outline-none"
         aria-label="ใช้งานในฐานะ"
@@ -87,6 +101,18 @@ function NavItem({ to, children }: { to: string; children: string }) {
   );
 }
 
+function RoleNav() {
+  const role = useCurrentRole();
+  return (
+    <nav className="flex gap-1">
+      {(role === "CA" || role === "AUDITOR") && <NavItem to="/">แฟ้มสินเชื่อ</NavItem>}
+      {(role === "RM" || role === "CA") && <NavItem to="/rm">RM Field</NavItem>}
+      {role === "SME" && <NavItem to="/sme">สินเชื่อของฉัน</NavItem>}
+      <NavItem to="/design">Design system</NavItem>
+    </nav>
+  );
+}
+
 export default function App() {
   return (
     <div className="min-h-screen bg-canvas">
@@ -97,10 +123,7 @@ export default function App() {
             <span className="font-semibold tracking-tight text-ink">FINSONA AI</span>
             <span className="hidden text-xs text-muted sm:inline">Underwriting Workbench</span>
           </Link>
-          <nav className="flex gap-1">
-            <NavItem to="/">แฟ้มสินเชื่อ</NavItem>
-            <NavItem to="/design">Design system</NavItem>
-          </nav>
+          <RoleNav />
           <div className="ml-auto flex items-center gap-3">
             <HealthIndicator />
             <UserPicker />
@@ -113,6 +136,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<CaseList />} />
           <Route path="/cases/:caseId" element={<CaseWorkbench />} />
+          <Route path="/rm" element={<RmApp />} />
+          <Route path="/sme" element={<SmePortal />} />
           <Route path="/design" element={<DesignSystem />} />
           <Route path="*" element={<p className="text-muted">ไม่พบหน้านี้</p>} />
         </Routes>
