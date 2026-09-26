@@ -27,6 +27,7 @@ from app.schemas import (
     QueryOut,
 )
 from app.services import audit, consent, field
+from app.services import policy as policy_svc
 from app.services import queries as qsvc
 from app.services.analysis import AnalysisError, run_analysis
 
@@ -139,11 +140,11 @@ def industries():
 
 
 @public.post("/api/sme/prequal", response_model=PrequalOut)
-def prequal(body: PrequalIn):
+def prequal(body: PrequalIn, db: Session = Depends(get_db)):
     if body.industry not in field.INDUSTRY_MARGINS:
         raise HTTPException(422, "unknown industry")
     p = field.prequalify(body.requested_amount, body.industry, body.monthly_revenue, body.existing_debt_monthly,
-                         body.annual_rate, body.tenor_months)
+                         body.annual_rate, body.tenor_months, policy_svc.current(db))
     return PrequalOut(result=p.result, indicative_cfo=p.indicative_cfo,
                       dscr=f"{p.dscr:.4f}" if p.dscr is not None else None, safe_limit=p.safe_limit,
                       reasons=p.reasons, unlocks=p.unlocks, disclaimer=DISCLAIMER)

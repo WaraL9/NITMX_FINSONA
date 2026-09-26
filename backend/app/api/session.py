@@ -6,11 +6,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import auth
-from app.api.deps import client_ip, current_user
+from app.api.deps import client_ip, current_user, require_role
 from app.db import get_db
-from app.models import User
-from app.schemas import UserOut
+from app.models import CreditPolicy, User
+from app.schemas import PolicyIn, PolicyStateOut, PolicyVersionOut, UserOut
 from app.services import audit
+from app.services import policy as policy_svc
 
 public = APIRouter(tags=["session"])
 router = APIRouter(tags=["session"])
@@ -46,6 +47,29 @@ def login(body: LoginIn, request: Request, db: Session = Depends(get_db)):
 @router.get("/api/me", response_model=UserOut)
 def me(user: User = Depends(current_user)):
     return user
+
+
+@router.get("/api/policy", response_model=PolicyStateOut)
+def get_policy(db: Session = Depends(get_db)):
+    names = {u.id: u.name for u in db.scalars(select(User))}
+    rows = db.scalars(select(CreditPolicy).order_by(CreditPolicy.id.desc()).limit(20)).all()
+    return PolicyStateOut(
+        current=policy_svc.as_dict(policy_svc.current(db)),
+        history=[PolicyVersionOut(id=r.id, min_dscr=str(r.min_dscr), target_dscr=str(r.target_dscr),
+                                  max_dsr=str(r.max_dsr), trade_line_ratio=str(r.trade_line_ratio), reason=r.reason,
+                                  updated_by=names.get(r.updated_by), updated_at=r.updated_at) for r in rows],
+    )
+
+
+@router.put("/api/policy", response_model=PolicyStateOut)
+def put_policy(body: PolicyIn, request: Request, db: Session = Depends(get_db),
+               user: User = Depends(require_role("CA"))):
+    values = {k: v for k, v in body.model_dump(exclude={"reason"}).items() if v is not None}
+    try:
+        policy_svc.update(db, values, user.id, body.reason, client_ip(request))
+    except policy_svc.PolicyError as e:
+        raise HTTPException(422, str(e)) from e
+    return get_policy(db)
 
 
 @router.get("/api/users", response_model=list[UserOut])

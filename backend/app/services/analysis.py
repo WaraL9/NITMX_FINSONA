@@ -33,9 +33,10 @@ from app.models import (
     WatchlistItem,
 )
 
-# Bank credit policy (E6-08 makes this editable per product).
+# Fallback when no policy row exists yet; the live policy comes from services.policy.
 DEFAULT_POLICY = Policy()
 from app.services import audit, consent
+from app.services import policy as policy_svc
 
 
 class AnalysisError(Exception):
@@ -258,7 +259,7 @@ def _evidence(db: Session, case: Case, r: AnalysisResult, rows: list[Transaction
         requested=case.requested_amount, tiers=r.tiers, household=r.costs["household"],
         pending_unverified=r.waterfall["unverified_pending"], loops=r.waterfall["own_account_loops"],
         owner_inflow=r.waterfall["owner_family_inflow"], haircut=alt.haircut,
-        cash_pattern_detected=cash.detected, cash_total=cash.total, policy=DEFAULT_POLICY,
+        cash_pattern_detected=cash.detected, cash_total=cash.total, policy=policy_svc.current(db),
     ))
     wf, costs, tiers = r.waterfall, r.costs, r.tiers
     return {

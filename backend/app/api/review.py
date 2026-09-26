@@ -9,7 +9,7 @@ import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -146,6 +146,50 @@ def case_audit(case_id: int, db: Session = Depends(get_db)):
     names = {u.id: u.name for u in db.scalars(select(User))}
     rows = db.scalars(select(AuditEntry).where(AuditEntry.case_id == case_id).order_by(AuditEntry.id.desc()))
     return [AuditEntryOut.model_validate(e).model_copy(update={"user_name": names.get(e.user_id)}) for e in rows]
+
+
+def _audit_rows(db: Session, action: str | None, user_id: int | None, case_id: int | None, limit: int):
+    q = select(AuditEntry).order_by(AuditEntry.id.desc())
+    if action:
+        q = q.where(AuditEntry.action == action)
+    if user_id:
+        q = q.where(AuditEntry.user_id == user_id)
+    if case_id:
+        q = q.where(AuditEntry.case_id == case_id)
+    return db.scalars(q.limit(limit)).all()
+
+
+@router.get("/api/audit", response_model=list[AuditEntryOut])
+def audit_log(action: str | None = None, user_id: int | None = None, case_id: int | None = None,
+              limit: int = Query(200, ge=1, le=5000), db: Session = Depends(get_db),
+              _: User = Depends(require_role("CA", "AUDITOR"))):
+    """E9-07: the whole chain (including deleted cases), filterable."""
+    names = {u.id: u.name for u in db.scalars(select(User))}
+    return [AuditEntryOut.model_validate(e).model_copy(update={"user_name": names.get(e.user_id)})
+            for e in _audit_rows(db, action, user_id, case_id, limit)]
+
+
+@router.get("/api/audit.csv", response_class=Response)
+def audit_csv(action: str | None = None, user_id: int | None = None, case_id: int | None = None,
+              db: Session = Depends(get_db), _: User = Depends(require_role("CA", "AUDITOR"))):
+    """E9-07: CSV export for Internal Audit / BOT, with the hashes so the chain can be re-checked offline."""
+    import csv
+    import io
+    import json as _json
+
+    names = {u.id: u.name for u in db.scalars(select(User))}
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["id", "ts_utc", "case_id", "user", "ip", "action", "target_type", "target_id", "reason",
+                "before", "after", "prev_hash", "hash"])
+    for e in reversed(_audit_rows(db, action, user_id, case_id, 100_000)):
+        w.writerow([e.id, e.ts.isoformat(), e.case_id, names.get(e.user_id, "system"), e.ip, e.action,
+                    e.target_type, e.target_id, e.reason,
+                    _json.dumps(e.before, ensure_ascii=False) if e.before else "",
+                    _json.dumps(e.after, ensure_ascii=False) if e.after else "", e.prev_hash, e.hash])
+    # BOM so Excel opens Thai text correctly.
+    return Response("\ufeff" + buf.getvalue(), media_type="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": 'attachment; filename="finsona_audit_log.csv"'})
 
 
 @router.get("/api/audit/verify", response_model=ChainStatusOut)

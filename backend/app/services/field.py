@@ -16,7 +16,9 @@ from sqlalchemy.orm import Session
 from app.engine import ratios
 from app.models import Case, CreditMemo, Document, Query, TaxFiling, WatchlistItem
 from app.services import consent
-from app.services.analysis import DEFAULT_POLICY, latest_analysis
+from app.engine.types import Policy
+from app.services import policy as policy_svc
+from app.services.analysis import latest_analysis
 
 ASSESSMENT_SLA = timedelta(hours=48)
 
@@ -48,11 +50,11 @@ class Lead:
     open_queries: int = 0
 
 
-def _sizing(case: Case, result: dict, amount: Decimal) -> ratios.Sizing:
+def _sizing(case: Case, result: dict, amount: Decimal, pol: Policy) -> ratios.Sizing:
     haircut = Decimal(result.get("alt_data", {}).get("haircut", "0"))
     cfo = Decimal(result["clean_cash_flow_monthly"]) * (1 - haircut)
     return ratios.size(amount, cfo, Decimal(result["existing_debt_monthly"]), case.annual_rate, case.tenor_months,
-                       DEFAULT_POLICY)
+                       pol)
 
 
 def score_case(db: Session, case: Case) -> Lead:
@@ -76,7 +78,7 @@ def score_case(db: Session, case: Case) -> Lead:
     group = "needs_data"
     if a is not None:
         r = a.result
-        s = _sizing(case, r, case.requested_amount)
+        s = _sizing(case, r, case.requested_amount, policy_svc.current(db))
         dscr_s, safe_s = (f"{s.dscr:.4f}" if s.dscr is not None else None), f"{s.safe_limit:.2f}"
         if s.meets_target:
             headroom, group = 40, "ready"
@@ -123,8 +125,9 @@ def gaps(db: Session, case: Case) -> list[Gap]:
         out.append(Gap("evidence", f"เงินเข้า {len(pending)} รายการยังไม่มีเอกสารรองรับ",
                        "ถามลูกค้าว่ายอดเงินเหล่านี้คือค่างานอะไร และขอสัญญาจ้าง/ใบส่งของ/ภาพหน้างานประกอบ",
                        f"ศักยภาพเพิ่มวงเงินได้สูงสุด {Decimal(drivers['unverified']['impact']):,.0f} บาท"))
-    s = _sizing(case, r, case.requested_amount)
-    st = ratios.structure(case.requested_amount, s.safe_limit, Decimal(r.get("t1_monthly", "0")), DEFAULT_POLICY)
+    pol = policy_svc.current(db)
+    s = _sizing(case, r, case.requested_amount, pol)
+    st = ratios.structure(case.requested_amount, s.safe_limit, Decimal(r.get("t1_monthly", "0")), pol)
     if st.needed:
         out.append(Gap("structure", f"วงเงินที่ขอ {case.requested_amount:,.0f} บาท สูงกว่าที่ผ่อนไหว",
                        f"เสนอวงเงินระยะยาว {st.term_loan:,.0f} บาท + Trade Line {st.trade_line:,.0f} บาท ผูกใบแจ้งหนี้ PromptBiz "
@@ -167,10 +170,10 @@ class PreQual:
 
 
 def prequalify(amount: Decimal, industry: str, monthly_revenue: Decimal, existing_debt: Decimal, rate: Decimal,
-               tenor: int) -> PreQual:
+               tenor: int, pol: Policy) -> PreQual:
     label, margin = INDUSTRY_MARGINS[industry]
     cfo = (monthly_revenue * margin).quantize(Decimal("0.01"))
-    s = ratios.size(amount, cfo, existing_debt, rate, tenor, DEFAULT_POLICY)
+    s = ratios.size(amount, cfo, existing_debt, rate, tenor, pol)
     reasons = [f"ประมาณกระแสเงินสดจากยอดขาย × อัตรากำไรเงินสดเฉลี่ยของธุรกิจ{label} ({margin * 100:.0f}%) = {cfo:,.0f} บาท/เดือน"]
     unlocks = ["เชื่อมข้อมูลใบแจ้งหนี้ PromptBiz เพื่อยืนยันรายได้อัตโนมัติ (ระดับ 1)",
                "ส่งแบบ ภ.พ.30 ย้อนหลัง 6 เดือน เพื่อยืนยันยอดขายที่ยื่นภาษี"]

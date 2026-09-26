@@ -17,7 +17,9 @@ from app.engine import ratios
 from app.memo.pdf import render_memo
 from app.models import AuditEntry, Case, CreditMemo, Document, Transaction, User, WatchlistItem
 from app.services import audit
-from app.services.analysis import DEFAULT_POLICY, latest_analysis
+from app.engine.types import Policy
+from app.services import policy as policy_svc
+from app.services.analysis import latest_analysis
 
 
 class MemoError(Exception):
@@ -26,24 +28,25 @@ class MemoError(Exception):
         self.status = status
 
 
-def _size(case: Case, result: dict, amount: Decimal) -> dict[str, Any]:
+def _size(case: Case, result: dict, amount: Decimal, pol: Policy) -> dict[str, Any]:
     haircut = Decimal(result.get("alt_data", {}).get("haircut", "0"))
     cfo = (Decimal(result["clean_cash_flow_monthly"]) * (1 - haircut)).quantize(Decimal("0.01"))
     s = ratios.size(amount, cfo, Decimal(result["existing_debt_monthly"]), case.annual_rate, case.tenor_months,
-                    DEFAULT_POLICY)
-    st = ratios.structure(case.requested_amount, s.safe_limit, Decimal(result.get("t1_monthly", "0")), DEFAULT_POLICY)
+                    pol)
+    st = ratios.structure(case.requested_amount, s.safe_limit, Decimal(result.get("t1_monthly", "0")), pol)
     return {
         "amount": f"{s.amount:.2f}", "dscr": f"{s.dscr:.4f}" if s.dscr is not None else "0",
         "new_payment": f"{s.new_payment:.2f}", "passes_min": s.passes_min, "meets_target": s.meets_target,
         "safe_limit": f"{s.safe_limit:.2f}", "max_at_min": f"{s.max_at_min:.2f}",
-        "policy": {"min_dscr": str(DEFAULT_POLICY.min_dscr), "target_dscr": str(DEFAULT_POLICY.target_dscr)},
+        "policy": {"min_dscr": str(pol.min_dscr), "target_dscr": str(pol.target_dscr)},
         "structure": {"needed": st.needed, "term_loan": f"{st.term_loan:.2f}", "trade_line": f"{st.trade_line:.2f}",
                       "total": f"{st.total:.2f}", "shortfall": f"{st.shortfall:.2f}",
-                      "trade_line_ratio": str(DEFAULT_POLICY.trade_line_ratio)},
+                      "trade_line_ratio": str(pol.trade_line_ratio)},
     }
 
 
-def _facts(case: Case, a: dict, s_req: dict, s_safe: dict, n_accounts: int) -> tuple[dict[str, str], dict[str, bool]]:
+def _facts(case: Case, a: dict, s_req: dict, s_safe: dict, n_accounts: int,
+           pol: Policy) -> tuple[dict[str, str], dict[str, bool]]:
     B, M = narrative.baht, narrative.millions
     w, t = a["waterfall"], a["tiers"]
     verified = Decimal(w["verified_operating_revenue"]) or Decimal(1)
@@ -64,8 +67,8 @@ def _facts(case: Case, a: dict, s_req: dict, s_safe: dict, n_accounts: int) -> t
         "cfo_monthly": B(Decimal(a["clean_cash_flow_monthly"])),
         "existing_debt": B(Decimal(a["existing_debt_monthly"])),
         "dscr_request": f"{Decimal(s_req['dscr']):.2f} เท่า",
-        "min_dscr": f"{DEFAULT_POLICY.min_dscr} เท่า",
-        "target_dscr": f"{DEFAULT_POLICY.target_dscr} เท่า",
+        "min_dscr": f"{pol.min_dscr} เท่า",
+        "target_dscr": f"{pol.target_dscr} เท่า",
         "safe_limit": M(Decimal(s_safe["amount"])),
         "trade_line": M(Decimal(st["trade_line"])),
         "structure_total": M(Decimal(st["total"])),
@@ -93,8 +96,9 @@ def build_package(db: Session, case_id: int) -> dict[str, Any]:
     if an is None:
         raise MemoError("no analysis yet — run the analysis first")
     a = {**an.result, "id": an.id, "created_at": an.created_at, "duration_ms": an.duration_ms}
-    s_req = _size(case, a, case.requested_amount)
-    s_safe = _size(case, a, Decimal(s_req["safe_limit"]))
+    pol = policy_svc.current(db)
+    s_req = _size(case, a, case.requested_amount, pol)
+    s_safe = _size(case, a, Decimal(s_req["safe_limit"]), pol)
     names = {u.id: u.name for u in db.scalars(select(User))}
     items = db.execute(
         select(WatchlistItem, Transaction).join(Transaction, Transaction.id == WatchlistItem.transaction_id)
@@ -138,7 +142,7 @@ def ensure_draft(db: Session, case: Case, a: dict, s_req: dict, s_safe: dict, re
         db.add(m)
     stale = m.analysis_id != a["id"] and m.narrative_source != "ca_edited"
     if m.status == "draft" and (regenerate or not m.narrative or stale):
-        facts, flags = _facts(case, a, s_req, s_safe, len(case.accounts))
+        facts, flags = _facts(case, a, s_req, s_safe, len(case.accounts), policy_svc.current(db))
         n = narrative.draft(db, facts, flags, case_id=case.id)
         m.narrative, m.narrative_source, m.analysis_id = n.text, n.source, a["id"]
     db.commit()
@@ -183,7 +187,7 @@ def sign(db: Session, case_id: int, user: User, ip: str | None, recommendation: 
     if recommendation == "approve" and approved_amount != case.requested_amount:
         raise MemoError("'approve' means the requested amount; use 'approve_structured' for a different amount")
     amount = approved_amount if recommendation != "decline" else case.requested_amount
-    at_approved = _size(case, pkg["analysis"], amount)
+    at_approved = _size(case, pkg["analysis"], amount, policy_svc.current(db))
     signed_at = datetime.now(timezone.utc)
 
     last = db.scalar(select(AuditEntry).order_by(AuditEntry.id.desc()).limit(1))

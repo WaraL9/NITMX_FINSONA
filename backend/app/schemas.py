@@ -630,3 +630,28 @@ class LlmCallOut(BaseModel):
     pii_counts: dict[str, int]
     note: str | None
     created_at: datetime
+
+
+
+class PolicyIn(BaseModel):
+    min_dscr: DecimalStr | None = None
+    target_dscr: DecimalStr | None = None
+    max_dsr: DecimalStr | None = None
+    trade_line_ratio: DecimalStr | None = None
+    reason: str = Field(min_length=10, max_length=2000)
+
+
+class PolicyVersionOut(BaseModel):
+    id: int
+    min_dscr: str
+    target_dscr: str
+    max_dsr: str
+    trade_line_ratio: str
+    reason: str | None
+    updated_by: str | None
+    updated_at: datetime
+
+
+class PolicyStateOut(BaseModel):
+    current: dict[str, str]
+    history: list[PolicyVersionOut]

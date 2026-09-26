@@ -352,3 +352,18 @@ class LlmCall(Base):
     pii_counts: Mapped[dict[str, Any]] = mapped_column(JSON)
     note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+
+class CreditPolicy(Base):
+    """Versioned credit policy (E6-08); the newest row is in force."""
+
+    __tablename__ = "credit_policies"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    min_dscr: Mapped[Decimal] = mapped_column(ExactDecimal)
+    target_dscr: Mapped[Decimal] = mapped_column(ExactDecimal)
+    max_dsr: Mapped[Decimal] = mapped_column(ExactDecimal)
+    trade_line_ratio: Mapped[Decimal] = mapped_column(ExactDecimal)
+    reason: Mapped[str | None] = mapped_column(Text)
+    updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
