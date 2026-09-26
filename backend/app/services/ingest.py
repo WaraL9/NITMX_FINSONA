@@ -22,11 +22,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import Account, Case, Document, Page, Transaction
+from app.core.money import to_money
+import pdfplumber
+
+from app.models import Account, Case, Document, Page, TaxFiling, Transaction
 from app.parsers.base import ParsedStatement, ParseError, UnsupportedFormat, parse_statement
+from app.parsers.pp30 import ParsedPP30, detect_pp30, parse_pp30
 
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
-DOCUMENT_KINDS = {"statement", "pp30", "etax_invoice", "utility_bill", "evidence"}
+DOCUMENT_KINDS = {"auto", "statement", "pp30", "etax_invoice", "utility_bill", "evidence"}
 
 
 class IngestError(Exception):
@@ -76,6 +80,17 @@ class IngestResult:
     document: Document
     statement: ParsedStatement | None
     account_created: bool
+    pp30: ParsedPP30 | None = None
+
+
+def detect_kind(plain: bytes) -> str:
+    """Guess the document type from page 1 (statements are the default)."""
+    try:
+        with pdfplumber.open(io.BytesIO(plain)) as pdf:
+            first = (pdf.pages[0].extract_text() or "") if pdf.pages else ""
+    except Exception:
+        return "statement"
+    return "pp30" if detect_pp30(first) else "statement"
 
 
 def sha256_hex(data: bytes) -> str:
@@ -164,8 +179,16 @@ def ingest_document(
         raise DuplicateDocument("this exact file is already in the case", existing_document_id=existing.id)
 
     plain, encrypted = _decrypt(data, password)
+    if kind == "auto":
+        kind = detect_kind(plain)
 
     stmt: ParsedStatement | None = None
+    pp30: ParsedPP30 | None = None
+    if kind == "pp30":
+        try:
+            pp30 = parse_pp30(io.BytesIO(plain))
+        except ParseError as e:
+            raise ParseFailed(str(e)) from e
     if kind == "statement":
         try:
             stmt = parse_statement(io.BytesIO(plain))
@@ -257,6 +280,40 @@ def ingest_document(
             "account_created": created,
             "warnings": stmt.warnings,
         }
+    if pp30 is not None:
+        _store_pp30(db, case, doc, pp30)
     db.commit()
     db.refresh(doc)
-    return IngestResult(doc, stmt, created)
+    return IngestResult(doc, stmt, created, pp30)
+
+
+def _store_pp30(db: Session, case: Case, doc: Document, f: ParsedPP30) -> None:
+    db.add(Page(document_id=doc.id, page_no=1, width=f.page_width, height=f.page_height))
+    warnings = list(f.warnings)
+    if case.tax_id and f.tax_id != case.tax_id:
+        warnings.append(f"tax ID {f.tax_id} does not match the case ({case.tax_id})")
+    # A later filing for the same month (e.g. an amended return) replaces the earlier one.
+    existing = db.scalar(select(TaxFiling).where(TaxFiling.case_id == case.id, TaxFiling.period == f.period))
+    if existing:
+        db.delete(existing)
+        warnings.append(f"replaced earlier ภ.พ.30 for {f.period}")
+    zero = to_money(0)
+    db.add(TaxFiling(
+        case_id=case.id,
+        period=f.period,
+        sales=f.amounts["sales"],
+        purchases=f.amounts.get("purchases", zero),
+        vat_payable=f.amounts.get("vat_payable", zero),
+        output_vat=f.amounts.get("output_vat", zero),
+        document_id=doc.id,
+    ))
+    doc.parser = f.parser
+    doc.parse_report = {
+        "parser": f.parser,
+        "parser_version": f.parser_version,
+        "tax_id": f.tax_id,
+        "period": f.period,
+        "amounts": {k: f"{v:.2f}" for k, v in f.amounts.items()},
+        "bboxes": {k: [b.x0, b.top, b.x1, b.bottom] for k, b in f.bboxes.items()},
+        "warnings": warnings,
+    }

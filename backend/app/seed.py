@@ -12,6 +12,7 @@ import argparse
 from app.db import Base, SessionLocal, create_all, engine
 from app.models import Account, Case, Transaction, User
 from app.scenario import load_scenario
+from app.services.analysis import run_analysis
 from app.services.ingest import ingest_document
 from app.synth.build import build_case
 
@@ -33,6 +34,7 @@ def seed(reset: bool = True) -> int:
             db.add_all(User(name=n, role=r) for n, r in USERS)
         case = Case(
             company_name=sc.case.company_name,
+            tax_id=sc.case.tax_id,
             industry=sc.case.industry,
             business_age_years=sc.case.business_age_years,
             requested_amount=sc.loan_request.amount,
@@ -57,7 +59,9 @@ def seed(reset: bool = True) -> int:
         db.add(case)
         db.commit()
         for built in build_case("kitti"):
-            ingest_document(db, case.id, built.path.read_bytes(), built.path.name, password=built.password)
+            ingest_document(db, case.id, built.path.read_bytes(), built.path.name, kind=built.kind,
+                            password=built.password)
+        run_analysis(db, case.id)
         return case.id
 
 

@@ -37,6 +37,7 @@ class Case(Base):
     __tablename__ = "cases"
     id: Mapped[int] = mapped_column(primary_key=True)
     company_name: Mapped[str] = mapped_column(String(200))
+    tax_id: Mapped[str | None] = mapped_column(String(13))
     industry: Mapped[str] = mapped_column(String(200))
     business_age_years: Mapped[int] = mapped_column(Integer)
     requested_amount: Mapped[Decimal] = mapped_column(Money)
@@ -132,6 +133,8 @@ class Transaction(Base):
     tag_source: Mapped[str | None] = mapped_column(String(16))  # rule, llm, ca
     tier: Mapped[str | None] = mapped_column(String(20), index=True)
     loop_id: Mapped[str | None] = mapped_column(String(40), index=True)
+    tag_reason: Mapped[str | None] = mapped_column(Text)
+    invoice_id: Mapped[int | None] = mapped_column(ForeignKey("invoices.id", ondelete="SET NULL", use_alter=True))
 
 
 class Invoice(Base):
@@ -143,8 +146,12 @@ class Invoice(Base):
     issue_date: Mapped[date] = mapped_column(Date)
     buyer_name: Mapped[str] = mapped_column(String(200))
     buyer_tax_id: Mapped[str | None] = mapped_column(String(20))
-    amount: Mapped[Decimal] = mapped_column(Money)  # total incl. VAT
+    seller_tax_id: Mapped[str | None] = mapped_column(String(13))
+    subtotal: Mapped[Decimal] = mapped_column(Money, default=Decimal("0"))
     vat: Mapped[Decimal] = mapped_column(Money, default=Decimal("0"))
+    amount: Mapped[Decimal] = mapped_column(Money)  # total incl. VAT
+    wht: Mapped[Decimal] = mapped_column(Money, default=Decimal("0"))  # withholding tax deducted by buyer
+    paid_amount: Mapped[Decimal | None] = mapped_column(Money)
     paid_at: Mapped[datetime | None] = mapped_column(DateTime)
     settlement_ref: Mapped[str | None] = mapped_column(String(64))
     matched_transaction_id: Mapped[int | None] = mapped_column(ForeignKey("transactions.id", ondelete="SET NULL"))
@@ -155,7 +162,8 @@ class TaxFiling(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     case_id: Mapped[int] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), index=True)
     period: Mapped[str] = mapped_column(String(7))  # YYYY-MM
-    sales: Mapped[Decimal] = mapped_column(Money)
+    sales: Mapped[Decimal] = mapped_column(Money)  # excl. VAT
+    output_vat: Mapped[Decimal] = mapped_column(Money, default=Decimal("0"))
     purchases: Mapped[Decimal] = mapped_column(Money)
     vat_payable: Mapped[Decimal] = mapped_column(Money)
     document_id: Mapped[int | None] = mapped_column(ForeignKey("documents.id", ondelete="SET NULL"))
@@ -203,3 +211,15 @@ class AuditEntry(Base):
     reason: Mapped[str | None] = mapped_column(Text)
     prev_hash: Mapped[str] = mapped_column(String(64))
     hash: Mapped[str] = mapped_column(String(64), unique=True)
+
+
+class Analysis(Base):
+    """One engine run over a case. `result` is the full aggregate output (JSON)."""
+
+    __tablename__ = "analyses"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    engine_version: Mapped[str] = mapped_column(String(32))
+    duration_ms: Mapped[int] = mapped_column(Integer, default=0)
+    result: Mapped[dict[str, Any]] = mapped_column(JSON)

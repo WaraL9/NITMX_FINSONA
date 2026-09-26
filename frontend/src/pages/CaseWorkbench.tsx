@@ -3,6 +3,7 @@ import { Building2, Landmark } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { api, unwrap } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
+import { AnalysisPanel } from "@/components/AnalysisPanel";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
 import { TransactionsPanel } from "@/components/TransactionsPanel";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -10,8 +11,8 @@ import { caseStatus, formatRate, ownerType } from "@/lib/labels";
 import { formatTHB } from "@/lib/money";
 
 /**
- * CA Workbench: case header (E8-02), account map, documents (E2-01) and extracted
- * transactions. Waterfall, tiers, watchlist, sizing and lineage arrive in I2–I3.
+ * CA Workbench: case header (E8-02), engine results, documents (E2-01) and extracted
+ * transactions. The interactive waterfall, watchlist actions, slider and lineage are I3.
  */
 export default function CaseWorkbench() {
   const { caseId } = useParams();
@@ -77,6 +78,7 @@ export default function CaseWorkbench() {
         </div>
       </Card>
 
+      <AnalysisPanel caseId={c.id} accounts={c.accounts} />
       <DocumentsPanel caseId={c.id} accounts={c.accounts} />
       <TransactionsPanel caseId={c.id} accounts={c.accounts} />
     </div>

@@ -94,6 +94,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Latest */
+        get: operations["latest_api_cases__case_id__analysis_get"];
+        put?: never;
+        /** Run */
+        post: operations["run_api_cases__case_id__analysis_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/sizing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sizing
+         * @description DSCR/DSR for a loan size, plus the safe limit — cheap enough to call on every slider move.
+         */
+        get: operations["sizing_api_cases__case_id__sizing_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/watchlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Watchlist */
+        get: operations["watchlist_api_cases__case_id__watchlist_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sandbox/promptbiz/v1/sellers/{seller_tax_id}/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Promptbiz Invoices */
+        get: operations["promptbiz_invoices_sandbox_promptbiz_v1_sellers__seller_tax_id__invoices_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -133,6 +205,56 @@ export interface components {
              */
             owner_type: "company" | "director" | "family" | "external";
         };
+        /** AnalysisOut */
+        AnalysisOut: {
+            /** Id */
+            id: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Engine Version */
+            engine_version: string;
+            /** Duration Ms */
+            duration_ms: number;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /** Months */
+            months: number;
+            /** Reconciles */
+            reconciles: boolean;
+            /** Notes */
+            notes: string[];
+            waterfall: components["schemas"]["Waterfall"];
+            tiers: components["schemas"]["Tiers"];
+            /** Costs */
+            costs: {
+                [key: string]: string;
+            };
+            /** Clean Cash Flow Period */
+            clean_cash_flow_period: string;
+            /** Clean Cash Flow Monthly */
+            clean_cash_flow_monthly: string;
+            /** Existing Debt Monthly */
+            existing_debt_monthly: string;
+            /** Loops */
+            loops: components["schemas"]["LoopOut"][];
+            /** Watchlist Count */
+            watchlist_count: number;
+            /** Connector */
+            connector: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** ApiError */
         ApiError: {
             /** Code */
@@ -151,10 +273,9 @@ export interface components {
             file: string;
             /**
              * Kind
-             * @default statement
-             * @enum {string}
+             * @default auto
              */
-            kind: "statement" | "pp30" | "etax_invoice" | "utility_bill" | "evidence";
+            kind: ("statement" | "pp30" | "etax_invoice" | "utility_bill" | "evidence") | "auto";
             /** Password */
             password?: string | null;
             /** Account Id */
@@ -281,7 +402,8 @@ export interface components {
              * Format: date-time
              */
             uploaded_at: string;
-            parse_report: components["schemas"]["ParseReport"] | null;
+            /** Parse Report */
+            parse_report: components["schemas"]["ParseReport"] | components["schemas"]["PP30ParseReport"] | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -303,6 +425,56 @@ export interface components {
             live_ocr: boolean;
             /** Live Llm */
             live_llm: boolean;
+        };
+        /** LoopLegOut */
+        LoopLegOut: {
+            /** Debit Txn Id */
+            debit_txn_id: number;
+            /** Credit Txn Id */
+            credit_txn_id: number;
+            /** From Account Id */
+            from_account_id: number;
+            /** To Account Id */
+            to_account_id: number;
+            /** Amount */
+            amount: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+        };
+        /** LoopOut */
+        LoopOut: {
+            /** Id */
+            id: string;
+            /** Netted Amount */
+            netted_amount: string;
+            /** Hours */
+            hours: number;
+            /** Legs */
+            legs: components["schemas"]["LoopLegOut"][];
+        };
+        /** PP30ParseReport */
+        PP30ParseReport: {
+            /** Parser */
+            parser: string;
+            /** Parser Version */
+            parser_version: string;
+            /** Tax Id */
+            tax_id: string;
+            /** Period */
+            period: string;
+            /** Amounts */
+            amounts: {
+                [key: string]: string;
+            };
+            /** Bboxes */
+            bboxes: {
+                [key: string]: number[];
+            };
+            /** Warnings */
+            warnings: string[];
         };
         /** ParseReport */
         ParseReport: {
@@ -342,6 +514,59 @@ export interface components {
             account_created: boolean;
             /** Warnings */
             warnings: string[];
+        };
+        /** PolicyOut */
+        PolicyOut: {
+            /** Min Dscr */
+            min_dscr: string;
+            /** Target Dscr */
+            target_dscr: string;
+            /** Max Dsr */
+            max_dsr: string;
+        };
+        /** SizingOut */
+        SizingOut: {
+            /** Amount */
+            amount: string;
+            /** Annual Rate */
+            annual_rate: string;
+            /** Tenor Months */
+            tenor_months: number;
+            /** Cfo Monthly */
+            cfo_monthly: string;
+            /** Existing Debt Monthly */
+            existing_debt_monthly: string;
+            /** New Payment */
+            new_payment: string;
+            /** Total Debt Service */
+            total_debt_service: string;
+            /**
+             * Dscr
+             * @description 4 dp; pass/fail uses the unrounded value
+             */
+            dscr: string | null;
+            /** Dsr */
+            dsr: string | null;
+            /** Passes Min */
+            passes_min: boolean;
+            /** Meets Target */
+            meets_target: boolean;
+            /** Safe Limit */
+            safe_limit: string;
+            /** Max At Min */
+            max_at_min: string;
+            policy: components["schemas"]["PolicyOut"];
+        };
+        /** Tiers */
+        Tiers: {
+            /** T1 Golden */
+            T1_golden: string;
+            /** T2 Tax */
+            T2_tax: string;
+            /** T3 Operational */
+            T3_operational: string;
+            /** T4 Unverified */
+            T4_unverified: string;
         };
         /** TransactionOut */
         TransactionOut: {
@@ -387,6 +612,14 @@ export interface components {
             confidence: number;
             /** Extractor Version */
             extractor_version: string;
+            /** Tag */
+            tag?: string | null;
+            /** Tier */
+            tier?: string | null;
+            /** Loop Id */
+            loop_id?: string | null;
+            /** Tag Reason */
+            tag_reason?: string | null;
         };
         /** TransactionPage */
         TransactionPage: {
@@ -407,6 +640,42 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** WatchlistOut */
+        WatchlistOut: {
+            /** Id */
+            id: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "accepted" | "excluded" | "queried";
+            /** Suspicion Score */
+            suspicion_score: number;
+            /** System Note */
+            system_note: string;
+            /** Reason */
+            reason: string | null;
+            transaction: components["schemas"]["TransactionOut"];
+        };
+        /** Waterfall */
+        Waterfall: {
+            /** Gross Raw Inflow */
+            gross_raw_inflow: string;
+            /** Own Account Loops */
+            own_account_loops: string;
+            /** Internal Transfers */
+            internal_transfers: string;
+            /** Owner Family Inflow */
+            owner_family_inflow: string;
+            /** Unverified Pending */
+            unverified_pending: string;
+            /** Unverified Excluded */
+            unverified_excluded: string;
+            /** Accepted By Ca */
+            accepted_by_ca: string;
+            /** Verified Operating Revenue */
+            verified_operating_revenue: string;
         };
     };
     responses: never;
@@ -621,6 +890,9 @@ export interface operations {
                 document_id?: number | null;
                 /** @description search description / counterparty */
                 q?: string | null;
+                tier?: string | null;
+                tag?: string | null;
+                loop_id?: string | null;
                 offset?: number;
                 limit?: number;
             };
@@ -639,6 +911,170 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TransactionPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    latest_api_cases__case_id__analysis_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalysisOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_api_cases__case_id__analysis_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalysisOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sizing_api_cases__case_id__sizing_get: {
+        parameters: {
+            query?: {
+                /** @description loan amount THB; defaults to the requested amount */
+                amount?: string | null;
+                tenor_months?: number | null;
+                annual_rate?: string | null;
+            };
+            header?: never;
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SizingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    watchlist_api_cases__case_id__watchlist_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    promptbiz_invoices_sandbox_promptbiz_v1_sellers__seller_tax_id__invoices_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-consent-token"?: string | null;
+            };
+            path: {
+                seller_tax_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

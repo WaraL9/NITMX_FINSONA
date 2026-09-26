@@ -6,7 +6,7 @@
   "scripts": {
     "setup": "node scripts/setup.mjs",
     "dev": "concurrently -k -n api,web -c blue,green \"npm:dev:api\" \"npm:dev:web\"",
-    "dev:api": "node scripts/py.mjs -m uvicorn app.main:app --reload --reload-dir app --port 8000",
+    "dev:api": "node scripts/py.mjs -m watchfiles --filter python --sigint-timeout 2 --sigkill-timeout 2 app.devserver.run app",
     "dev:web": "npm --prefix frontend run dev",
     "seed": "node scripts/py.mjs -m app.seed",
     "test": "npm run test:api && npm run test:web",

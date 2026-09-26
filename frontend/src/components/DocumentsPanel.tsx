@@ -1,7 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, FileLock2, FileText, Loader2, TriangleAlert, Upload } from "lucide-react";
+import { CheckCircle2, FileLock2, FileText, Loader2, Receipt, TriangleAlert, Upload } from "lucide-react";
 import { useRef, useState, type DragEvent } from "react";
-import { api, documentFileUrl, unwrap, uploadDocument, UploadError, type Account, type DocumentOut } from "@/api/client";
+import {
+  api,
+  documentFileUrl,
+  isPP30Report,
+  unwrap,
+  uploadDocument,
+  UploadError,
+  type Account,
+  type DocumentOut,
+  type PP30Report,
+} from "@/api/client";
 import { Badge, SourceBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -79,8 +89,46 @@ function PasswordDialog({
   );
 }
 
+function PP30Row({ doc, r }: { doc: DocumentOut; r: PP30Report }) {
+  const [y, m] = r.period.split("-");
+  return (
+    <TR>
+      <TD>
+        <a href={documentFileUrl(doc.id)} target="_blank" rel="noreferrer"
+          className="flex items-center gap-2 font-medium text-ink hover:text-navy">
+          <Receipt className="size-4 shrink-0 text-tax" />
+          <span className="truncate">{doc.filename}</span>
+        </a>
+        <div className="mt-0.5 font-mono text-[11px] text-muted" title={doc.sha256}>
+          SHA-256 {doc.sha256.slice(0, 12)}…
+        </div>
+      </TD>
+      <TD>
+        <Badge tone="tax">ภ.พ.30 เดือน {m}/{Number(y) + 543}</Badge>
+      </TD>
+      <TD numeric>{doc.page_count}</TD>
+      <TD numeric className="text-muted">—</TD>
+      <TD numeric title="ยอดขาย (ไม่รวม VAT)">{formatTHB(r.amounts.sales, 0)}</TD>
+      <TD numeric className="text-muted">—</TD>
+      <TD>
+        {r.warnings.length === 0 ? (
+          <Badge tone="verified">
+            <CheckCircle2 className="size-3" /> อ่านครบทุกช่อง
+          </Badge>
+        ) : (
+          <Badge tone="judge" title={r.warnings.join("\n")}>
+            <TriangleAlert className="size-3" /> {r.warnings.length} ข้อสังเกต
+          </Badge>
+        )}
+      </TD>
+    </TR>
+  );
+}
+
 function DocumentRow({ doc, account }: { doc: DocumentOut; account?: Account }) {
-  const r = doc.parse_report;
+  const report = doc.parse_report;
+  if (isPP30Report(report)) return <PP30Row doc={doc} r={report} />;
+  const r = report;
   return (
     <TR>
       <TD>
@@ -151,11 +199,14 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
       setPwError(null);
       setMessage({
         tone: "verified",
-        text: `อัปโหลด ${doc.filename} แล้ว — อ่านได้ ${doc.parse_report?.rows ?? 0} รายการจาก ${doc.page_count} หน้า`,
+        text: isPP30Report(doc.parse_report)
+          ? `อัปโหลด ${doc.filename} แล้ว — ภ.พ.30 เดือน ${doc.parse_report.period}`
+          : `อัปโหลด ${doc.filename} แล้ว — อ่านได้ ${doc.parse_report?.rows ?? 0} รายการจาก ${doc.page_count} หน้า`,
       });
       qc.invalidateQueries({ queryKey: ["documents", caseId] });
       qc.invalidateQueries({ queryKey: ["case", caseId] });
       qc.invalidateQueries({ queryKey: ["transactions", caseId] });
+      qc.invalidateQueries({ queryKey: ["analysis", caseId] });
     },
     onError: (err, { file }) => {
       if (err instanceof UploadError && err.body.code === "password_required") {
@@ -189,7 +240,8 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
   };
 
   const byId = new Map(accounts.map((a) => [a.id, a]));
-  const totalRows = docs?.reduce((s, d) => s + (d.parse_report?.rows ?? 0), 0) ?? 0;
+  const totalRows =
+    docs?.reduce((s, d) => s + (d.parse_report && !isPP30Report(d.parse_report) ? d.parse_report.rows : 0), 0) ?? 0;
 
   return (
     <Card>
@@ -214,7 +266,7 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
         <div className="flex items-center gap-3 text-sm">
           <Upload className="size-5 text-muted" />
           <div>
-            <div className="text-ink">ลากไฟล์สเตทเมนต์ PDF มาวางที่นี่</div>
+            <div className="text-ink">ลากไฟล์สเตทเมนต์ หรือ ภ.พ.30 (PDF) มาวางที่นี่</div>
             <div className="text-xs text-muted">รองรับหลายไฟล์ · ไฟล์มีรหัสผ่านได้ · ตรวจลายนิ้วมือ SHA-256 ทุกไฟล์</div>
           </div>
         </div>
@@ -248,7 +300,7 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
               <TH>บัญชี</TH>
               <TH className="text-right">หน้า</TH>
               <TH className="text-right">รายการ</TH>
-              <TH className="text-right">ยอดเข้า (บาท)</TH>
+              <TH className="text-right">ยอดเข้า / ยอดขาย (บาท)</TH>
               <TH className="text-right">ยอดออก (บาท)</TH>
               <TH>ตรวจสอบยอด</TH>
             </tr>

@@ -20,7 +20,7 @@ def _upload(client, case_id, path, **form):
 
 
 def test_seeded_case_has_all_statements(client, seeded_case_id, truth):
-    docs = client.get(f"/api/cases/{seeded_case_id}/documents").json()
+    docs = [d for d in client.get(f"/api/cases/{seeded_case_id}/documents").json() if d["kind"] == "statement"]
     assert len(docs) == 4
     assert all(d["parse_report"]["continuity_ok"] for d in docs)
     assert sum(d["parse_report"]["rows"] for d in docs) == sum(len(a["rows"]) for a in truth["accounts"].values())

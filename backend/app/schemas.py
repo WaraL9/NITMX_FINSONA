@@ -88,6 +88,16 @@ class ParseReport(BaseModel):
 DocumentKind = Literal["statement", "pp30", "etax_invoice", "utility_bill", "evidence"]
 
 
+class PP30ParseReport(BaseModel):
+    parser: str
+    parser_version: str
+    tax_id: str
+    period: str
+    amounts: dict[str, str]
+    bboxes: dict[str, list[float]]
+    warnings: list[str]
+
+
 class DocumentOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -98,7 +108,7 @@ class DocumentOut(BaseModel):
     sha256: str
     page_count: int
     uploaded_at: datetime
-    parse_report: ParseReport | None
+    parse_report: ParseReport | PP30ParseReport | None
 
 
 class TransactionOut(BaseModel):
@@ -121,6 +131,10 @@ class TransactionOut(BaseModel):
     bbox: list[float] | None = Field(description="[x0, top, x1, bottom] in PDF points, top-left origin")
     confidence: float
     extractor_version: str
+    tag: str | None = None
+    tier: str | None = None
+    loop_id: str | None = None
+    tag_reason: str | None = None
 
 
 class TransactionPage(BaseModel):
@@ -134,3 +148,92 @@ class ApiError(BaseModel):
     code: str
     message: str
     existing_document_id: int | None = None
+
+
+# ---------- analysis ----------
+
+class Waterfall(BaseModel):
+    gross_raw_inflow: str
+    own_account_loops: str
+    internal_transfers: str
+    owner_family_inflow: str
+    unverified_pending: str
+    unverified_excluded: str
+    accepted_by_ca: str
+    verified_operating_revenue: str
+
+
+class Tiers(BaseModel):
+    T1_golden: str
+    T2_tax: str
+    T3_operational: str
+    T4_unverified: str
+
+
+class LoopLegOut(BaseModel):
+    debit_txn_id: int
+    credit_txn_id: int
+    from_account_id: int
+    to_account_id: int
+    amount: str
+    at: datetime
+
+
+class LoopOut(BaseModel):
+    id: str
+    netted_amount: str
+    hours: float
+    legs: list[LoopLegOut]
+
+
+class AnalysisOut(BaseModel):
+    id: int
+    created_at: datetime
+    engine_version: str
+    duration_ms: int
+    period_start: date
+    period_end: date
+    months: int
+    reconciles: bool
+    notes: list[str]
+    waterfall: Waterfall
+    tiers: Tiers
+    costs: dict[str, str]
+    clean_cash_flow_period: str
+    clean_cash_flow_monthly: str
+    existing_debt_monthly: str
+    loops: list[LoopOut]
+    watchlist_count: int
+    connector: dict | None
+
+
+class PolicyOut(BaseModel):
+    min_dscr: DecimalStr
+    target_dscr: DecimalStr
+    max_dsr: DecimalStr
+
+
+class SizingOut(BaseModel):
+    amount: MoneyStr
+    annual_rate: DecimalStr
+    tenor_months: int
+    cfo_monthly: MoneyStr
+    existing_debt_monthly: MoneyStr
+    new_payment: MoneyStr
+    total_debt_service: MoneyStr
+    dscr: str | None = Field(description="4 dp; pass/fail uses the unrounded value")
+    dsr: str | None
+    passes_min: bool
+    meets_target: bool
+    safe_limit: MoneyStr
+    max_at_min: MoneyStr
+    policy: PolicyOut
+
+
+class WatchlistOut(BaseModel):
+    id: int
+    status: Literal["pending", "accepted", "excluded", "queried"]
+    suspicion_score: float
+    system_note: str
+    reason: str | None
+    transaction: TransactionOut

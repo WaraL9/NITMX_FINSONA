@@ -6,6 +6,7 @@
 case:
   company_name: บริษัท กิตติ อินทีเรีย ดีไซน์ จำกัด
   company_name_en: Kitti Interior Design Co., Ltd.
+  tax_id: "0105559123456"   # synthetic; used to look up PromptBiz invoices and ภ.พ.30
   industry: รับเหมาตกแต่งภายในและเฟอร์นิเจอร์
   business_age_years: 7
   purpose: เงินทุนหมุนเวียนจัดซื้อวัสดุ
@@ -23,7 +24,7 @@ loan_request:
 policy:
   min_dscr: "1.25"        # red below this
   target_dscr: "1.35"     # safe-limit solver target
-  max_dsr: "0.70"
+  max_dsr: "0.80"         # DSR = debt service / net cash flow = 1 / DSCR, so 0.80 <=> DSCR 1.25
 
 accounts:
   - key: BBL_CUR

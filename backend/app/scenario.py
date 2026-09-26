@@ -13,6 +13,7 @@ from app.config import settings
 class ScenarioCase(BaseModel):
     company_name: str
     company_name_en: str
+    tax_id: str
     industry: str
     business_age_years: int
     purpose: str

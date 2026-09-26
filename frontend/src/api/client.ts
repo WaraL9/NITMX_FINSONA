@@ -49,3 +49,12 @@ export async function uploadDocument(
 
 export const documentFileUrl = (documentId: number, page?: number | null) =>
   `/api/documents/${documentId}/file${page ? `#page=${page}` : ""}`;
+
+export type Analysis = components["schemas"]["AnalysisOut"];
+export type Sizing = components["schemas"]["SizingOut"];
+export type WatchlistEntry = components["schemas"]["WatchlistOut"];
+export type StatementReport = components["schemas"]["ParseReport"];
+export type PP30Report = components["schemas"]["PP30ParseReport"];
+
+export const isPP30Report = (r: StatementReport | PP30Report | null | undefined): r is PP30Report =>
+  !!r && "period" in r && "amounts" in r;

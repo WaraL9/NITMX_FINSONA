@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
@@ -7,7 +8,8 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models import Case, Document, Page, Transaction
-from app.schemas import ApiError, DocumentKind, DocumentOut, TransactionOut, TransactionPage
+from app.api.common import txn_out
+from app.schemas import ApiError, DocumentKind, DocumentOut, TransactionPage
 from app.services.ingest import IngestError, ingest_document
 
 router = APIRouter(tags=["documents"])
@@ -31,7 +33,7 @@ def _require_case(db: Session, case_id: int) -> Case:
 async def upload_document(
     case_id: int,
     file: UploadFile = File(...),
-    kind: DocumentKind = Form("statement"),
+    kind: DocumentKind | Literal["auto"] = Form("auto"),
     password: str | None = Form(None),
     account_id: int | None = Form(None),
     db: Session = Depends(get_db),
@@ -73,6 +75,9 @@ def list_transactions(
     account_id: int | None = None,
     document_id: int | None = None,
     q: str | None = Query(None, max_length=100, description="search description / counterparty"),
+    tier: str | None = None,
+    tag: str | None = None,
+    loop_id: str | None = None,
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=500),
     db: Session = Depends(get_db),
@@ -83,6 +88,12 @@ def list_transactions(
         filters.append(Transaction.account_id == account_id)
     if document_id is not None:
         filters.append(Transaction.document_id == document_id)
+    if tier:
+        filters.append(Transaction.tier == tier)
+    if tag:
+        filters.append(Transaction.tag == tag)
+    if loop_id:
+        filters.append(Transaction.loop_id == loop_id)
     if q:
         like = f"%{q}%"
         filters.append(Transaction.description.like(like) | Transaction.counterparty_name.like(like))
@@ -95,27 +106,5 @@ def list_transactions(
         .offset(offset)
         .limit(limit)
     ).all()
-    items = [
-        TransactionOut(
-            id=t.id,
-            account_id=t.account_id,
-            document_id=t.document_id,
-            page_no=page_no,
-            row_index=t.row_index,
-            posted_at=t.posted_at,
-            code=t.code,
-            channel=t.channel,
-            description=t.description,
-            debit=t.debit,
-            credit=t.credit,
-            balance=t.balance,
-            counterparty_name=t.counterparty_name,
-            counterparty_bank=t.counterparty_bank,
-            counterparty_account=t.counterparty_account,
-            bbox=[t.bbox_x0, t.bbox_y0, t.bbox_x1, t.bbox_y1] if t.bbox_x0 is not None else None,
-            confidence=t.confidence,
-            extractor_version=t.extractor_version,
-        )
-        for t, page_no in rows
-    ]
+    items = [txn_out(t, page_no) for t, page_no in rows]
     return TransactionPage(total=total, offset=offset, limit=limit, items=items)

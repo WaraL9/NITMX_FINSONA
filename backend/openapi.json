@@ -332,6 +332,54 @@
             "description": "search description / counterparty"
           },
           {
+            "name": "tier",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tier"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tag"
+            }
+          },
+          {
+            "name": "loop_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Loop Id"
+            }
+          },
+          {
             "name": "offset",
             "in": "query",
             "required": false,
@@ -362,6 +410,289 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TransactionPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/analysis": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Run",
+        "operationId": "run_api_cases__case_id__analysis_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Latest",
+        "operationId": "latest_api_cases__case_id__analysis_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/sizing": {
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Sizing",
+        "description": "DSCR/DSR for a loan size, plus the safe limit — cheap enough to call on every slider move.",
+        "operationId": "sizing_api_cases__case_id__sizing_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "amount",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "loan amount THB; defaults to the requested amount",
+              "title": "Amount"
+            },
+            "description": "loan amount THB; defaults to the requested amount"
+          },
+          {
+            "name": "tenor_months",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 360,
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tenor Months"
+            }
+          },
+          {
+            "name": "annual_rate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Annual Rate"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SizingOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/watchlist": {
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Watchlist",
+        "operationId": "watchlist_api_cases__case_id__watchlist_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WatchlistOut"
+                  },
+                  "title": "Response Watchlist Api Cases  Case Id  Watchlist Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sandbox/promptbiz/v1/sellers/{seller_tax_id}/invoices": {
+      "get": {
+        "tags": [
+          "sandbox"
+        ],
+        "summary": "Promptbiz Invoices",
+        "operationId": "promptbiz_invoices_sandbox_promptbiz_v1_sellers__seller_tax_id__invoices_get",
+        "parameters": [
+          {
+            "name": "seller_tax_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Seller Tax Id"
+            }
+          },
+          {
+            "name": "x-consent-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Consent-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Promptbiz Invoices Sandbox Promptbiz V1 Sellers  Seller Tax Id  Invoices Get"
                 }
               }
             }
@@ -447,6 +778,122 @@
         ],
         "title": "AccountOut"
       },
+      "AnalysisOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "engine_version": {
+            "type": "string",
+            "title": "Engine Version"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "title": "Duration Ms"
+          },
+          "period_start": {
+            "type": "string",
+            "format": "date",
+            "title": "Period Start"
+          },
+          "period_end": {
+            "type": "string",
+            "format": "date",
+            "title": "Period End"
+          },
+          "months": {
+            "type": "integer",
+            "title": "Months"
+          },
+          "reconciles": {
+            "type": "boolean",
+            "title": "Reconciles"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          },
+          "waterfall": {
+            "$ref": "#/components/schemas/Waterfall"
+          },
+          "tiers": {
+            "$ref": "#/components/schemas/Tiers"
+          },
+          "costs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Costs"
+          },
+          "clean_cash_flow_period": {
+            "type": "string",
+            "title": "Clean Cash Flow Period"
+          },
+          "clean_cash_flow_monthly": {
+            "type": "string",
+            "title": "Clean Cash Flow Monthly"
+          },
+          "existing_debt_monthly": {
+            "type": "string",
+            "title": "Existing Debt Monthly"
+          },
+          "loops": {
+            "items": {
+              "$ref": "#/components/schemas/LoopOut"
+            },
+            "type": "array",
+            "title": "Loops"
+          },
+          "watchlist_count": {
+            "type": "integer",
+            "title": "Watchlist Count"
+          },
+          "connector": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connector"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "engine_version",
+          "duration_ms",
+          "period_start",
+          "period_end",
+          "months",
+          "reconciles",
+          "notes",
+          "waterfall",
+          "tiers",
+          "costs",
+          "clean_cash_flow_period",
+          "clean_cash_flow_monthly",
+          "existing_debt_monthly",
+          "loops",
+          "watchlist_count",
+          "connector"
+        ],
+        "title": "AnalysisOut"
+      },
       "ApiError": {
         "properties": {
           "code": {
@@ -484,16 +931,24 @@
             "title": "File"
           },
           "kind": {
-            "type": "string",
-            "enum": [
-              "statement",
-              "pp30",
-              "etax_invoice",
-              "utility_bill",
-              "evidence"
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "statement",
+                  "pp30",
+                  "etax_invoice",
+                  "utility_bill",
+                  "evidence"
+                ]
+              },
+              {
+                "type": "string",
+                "const": "auto"
+              }
             ],
             "title": "Kind",
-            "default": "statement"
+            "default": "auto"
           },
           "password": {
             "anyOf": [
@@ -850,9 +1305,13 @@
                 "$ref": "#/components/schemas/ParseReport"
               },
               {
+                "$ref": "#/components/schemas/PP30ParseReport"
+              },
+              {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Parse Report"
           }
         },
         "type": "object",
@@ -915,6 +1374,131 @@
           "live_llm"
         ],
         "title": "Health"
+      },
+      "LoopLegOut": {
+        "properties": {
+          "debit_txn_id": {
+            "type": "integer",
+            "title": "Debit Txn Id"
+          },
+          "credit_txn_id": {
+            "type": "integer",
+            "title": "Credit Txn Id"
+          },
+          "from_account_id": {
+            "type": "integer",
+            "title": "From Account Id"
+          },
+          "to_account_id": {
+            "type": "integer",
+            "title": "To Account Id"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "debit_txn_id",
+          "credit_txn_id",
+          "from_account_id",
+          "to_account_id",
+          "amount",
+          "at"
+        ],
+        "title": "LoopLegOut"
+      },
+      "LoopOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "netted_amount": {
+            "type": "string",
+            "title": "Netted Amount"
+          },
+          "hours": {
+            "type": "number",
+            "title": "Hours"
+          },
+          "legs": {
+            "items": {
+              "$ref": "#/components/schemas/LoopLegOut"
+            },
+            "type": "array",
+            "title": "Legs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "netted_amount",
+          "hours",
+          "legs"
+        ],
+        "title": "LoopOut"
+      },
+      "PP30ParseReport": {
+        "properties": {
+          "parser": {
+            "type": "string",
+            "title": "Parser"
+          },
+          "parser_version": {
+            "type": "string",
+            "title": "Parser Version"
+          },
+          "tax_id": {
+            "type": "string",
+            "title": "Tax Id"
+          },
+          "period": {
+            "type": "string",
+            "title": "Period"
+          },
+          "amounts": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Amounts"
+          },
+          "bboxes": {
+            "additionalProperties": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Bboxes"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "parser",
+          "parser_version",
+          "tax_id",
+          "period",
+          "amounts",
+          "bboxes",
+          "warnings"
+        ],
+        "title": "PP30ParseReport"
       },
       "ParseReport": {
         "properties": {
@@ -1071,6 +1655,149 @@
         ],
         "title": "ParseReport"
       },
+      "PolicyOut": {
+        "properties": {
+          "min_dscr": {
+            "type": "string",
+            "title": "Min Dscr"
+          },
+          "target_dscr": {
+            "type": "string",
+            "title": "Target Dscr"
+          },
+          "max_dsr": {
+            "type": "string",
+            "title": "Max Dsr"
+          }
+        },
+        "type": "object",
+        "required": [
+          "min_dscr",
+          "target_dscr",
+          "max_dsr"
+        ],
+        "title": "PolicyOut"
+      },
+      "SizingOut": {
+        "properties": {
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          },
+          "annual_rate": {
+            "type": "string",
+            "title": "Annual Rate"
+          },
+          "tenor_months": {
+            "type": "integer",
+            "title": "Tenor Months"
+          },
+          "cfo_monthly": {
+            "type": "string",
+            "title": "Cfo Monthly"
+          },
+          "existing_debt_monthly": {
+            "type": "string",
+            "title": "Existing Debt Monthly"
+          },
+          "new_payment": {
+            "type": "string",
+            "title": "New Payment"
+          },
+          "total_debt_service": {
+            "type": "string",
+            "title": "Total Debt Service"
+          },
+          "dscr": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dscr",
+            "description": "4 dp; pass/fail uses the unrounded value"
+          },
+          "dsr": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dsr"
+          },
+          "passes_min": {
+            "type": "boolean",
+            "title": "Passes Min"
+          },
+          "meets_target": {
+            "type": "boolean",
+            "title": "Meets Target"
+          },
+          "safe_limit": {
+            "type": "string",
+            "title": "Safe Limit"
+          },
+          "max_at_min": {
+            "type": "string",
+            "title": "Max At Min"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/PolicyOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount",
+          "annual_rate",
+          "tenor_months",
+          "cfo_monthly",
+          "existing_debt_monthly",
+          "new_payment",
+          "total_debt_service",
+          "dscr",
+          "dsr",
+          "passes_min",
+          "meets_target",
+          "safe_limit",
+          "max_at_min",
+          "policy"
+        ],
+        "title": "SizingOut"
+      },
+      "Tiers": {
+        "properties": {
+          "T1_golden": {
+            "type": "string",
+            "title": "T1 Golden"
+          },
+          "T2_tax": {
+            "type": "string",
+            "title": "T2 Tax"
+          },
+          "T3_operational": {
+            "type": "string",
+            "title": "T3 Operational"
+          },
+          "T4_unverified": {
+            "type": "string",
+            "title": "T4 Unverified"
+          }
+        },
+        "type": "object",
+        "required": [
+          "T1_golden",
+          "T2_tax",
+          "T3_operational",
+          "T4_unverified"
+        ],
+        "title": "Tiers"
+      },
       "TransactionOut": {
         "properties": {
           "id": {
@@ -1212,6 +1939,50 @@
           "extractor_version": {
             "type": "string",
             "title": "Extractor Version"
+          },
+          "tag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tag"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          },
+          "loop_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Loop Id"
+          },
+          "tag_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tag Reason"
           }
         },
         "type": "object",
@@ -1300,6 +2071,104 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WatchlistOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "accepted",
+              "excluded",
+              "queried"
+            ],
+            "title": "Status"
+          },
+          "suspicion_score": {
+            "type": "number",
+            "title": "Suspicion Score"
+          },
+          "system_note": {
+            "type": "string",
+            "title": "System Note"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "transaction": {
+            "$ref": "#/components/schemas/TransactionOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "suspicion_score",
+          "system_note",
+          "reason",
+          "transaction"
+        ],
+        "title": "WatchlistOut"
+      },
+      "Waterfall": {
+        "properties": {
+          "gross_raw_inflow": {
+            "type": "string",
+            "title": "Gross Raw Inflow"
+          },
+          "own_account_loops": {
+            "type": "string",
+            "title": "Own Account Loops"
+          },
+          "internal_transfers": {
+            "type": "string",
+            "title": "Internal Transfers"
+          },
+          "owner_family_inflow": {
+            "type": "string",
+            "title": "Owner Family Inflow"
+          },
+          "unverified_pending": {
+            "type": "string",
+            "title": "Unverified Pending"
+          },
+          "unverified_excluded": {
+            "type": "string",
+            "title": "Unverified Excluded"
+          },
+          "accepted_by_ca": {
+            "type": "string",
+            "title": "Accepted By Ca"
+          },
+          "verified_operating_revenue": {
+            "type": "string",
+            "title": "Verified Operating Revenue"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gross_raw_inflow",
+          "own_account_loops",
+          "internal_transfers",
+          "owner_family_inflow",
+          "unverified_pending",
+          "unverified_excluded",
+          "accepted_by_ca",
+          "verified_operating_revenue"
+        ],
+        "title": "Waterfall"
       }
     }
   }

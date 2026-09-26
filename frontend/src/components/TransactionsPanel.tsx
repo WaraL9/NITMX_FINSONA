@@ -5,7 +5,8 @@ import { api, documentFileUrl, unwrap, type Account } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
-import { ownerType } from "@/lib/labels";
+import { Badge } from "@/components/ui/badge";
+import { ownerType, tagLabel, tierInfo } from "@/lib/labels";
 import { formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
@@ -29,20 +30,21 @@ function formatDateTime(iso: string) {
 
 export function TransactionsPanel({ caseId, accounts }: { caseId: number; accounts: Account[] }) {
   const [accountId, setAccountId] = useState<number | undefined>();
+  const [tier, setTier] = useState<string | undefined>();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const q = useDebounced(search.trim());
 
-  useEffect(() => setPage(0), [accountId, q]);
+  useEffect(() => setPage(0), [accountId, q, tier]);
 
   const { data, isFetching, isError } = useQuery({
-    queryKey: ["transactions", caseId, accountId, q, page],
+    queryKey: ["transactions", caseId, accountId, q, tier, page],
     queryFn: async () =>
       unwrap(
         await api.GET("/api/cases/{case_id}/transactions", {
           params: {
             path: { case_id: caseId },
-            query: { account_id: accountId, q: q || undefined, offset: page * PAGE_SIZE, limit: PAGE_SIZE },
+            query: { account_id: accountId, q: q || undefined, tier, offset: page * PAGE_SIZE, limit: PAGE_SIZE },
           },
         }),
       ),
@@ -83,6 +85,17 @@ export function TransactionsPanel({ caseId, accounts }: { caseId: number; accoun
       </div>
 
       {isError && <p className="mb-4 text-sm text-risk">โหลดรายการธุรกรรมไม่สำเร็จ — ตรวจสอบว่า backend ทำงานอยู่</p>}
+      <div className="mb-4 flex flex-wrap gap-1">
+        <FilterChip active={tier === undefined} onClick={() => setTier(undefined)}>
+          ทุกระดับ
+        </FilterChip>
+        {Object.entries(tierInfo).map(([k, v]) => (
+          <FilterChip key={k} active={tier === k} onClick={() => setTier(k)}>
+            {v.short}
+          </FilterChip>
+        ))}
+      </div>
+
       <div className={cn("transition-opacity", isFetching && "opacity-60")}>
         <Table>
           <THead>
@@ -91,6 +104,7 @@ export function TransactionsPanel({ caseId, accounts }: { caseId: number; accoun
               <TH>บัญชี</TH>
               <TH>รายการ</TH>
               <TH>รายละเอียด</TH>
+              <TH>ผลวิเคราะห์</TH>
               <TH className="text-right">ถอน</TH>
               <TH className="text-right">ฝาก</TH>
               <TH className="text-right">คงเหลือ</TH>
@@ -122,6 +136,13 @@ export function TransactionsPanel({ caseId, accounts }: { caseId: number; accoun
                       </div>
                     )}
                   </TD>
+                  <TD className="max-w-56" title={t.tag_reason ?? undefined}>
+                    <div className="flex flex-wrap gap-1">
+                      {t.tier && <Badge tone={tierInfo[t.tier]?.tone}>{tierInfo[t.tier]?.short}</Badge>}
+                      {t.loop_id && <Badge tone="risk">{t.loop_id}</Badge>}
+                      {t.tag && !t.tier && <Badge>{tagLabel[t.tag] ?? t.tag}</Badge>}
+                    </div>
+                  </TD>
                   <TD numeric className="text-risk">
                     {t.debit !== "0.00" ? formatTHB(t.debit) : ""}
                   </TD>
@@ -139,7 +160,7 @@ export function TransactionsPanel({ caseId, accounts }: { caseId: number; accoun
             })}
             {data && data.items.length === 0 && (
               <tr>
-                <TD colSpan={8} className="py-8 text-center text-muted">
+                <TD colSpan={9} className="py-8 text-center text-muted">
                   ไม่พบรายการ
                 </TD>
               </tr>
