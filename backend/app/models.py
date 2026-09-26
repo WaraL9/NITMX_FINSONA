@@ -29,8 +29,11 @@ def utcnow() -> datetime:
 class User(Base):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(64), unique=True)
     name: Mapped[str] = mapped_column(String(120))
     role: Mapped[str] = mapped_column(String(16))
+    password_hash: Mapped[str | None] = mapped_column(String(200))
+    active: Mapped[bool] = mapped_column(default=True)
 
 
 class Case(Base):

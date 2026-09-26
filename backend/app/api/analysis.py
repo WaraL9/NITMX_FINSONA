@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.common import txn_out
-from app.api.deps import client_ip, current_user
+from app.api.deps import client_ip, require_role
 from app.db import get_db
 from app.engine import ratios
 from app.models import Case, Page, Transaction, User, WatchlistItem
@@ -27,7 +27,7 @@ def _out(a) -> AnalysisOut:
 
 
 @router.post("/analysis", response_model=AnalysisOut)
-def run(case_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+def run(case_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(require_role("CA"))):
     _case(db, case_id)
     try:
         return _out(run_analysis(db, case_id, user_id=user.id, ip=client_ip(request)))
@@ -117,7 +117,7 @@ def watchlist(case_id: int, db: Session = Depends(get_db)):
 
 @router.put("/sandbox/alt-scenario", response_model=AnalysisOut)
 def set_alt_scenario(case_id: int, body: AltScenarioIn, request: Request, db: Session = Depends(get_db),
-                     user: User = Depends(current_user)):
+                     user: User = Depends(require_role("CA"))):
     """Sandbox-only what-if: switch the utility connector's scenario and re-analyse.
 
     Exists so the early-warning rules can be demonstrated; it never touches live data.

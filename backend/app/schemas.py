@@ -62,6 +62,7 @@ class Health(BaseModel):
     connector_mode: str
     live_ocr: bool
     live_llm: bool
+    demo_mode: bool = False
 
 
 class ParseReport(BaseModel):
@@ -272,6 +273,7 @@ class WatchlistOut(BaseModel):
 class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    username: str
     name: str
     role: Literal["CA", "RM", "SME", "AUDITOR"]
 

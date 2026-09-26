@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import client_ip, current_user, require_role
+from app.api.deps import can_view, client_ip, current_user, require_role
 from app.db import get_db
 from app.models import Case, Document, Evidence, Query, User
 from app.schemas import (
@@ -30,6 +30,7 @@ from app.services import queries as qsvc
 from app.services.analysis import AnalysisError, run_analysis
 
 router = APIRouter(tags=["field"])
+public = APIRouter(tags=["sme-public"])  # pre-qualification works before login
 
 
 def _err(e: qsvc.QueryError):
@@ -38,7 +39,7 @@ def _err(e: qsvc.QueryError):
 
 def _case_for(db: Session, case_id: int, user: User) -> Case:
     case = db.get(Case, case_id)
-    if case is None or not qsvc.can_view(case, user):
+    if case is None or not can_view(case, user):
         raise HTTPException(404, "case not found")
     return case
 
@@ -131,12 +132,12 @@ DISCLAIMER = ("ผลประเมินเบื้องต้นจาก�
               "ผลจริงขึ้นกับการตรวจสอบกระแสเงินสดจากเอกสารและดุลยพินิจของเจ้าหน้าที่")
 
 
-@router.get("/api/sme/industries", response_model=list[IndustryOut])
+@public.get("/api/sme/industries", response_model=list[IndustryOut])
 def industries():
     return [{"key": k, "label": v[0]} for k, v in field.INDUSTRY_MARGINS.items()]
 
 
-@router.post("/api/sme/prequal", response_model=PrequalOut)
+@public.post("/api/sme/prequal", response_model=PrequalOut)
 def prequal(body: PrequalIn):
     if body.industry not in field.INDUSTRY_MARGINS:
         raise HTTPException(422, "unknown industry")

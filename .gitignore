@@ -21,3 +21,4 @@ Thumbs.db
 data/private/
 *.tsbuildinfo
 data/generated/
+backend/.secret

@@ -10,7 +10,7 @@ from app.ai import gateway, narrative, tagging
 from app.db import SessionLocal
 from app.models import CreditMemo, LlmCache
 
-CA, RM = {"X-User-Id": "1"}, {"X-User-Id": "2"}
+from tests.helpers import CA, RM
 FACTS = {"safe_limit": "3.50 ล้านบาท", "dscr_request": "1.05 เท่า"}
 
 

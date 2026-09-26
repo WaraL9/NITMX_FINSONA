@@ -27,7 +27,10 @@ def seeded_case_id() -> int:
 
 @pytest.fixture()
 def client(seeded_case_id):
-    with TestClient(app) as c:
+    """Test client logged in as the CA by default; pass headers= to act as someone else."""
+    from tests.helpers import CA
+
+    with TestClient(app, headers=CA) as c:
         yield c
 
 

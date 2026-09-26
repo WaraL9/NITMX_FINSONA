@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { answerQuery, api, errorMessage, evidenceUrl, type QueryItem } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getUserId } from "@/lib/user";
+import { authHeaders } from "@/lib/auth";
 import { formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
@@ -13,7 +13,7 @@ function AuthImage({ id, mime, alt }: { id: number; mime: string; alt: string })
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     let revoke: string | null = null;
-    fetch(evidenceUrl(id), { headers: { "X-User-Id": String(getUserId()) } })
+    fetch(evidenceUrl(id), { headers: authHeaders() })
       .then((r) => (r.ok ? r.blob() : Promise.reject(r.status)))
       .then((b) => {
         revoke = URL.createObjectURL(b);

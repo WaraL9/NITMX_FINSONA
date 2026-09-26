@@ -4,7 +4,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.ai import gateway
-from app.api import analysis, cases, documents, field, memo, review, sandbox
+from fastapi import Depends
+
+from app.api import analysis, cases, documents, field, memo, review, sandbox, session
+from app.api.deps import scope_guard
 from app.config import settings
 from app.db import create_all
 from app.schemas import Health
@@ -26,13 +29,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(cases.router)
-app.include_router(documents.router)
-app.include_router(analysis.router)
-app.include_router(review.router)
-app.include_router(memo.router)
-app.include_router(field.router)
+# Public: health, login, SME pre-qualification, and the sandbox stand-ins for external APIs.
+app.include_router(session.public)
+app.include_router(field.public)
 app.include_router(sandbox.router)
+# Everything else requires a session and passes the role/case-scope guard (E14-01).
+_guarded = [Depends(scope_guard)]
+for r in (session.router, cases.router, documents.router, analysis.router, review.router, memo.router, field.router):
+    app.include_router(r, dependencies=_guarded)
 
 
 @app.get("/api/health", response_model=Health, tags=["system"])
@@ -43,4 +47,5 @@ def health() -> Health:
         connector_mode=settings.connector_mode,
         live_ocr=settings.use_live_ocr,
         live_llm=gateway.status()["live"],
+        demo_mode=settings.demo_mode,
     )

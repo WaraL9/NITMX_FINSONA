@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { openProtected } from "@/lib/auth";
 import { formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
@@ -94,7 +95,7 @@ function PP30Row({ doc, r }: { doc: DocumentOut; r: PP30Report }) {
   return (
     <TR>
       <TD>
-        <a href={documentFileUrl(doc.id)} target="_blank" rel="noreferrer"
+        <a href="#" onClick={(e) => { e.preventDefault(); void openProtected(documentFileUrl(doc.id)); }}
           className="flex items-center gap-2 font-medium text-ink hover:text-navy">
           <Receipt className="size-4 shrink-0 text-tax" />
           <span className="truncate">{doc.filename}</span>
@@ -133,9 +134,11 @@ function DocumentRow({ doc, account }: { doc: DocumentOut; account?: Account }) 
     <TR>
       <TD>
         <a
-          href={documentFileUrl(doc.id)}
-          target="_blank"
-          rel="noreferrer"
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            void openProtected(documentFileUrl(doc.id));
+          }}
           className="flex items-center gap-2 font-medium text-ink hover:text-navy"
         >
           <FileText className="size-4 shrink-0 text-muted" />

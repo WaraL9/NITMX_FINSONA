@@ -5,7 +5,7 @@ import pytest
 from app.db import SessionLocal
 from app.models import Query
 
-CA, RM, SME, AUD = {"X-User-Id": "1"}, {"X-User-Id": "2"}, {"X-User-Id": "3"}, {"X-User-Id": "4"}
+from tests.helpers import AUD, CA, RM, SME
 JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 256
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
 

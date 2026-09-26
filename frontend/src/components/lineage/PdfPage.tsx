@@ -2,6 +2,7 @@ import { Loader2 } from "lucide-react";
 import * as pdfjs from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { authHeaders } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
@@ -9,7 +10,8 @@ pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 // Keep parsed documents across renders: switching rows on the same statement is instant.
 const docCache = new Map<string, Promise<pdfjs.PDFDocumentProxy>>();
 function loadDoc(url: string) {
-  if (!docCache.has(url)) docCache.set(url, pdfjs.getDocument({ url }).promise);
+  // pdf.js fetches with the session header, so the token never appears in a URL.
+  if (!docCache.has(url)) docCache.set(url, pdfjs.getDocument({ url, httpHeaders: authHeaders() }).promise);
   return docCache.get(url)!;
 }
 

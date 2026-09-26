@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.ai import gateway
-from app.api.deps import client_ip, current_user
+from app.api.deps import client_ip, current_user, require_role
 from app.db import get_db
 from app.models import CreditMemo, User
 from app.schemas import LlmStatusOut, MemoPackageOut, NarrativeIn, ReasonIn, SignIn
@@ -29,13 +29,13 @@ def get_memo(case_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/api/cases/{case_id}/memo/regenerate", response_model=MemoPackageOut)
-def regenerate(case_id: int, db: Session = Depends(get_db)):
+def regenerate(case_id: int, db: Session = Depends(get_db), _: User = Depends(require_role("CA"))):
     return _run(svc.regenerate, db, case_id)
 
 
 @router.put("/api/cases/{case_id}/memo/narrative", response_model=MemoPackageOut)
 def edit_narrative(case_id: int, body: NarrativeIn, request: Request, db: Session = Depends(get_db),
-                   user: User = Depends(current_user)):
+                   user: User = Depends(require_role("CA"))):
     return _run(svc.edit_narrative, db, case_id, body.narrative, user, client_ip(request))
 
 

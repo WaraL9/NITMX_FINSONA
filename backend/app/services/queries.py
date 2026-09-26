@@ -58,14 +58,6 @@ def create_from_watchlist(db: Session, item: WatchlistItem, user: User, question
     return q
 
 
-def can_view(case: Case, user: User) -> bool:
-    if user.role in ("CA", "AUDITOR"):
-        return True
-    if user.role == "RM":
-        return case.rm_user_id in (None, user.id)
-    return case.owner_user_id == user.id
-
-
 def _check_answerer(db: Session, q: Query, user: User) -> Case:
     case = db.get(Case, q.case_id)
     if user.role == "RM" and case.rm_user_id in (None, user.id):

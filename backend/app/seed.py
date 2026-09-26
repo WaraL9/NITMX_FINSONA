@@ -9,6 +9,8 @@ ingest pipeline, so the demo data exercises the same parser a real upload does.
 
 import argparse
 
+from app import auth
+from app.config import settings
 from app.db import Base, SessionLocal, create_all, engine
 from app.models import Account, Case, Transaction, User
 from app.scenario import load_scenario
@@ -19,11 +21,12 @@ from app.services.analysis import run_analysis
 from app.services.ingest import ingest_document
 from app.synth.build import build_case
 
+# Demo accounts (username, display name, role). Passwords = settings.demo_password.
 USERS = [
-    ("คุณสมชาย (CA)", "CA"),
-    ("คุณมานี (RM)", "RM"),
-    ("คุณกิตติ (SME)", "SME"),
-    ("คุณวิภา (Auditor)", "AUDITOR"),
+    ("ca", "คุณสมชาย (CA)", "CA"),
+    ("rm", "คุณมานี (RM)", "RM"),
+    ("sme", "คุณกิตติ (SME)", "SME"),
+    ("auditor", "คุณวิภา (Auditor)", "AUDITOR"),
 ]
 
 
@@ -34,7 +37,8 @@ def seed(reset: bool = True) -> int:
     sc = load_scenario("kitti")
     with SessionLocal() as db:
         if not db.query(User).count():
-            db.add_all(User(name=n, role=r) for n, r in USERS)
+            pw = auth.hash_password(settings.demo_password)
+            db.add_all(User(username=u, name=n, role=r, password_hash=pw) for u, n, r in USERS)
         case = Case(
             company_name=sc.case.company_name,
             tax_id=sc.case.tax_id,

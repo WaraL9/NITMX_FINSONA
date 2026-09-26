@@ -5,6 +5,7 @@ import { api, errorMessage, unwrap, type MemoPackage, type SignBody } from "@/ap
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
+import { openProtected } from "@/lib/auth";
 import { tierInfo } from "@/lib/labels";
 import { formatMillions, formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -235,9 +236,9 @@ function SignOff({ p, caseId }: { p: MemoPackage; caseId: number }) {
           <div className="font-mono text-[11px] text-muted" title={m.audit_head ?? ""}>Audit chain head {m.audit_head?.slice(0, 24)}…</div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          <a href={`/api/cases/${caseId}/memo/pdf`} target="_blank" rel="noreferrer">
-            <Button><Download className="size-4" /> ดาวน์โหลด Credit Memo (PDF)</Button>
-          </a>
+          <Button onClick={() => void openProtected(`/api/cases/${caseId}/memo/pdf`)}>
+            <Download className="size-4" /> ดาวน์โหลด Credit Memo (PDF)
+          </Button>
         </div>
         <div className="mt-4 border-t border-line pt-3">
           <input value={reopenReason} onChange={(e) => setReopenReason(e.target.value)} placeholder="เหตุผลในการเปิดแก้ไข (บันทึกใน Audit Log)"

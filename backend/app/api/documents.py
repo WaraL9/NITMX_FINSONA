@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import client_ip, current_user
+from app.api.deps import client_ip, require_role
 from app.db import get_db
 from app.services import audit
 from app.api.metrics import metric_filters
@@ -42,7 +42,7 @@ async def upload_document(
     password: str | None = Form(None),
     account_id: int | None = Form(None),
     db: Session = Depends(get_db),
-    user: User = Depends(current_user),
+    user: User = Depends(require_role("CA", "RM", "SME")),
 ):
     case = _require_case(db, case_id)
     if user.role == "SME" and case.owner_user_id != user.id:

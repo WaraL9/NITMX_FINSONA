@@ -9,7 +9,7 @@ from app.db import SessionLocal
 from app.models import AuditEntry
 
 REASON = "RM แนบสัญญาว่าจ้างตกแต่งคลินิกและภาพถ่ายหน้างานแล้ว"
-RM, CA = {"X-User-Id": "2"}, {"X-User-Id": "1"}
+from tests.helpers import CA, RM
 
 
 def _item(client, case_id, amount):

@@ -1,19 +1,18 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Moon, Sun, UserRound } from "lucide-react";
-import { Link, NavLink, Route, Routes, useNavigate } from "react-router-dom";
+import { Link, Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import { api, unwrap } from "@/api/client";
 import { LineageProvider } from "@/components/lineage/LineageDrawer";
 import { Badge } from "@/components/ui/badge";
-import { setUserId, useUserId } from "@/lib/user";
+import { DEMO_ACCOUNTS, DEMO_PASSWORD, login, logout, ROLE_HOME, useSession } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import CaseList from "@/pages/CaseList";
 import CaseWorkbench from "@/pages/CaseWorkbench";
 import DesignSystem from "@/pages/DesignSystem";
+import Login from "@/pages/Login";
 import RmApp from "@/pages/RmApp";
 import SmePortal from "@/pages/SmePortal";
-
-const ROLE_HOME: Record<string, string> = { CA: "/", AUDITOR: "/", RM: "/rm", SME: "/sme" };
 
 function HealthIndicator() {
   const { data, isError } = useQuery({
@@ -50,40 +49,49 @@ function ThemeToggle() {
 }
 
 /** "Viewing as" — attributes decisions in the audit log; only CAs may decide (server-enforced). */
-function useCurrentRole(): string | undefined {
-  const userId = useUserId();
-  const { data: users } = useQuery({ queryKey: ["users"], queryFn: async () => unwrap(await api.GET("/api/users")) });
-  return users?.find((u) => u.id === userId)?.role;
-}
-
-function UserPicker() {
+/** Who is logged in; in demo mode, one-click switch between the seeded demo accounts. */
+function UserMenu() {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const userId = useUserId();
-  const { data: users } = useQuery({ queryKey: ["users"], queryFn: async () => unwrap(await api.GET("/api/users")) });
-  if (!users) return null;
+  const session = useSession();
+  const { data: health } = useQuery({ queryKey: ["health"], queryFn: async () => unwrap(await api.GET("/api/health")) });
+  if (!session) return null;
+  const switchTo = async (username: string) => {
+    const user = await login(username, DEMO_PASSWORD);
+    qc.clear();
+    navigate(ROLE_HOME[user.role] ?? "/");
+  };
   return (
-    <label className="flex items-center gap-1.5 text-xs text-muted">
-      <UserRound className="size-4" />
-      <select
-        value={userId}
-        onChange={(e) => {
-          const id = Number(e.target.value);
-          setUserId(id);
-          qc.invalidateQueries();
-          const role = users.find((u) => u.id === id)?.role;
-          if (role) navigate(ROLE_HOME[role] ?? "/");
+    <div className="flex items-center gap-2 text-xs">
+      <UserRound className="size-4 text-muted" />
+      {health?.demo_mode ? (
+        <select
+          value={session.user.username}
+          onChange={(e) => void switchTo(e.target.value)}
+          className="h-8 rounded-md border border-line bg-surface px-2 text-xs text-ink outline-none"
+          aria-label="สลับบัญชีสาธิต"
+          title="Demo mode: สลับบัญชีสาธิต"
+        >
+          {DEMO_ACCOUNTS.map((a) => (
+            <option key={a.username} value={a.username}>
+              {a.label}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <span className="text-ink">{session.user.name}</span>
+      )}
+      <button
+        onClick={() => {
+          logout();
+          qc.clear();
+          navigate("/login");
         }}
-        className="h-8 rounded-md border border-line bg-surface px-2 text-xs text-ink outline-none"
-        aria-label="ใช้งานในฐานะ"
+        className="rounded-md px-2 py-1 text-muted hover:bg-surface-2 hover:text-ink"
       >
-        {users.map((u) => (
-          <option key={u.id} value={u.id}>
-            {u.name}
-          </option>
-        ))}
-      </select>
-    </label>
+        ออกจากระบบ
+      </button>
+    </div>
   );
 }
 
@@ -102,7 +110,7 @@ function NavItem({ to, children }: { to: string; children: string }) {
 }
 
 function RoleNav() {
-  const role = useCurrentRole();
+  const role = useSession()?.user.role;
   return (
     <nav className="flex gap-1">
       {(role === "CA" || role === "AUDITOR") && <NavItem to="/">แฟ้มสินเชื่อ</NavItem>}
@@ -114,6 +122,7 @@ function RoleNav() {
 }
 
 export default function App() {
+  const session = useSession();
   return (
     <div className="min-h-screen bg-canvas">
       <header className="sticky top-0 z-10 border-b border-line bg-panel/90 backdrop-blur">
@@ -126,21 +135,33 @@ export default function App() {
           <RoleNav />
           <div className="ml-auto flex items-center gap-3">
             <HealthIndicator />
-            <UserPicker />
+            <UserMenu />
             <ThemeToggle />
           </div>
         </div>
       </header>
       <main className="mx-auto max-w-[1400px] px-6 py-8">
         <LineageProvider>
+        {!session ? (
+          <Routes>
+            <Route path="*" element={<Login />} />
+          </Routes>
+        ) : (
         <Routes>
-          <Route path="/" element={<CaseList />} />
+          <Route path="/login" element={<Navigate to={ROLE_HOME[session.user.role] ?? "/"} replace />} />
+          <Route
+            path="/"
+            element={session.user.role === "RM" || session.user.role === "SME"
+              ? <Navigate to={ROLE_HOME[session.user.role]} replace />
+              : <CaseList />}
+          />
           <Route path="/cases/:caseId" element={<CaseWorkbench />} />
           <Route path="/rm" element={<RmApp />} />
           <Route path="/sme" element={<SmePortal />} />
           <Route path="/design" element={<DesignSystem />} />
           <Route path="*" element={<p className="text-muted">ไม่พบหน้านี้</p>} />
         </Routes>
+        )}
         </LineageProvider>
       </main>
     </div>

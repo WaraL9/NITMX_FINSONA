@@ -30,7 +30,6 @@ from app.schemas import (
     OverrideIn,
     OverrideOut,
     ReasonIn,
-    UserOut,
     WatchlistOut,
 )
 from app.services import audit
@@ -45,16 +44,6 @@ TRANSITIONS = {
     "query_rm": ({"pending"}, "queried"),
     "reopen": ({"accepted", "excluded", "queried"}, "pending"),
 }
-
-
-@router.get("/api/users", response_model=list[UserOut])
-def users(db: Session = Depends(get_db)):
-    return list(db.scalars(select(User).order_by(User.id)))
-
-
-@router.get("/api/me", response_model=UserOut)
-def me(user: User = Depends(current_user)):
-    return user
 
 
 def _page_no(db: Session, t: Transaction) -> int | None:

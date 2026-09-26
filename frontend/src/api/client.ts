@@ -1,13 +1,18 @@
 import createClient from "openapi-fetch";
-import { getUserId } from "@/lib/user";
+import { authHeaders, logout } from "@/lib/auth";
 import type { components, paths } from "./schema";
 
 /** Typed client generated from the backend's OpenAPI schema (`npm run gen:api`). */
 export const api = createClient<paths>({ baseUrl: "" });
 api.use({
   onRequest({ request }) {
-    request.headers.set("X-User-Id", String(getUserId()));
+    for (const [k, v] of Object.entries(authHeaders())) request.headers.set(k, v);
     return request;
+  },
+  onResponse({ response, request }) {
+    // Session expired or revoked: drop it so the app shows the login screen.
+    if (response.status === 401 && !request.url.includes("/api/auth/login")) logout();
+    return response;
   },
 });
 
@@ -51,7 +56,7 @@ export async function uploadDocument(
   const res = await fetch(`/api/cases/${caseId}/documents`, {
     method: "POST",
     body: form,
-    headers: { "X-User-Id": String(getUserId()) },
+    headers: authHeaders(),
   });
   const body = await res.json().catch(() => ({ code: "network", message: res.statusText }));
   if (!res.ok) throw new UploadError(res.status, body as ApiErrorBody);
@@ -103,7 +108,7 @@ export async function answerQuery(queryId: number, note: string, files: File[]):
   const res = await fetch(`/api/queries/${queryId}/answer`, {
     method: "POST",
     body: form,
-    headers: { "X-User-Id": String(getUserId()) },
+    headers: authHeaders(),
   });
   const body = await res.json().catch(() => ({ detail: res.statusText }));
   if (!res.ok) throw new Error(typeof body.detail === "string" ? body.detail : "ส่งคำตอบไม่สำเร็จ");

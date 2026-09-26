@@ -5,13 +5,54 @@
     "version": "0.1.0"
   },
   "paths": {
-    "/api/cases": {
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "session"
+        ],
+        "summary": "Login",
+        "operationId": "login_api_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sme/industries": {
       "get": {
         "tags": [
-          "cases"
+          "sme-public"
         ],
-        "summary": "List Cases",
-        "operationId": "list_cases_api_cases_get",
+        "summary": "Industries",
+        "operationId": "industries_api_sme_industries_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -19,10 +60,336 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/CaseSummary"
+                    "$ref": "#/components/schemas/IndustryOut"
                   },
                   "type": "array",
+                  "title": "Response Industries Api Sme Industries Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sme/prequal": {
+      "post": {
+        "tags": [
+          "sme-public"
+        ],
+        "summary": "Prequal",
+        "operationId": "prequal_api_sme_prequal_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrequalIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrequalOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sandbox/utility/v1/customers/{tax_id}/bills": {
+      "get": {
+        "tags": [
+          "sandbox"
+        ],
+        "summary": "Utility Bills",
+        "operationId": "utility_bills_sandbox_utility_v1_customers__tax_id__bills_get",
+        "parameters": [
+          {
+            "name": "tax_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tax Id"
+            }
+          },
+          {
+            "name": "scenario",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "clean",
+              "title": "Scenario"
+            }
+          },
+          {
+            "name": "x-consent-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Consent-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Utility Bills Sandbox Utility V1 Customers  Tax Id  Bills Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sandbox/promptbiz/v1/sellers/{seller_tax_id}/invoices": {
+      "get": {
+        "tags": [
+          "sandbox"
+        ],
+        "summary": "Promptbiz Invoices",
+        "operationId": "promptbiz_invoices_sandbox_promptbiz_v1_sellers__seller_tax_id__invoices_get",
+        "parameters": [
+          {
+            "name": "seller_tax_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Seller Tax Id"
+            }
+          },
+          {
+            "name": "x-consent-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Consent-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Promptbiz Invoices Sandbox Promptbiz V1 Sellers  Seller Tax Id  Invoices Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me": {
+      "get": {
+        "tags": [
+          "session"
+        ],
+        "summary": "Me",
+        "operationId": "me_api_me_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users": {
+      "get": {
+        "tags": [
+          "session"
+        ],
+        "summary": "Users",
+        "operationId": "users_api_users_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserOut"
+                  },
+                  "title": "Response Users Api Users Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases": {
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "List Cases",
+        "operationId": "list_cases_api_cases_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CaseSummary"
+                  },
                   "title": "Response List Cases Api Cases Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -35,15 +402,33 @@
         ],
         "summary": "Create Case",
         "operationId": "create_case_api_cases_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CaseCreate"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -84,6 +469,22 @@
             "schema": {
               "type": "integer",
               "title": "Case Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -129,19 +530,19 @@
             }
           },
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -213,6 +614,22 @@
               "type": "integer",
               "title": "Case Id"
             }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
           }
         ],
         "responses": {
@@ -259,6 +676,22 @@
             "schema": {
               "type": "integer",
               "title": "Document Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -449,6 +882,22 @@
               "default": 50,
               "title": "Limit"
             }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
           }
         ],
         "responses": {
@@ -493,19 +942,19 @@
             }
           },
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -546,6 +995,22 @@
             "schema": {
               "type": "integer",
               "title": "Case Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -680,6 +1145,22 @@
               "title": "Rate Rise Bp"
             },
             "description": "stress: +100 = rate one point higher"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
           }
         ],
         "responses": {
@@ -721,6 +1202,22 @@
             "schema": {
               "type": "integer",
               "title": "Case Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -771,19 +1268,19 @@
             }
           },
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -804,80 +1301,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AnalysisOut"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/users": {
-      "get": {
-        "tags": [
-          "review"
-        ],
-        "summary": "Users",
-        "operationId": "users_api_users_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/UserOut"
-                  },
-                  "type": "array",
-                  "title": "Response Users Api Users Get"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/me": {
-      "get": {
-        "tags": [
-          "review"
-        ],
-        "summary": "Me",
-        "operationId": "me_api_me_get",
-        "parameters": [
-          {
-            "name": "x-user-id",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-User-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserOut"
                 }
               }
             }
@@ -922,19 +1345,19 @@
             }
           },
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -999,19 +1422,19 @@
             }
           },
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -1076,19 +1499,19 @@
             }
           },
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -1142,6 +1565,22 @@
               "type": "integer",
               "title": "Case Id"
             }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
           }
         ],
         "responses": {
@@ -1179,6 +1618,24 @@
         ],
         "summary": "Verify Audit",
         "operationId": "verify_audit_api_audit_verify_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1186,6 +1643,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ChainStatusOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1208,6 +1675,22 @@
             "schema": {
               "type": "integer",
               "title": "Document Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -1254,19 +1737,19 @@
             }
           },
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -1311,6 +1794,22 @@
               "type": "integer",
               "title": "Case Id"
             }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
           }
         ],
         "responses": {
@@ -1352,6 +1851,22 @@
             "schema": {
               "type": "integer",
               "title": "Case Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -1397,19 +1912,19 @@
             }
           },
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -1465,19 +1980,19 @@
             }
           },
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -1533,19 +2048,19 @@
             }
           },
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -1599,6 +2114,22 @@
               "type": "integer",
               "title": "Case Id"
             }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
           }
         ],
         "responses": {
@@ -1625,6 +2156,24 @@
         ],
         "summary": "Llm Status",
         "operationId": "llm_status_api_llm_status_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1632,6 +2181,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LlmStatusOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1657,19 +2216,19 @@
             }
           },
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -1719,19 +2278,19 @@
             }
           },
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -1787,19 +2346,19 @@
             }
           },
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -1854,19 +2413,19 @@
             }
           },
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -1896,19 +2455,19 @@
         "operationId": "leads_api_rm_leads_get",
         "parameters": [
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -1958,19 +2517,19 @@
             }
           },
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -2007,19 +2566,19 @@
         "operationId": "rm_inbox_api_rm_queries_get",
         "parameters": [
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -2051,72 +2610,6 @@
         }
       }
     },
-    "/api/sme/industries": {
-      "get": {
-        "tags": [
-          "field"
-        ],
-        "summary": "Industries",
-        "operationId": "industries_api_sme_industries_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/IndustryOut"
-                  },
-                  "type": "array",
-                  "title": "Response Industries Api Sme Industries Get"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/sme/prequal": {
-      "post": {
-        "tags": [
-          "field"
-        ],
-        "summary": "Prequal",
-        "operationId": "prequal_api_sme_prequal_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PrequalIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PrequalOut"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/sme/applications": {
       "get": {
         "tags": [
@@ -2126,19 +2619,19 @@
         "operationId": "my_applications_api_sme_applications_get",
         "parameters": [
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -2177,19 +2670,19 @@
         "operationId": "create_application_api_sme_applications_post",
         "parameters": [
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -2245,19 +2738,19 @@
             }
           },
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -2303,19 +2796,19 @@
             }
           },
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -2375,19 +2868,19 @@
             }
           },
           {
-            "name": "x-user-id",
+            "name": "authorization",
             "in": "header",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-User-Id"
+              "title": "Authorization"
             }
           }
         ],
@@ -2398,136 +2891,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApplicationOut"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/sandbox/utility/v1/customers/{tax_id}/bills": {
-      "get": {
-        "tags": [
-          "sandbox"
-        ],
-        "summary": "Utility Bills",
-        "operationId": "utility_bills_sandbox_utility_v1_customers__tax_id__bills_get",
-        "parameters": [
-          {
-            "name": "tax_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Tax Id"
-            }
-          },
-          {
-            "name": "scenario",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "clean",
-              "title": "Scenario"
-            }
-          },
-          {
-            "name": "x-consent-token",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Consent-Token"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Utility Bills Sandbox Utility V1 Customers  Tax Id  Bills Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/sandbox/promptbiz/v1/sellers/{seller_tax_id}/invoices": {
-      "get": {
-        "tags": [
-          "sandbox"
-        ],
-        "summary": "Promptbiz Invoices",
-        "operationId": "promptbiz_invoices_sandbox_promptbiz_v1_sellers__seller_tax_id__invoices_get",
-        "parameters": [
-          {
-            "name": "seller_tax_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Seller Tax Id"
-            }
-          },
-          {
-            "name": "x-consent-token",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Consent-Token"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Promptbiz Invoices Sandbox Promptbiz V1 Sellers  Seller Tax Id  Invoices Get"
                 }
               }
             }
@@ -4065,6 +4428,11 @@
           "live_llm": {
             "type": "boolean",
             "title": "Live Llm"
+          },
+          "demo_mode": {
+            "type": "boolean",
+            "title": "Demo Mode",
+            "default": false
           }
         },
         "type": "object",
@@ -4420,6 +4788,45 @@
           "note"
         ],
         "title": "LlmStatusOut"
+      },
+      "LoginIn": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "LoginIn"
+      },
+      "LoginOut": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "user"
+        ],
+        "title": "LoginOut"
       },
       "LoopLegOut": {
         "properties": {
@@ -6102,6 +6509,10 @@
             "type": "integer",
             "title": "Id"
           },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
           "name": {
             "type": "string",
             "title": "Name"
@@ -6120,6 +6531,7 @@
         "type": "object",
         "required": [
           "id",
+          "username",
           "name",
           "role"
         ],
