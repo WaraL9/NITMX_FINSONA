@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, FileLock2, FileText, Loader2, Receipt, TriangleAlert, Upload } from "lucide-react";
+import { CheckCircle2, FileLock2, FileText, Loader2, Receipt, ScanLine, TriangleAlert, Upload } from "lucide-react";
 import { useRef, useState, type DragEvent } from "react";
 import {
   api,
@@ -166,6 +166,13 @@ function DocumentRow({ doc, account }: { doc: DocumentOut; account?: Account }) 
       <TD numeric>{r ? formatTHB(r.total_credit, 0) : "—"}</TD>
       <TD numeric>{r ? formatTHB(r.total_debit, 0) : "—"}</TD>
       <TD>
+        {r?.ocr && (
+          <Badge tone={r.ocr.review_pending ? "judge" : "navy"} className="mr-1"
+            title={`${r.ocr.provider} · ${r.ocr.words.toLocaleString()} คำ · เกณฑ์ตรวจ < ${r.ocr.threshold}`}>
+            <ScanLine className="size-3" /> OCR {(r.ocr.mean_confidence * 100).toFixed(1)}%
+            {r.ocr.review_pending > 0 && ` · รอตรวจ ${r.ocr.review_pending}`}
+          </Badge>
+        )}
         {r &&
           (r.continuity_ok ? (
             <Badge tone="verified">

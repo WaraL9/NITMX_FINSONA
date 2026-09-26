@@ -23,7 +23,7 @@ test("demo run: pipeline → loops → lineage → sizing → judgement → memo
     await page.goto("/login");
     await page.getByRole("button", { name: "เจ้าหน้าที่วิเคราะห์สินเชื่อ (CA)" }).click();
     await expect(page).toHaveURL("/");
-    await page.getByText("บริษัท").first().click();
+    await page.getByText("บริษัท กิตติ อินทีเรีย ดีไซน์ จำกัด").click();
     await expect(page).toHaveURL(/\/cases\/1/);
   });
 
@@ -93,4 +93,30 @@ test("audit chain intact after the demo run", async ({ request }) => {
   const { token } = await (await request.post("/api/auth/login", { data: { username: "auditor", password: PASSWORD } })).json();
   const v = await request.get("/api/audit/verify", { headers: { Authorization: `Bearer ${token}` } });
   expect((await v.json()).ok).toBe(true);
+});
+
+test("OCR review: a scanned statement's uncertain rows are checked against the image", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByRole("button", { name: "เจ้าหน้าที่วิเคราะห์สินเชื่อ (CA)" }).click();
+  await expect(page).toHaveURL("/");
+  await page.goto("/cases/2");
+  const banner = page.getByTestId("ocr-banner");
+  await expect(banner).toBeVisible();
+  const before = Number((await page.getByTestId("tab-ocr").innerText()).match(/\d+/)![0]);
+  await banner.click();
+  await expect(page.getByTestId("bbox")).toBeVisible({ timeout: 30_000 });
+
+  // correct the first row (value typed as a CA would after reading the scan)
+  const credit = page.getByTestId("ocr-credit");
+  const read = await credit.inputValue();
+  await credit.fill((Number(read) + 0.6).toFixed(2));
+  await page.getByPlaceholder(/เหตุผลการแก้ไข/).fill("ภาพสแกนแสดงตัวเลขชัดเจน OCR อ่านผิดหนึ่งหลัก");
+  await page.getByTestId("ocr-correct").click();
+  await expect(page.getByTestId("tab-ocr")).toContainText(String(before - 1));
+
+  // confirm the next one as read
+  await page.getByTestId("ocr-confirm").click();
+  await expect(page.getByTestId("tab-ocr")).toContainText(String(before - 2));
+  await page.getByTestId("tab-audit").click();
+  await expect(page.getByText("ตรวจทาน OCR").first()).toBeVisible();
 });

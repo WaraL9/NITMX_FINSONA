@@ -138,6 +138,10 @@ class Transaction(Base):
     bbox_y1: Mapped[float | None] = mapped_column(Float)
     confidence: Mapped[float] = mapped_column(Float, default=1.0)
     extractor_version: Mapped[str] = mapped_column(String(40), default="")
+    # OCR review (E2-09): None = digital/clean; pending -> confirmed | corrected by a CA.
+    review_status: Mapped[str | None] = mapped_column(String(16), index=True)
+    review_reasons: Mapped[list[str] | None] = mapped_column(JSON)  # low_confidence:<field>, balance_break
+    ocr_fields: Mapped[dict[str, Any] | None] = mapped_column(JSON)  # field -> confidence as read
 
     # Engine outputs
     tag: Mapped[str | None] = mapped_column(String(40), index=True)

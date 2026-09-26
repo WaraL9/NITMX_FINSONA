@@ -21,7 +21,7 @@ npm run dev     # API on :8000, web on http://localhost:5173
 | Command | What it does |
 |---|---|
 | `npm run dev` | Start backend (FastAPI, auto-reload) and frontend (Vite) together |
-| `npm run seed` | Reset the database, seed the Kitti demo case and snapshot it for instant resets |
+| `npm run seed` | Reset the database, seed the demo cases (Kitti; Somjai with a scanned statement) and snapshot them for instant resets |
 | `npm run demo:reset` | Restore the seeded demo in ~0.2 s (also: ↺ button in the header, CA in demo mode) |
 | `npm test` | Backend (pytest) + frontend (Vitest) tests |
 | `npm run e2e` | Browser smoke test of the five demo moments + memo signing (uses installed Chrome) |
@@ -35,7 +35,8 @@ npm run dev     # API on :8000, web on http://localhost:5173
 1. `npm run seed` once (creates the reset snapshot), then `npm run dev` or `npm start`.
 2. `npm run e2e` — all five moments must pass.
 3. Between run-throughs: header ↺ → click again to confirm. Resets decisions, memo, audit log and uploads; keeps AI responses.
-4. Works fully offline: fonts are bundled, connectors are sandboxed, and AI narratives replay from `data/llm_cache.json` (template wording when no response is cached).
+4. Case 2 (บริษัท สมใจ ฟู้ดส์) has a scanned statement: OCR tab → compare each uncertain row with the highlighted scan → confirm or correct. Uncertain amounts are held out of every figure until reviewed, and the memo cannot be signed while rows are pending.
+5. Works fully offline: fonts are bundled, connectors are sandboxed, and AI narratives replay from `data/llm_cache.json` (template wording when no response is cached).
 
 ## Docker
 

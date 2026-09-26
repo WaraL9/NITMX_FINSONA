@@ -35,7 +35,7 @@ from app.models import (
 
 # Fallback when no policy row exists yet; the live policy comes from services.policy.
 DEFAULT_POLICY = Policy()
-from app.services import audit, consent
+from app.services import audit, consent, ocr_review
 from app.services import policy as policy_svc
 
 
@@ -155,9 +155,13 @@ def run_analysis(db: Session, case_id: int, sync_invoices: bool = True, user_id:
         alt_sync = previous.result.get("alt_connector") if previous else None
 
     accounts = list(db.scalars(select(Account).where(Account.case_id == case_id)))
-    rows = list(db.scalars(select(Transaction).where(Transaction.case_id == case_id)))
-    if not rows:
+    all_rows = list(db.scalars(select(Transaction).where(Transaction.case_id == case_id)))
+    if not all_rows:
         raise AnalysisError("no transactions to analyse — upload statements first")
+    # OCR rows whose amount is in doubt stay out of every figure until a CA checks them (E2-09).
+    held = [t for t in all_rows if ocr_review.amount_uncertain(t)]
+    held_ids = {t.id for t in held}
+    rows = [t for t in all_rows if t.id not in held_ids]
     invoices = list(db.scalars(select(Invoice).where(Invoice.case_id == case_id)))
     filings = list(db.scalars(select(TaxFiling).where(TaxFiling.case_id == case_id)))
     existing_items = {w.transaction_id: w for w in db.scalars(select(WatchlistItem).where(WatchlistItem.case_id == case_id))}
@@ -184,6 +188,9 @@ def run_analysis(db: Session, case_id: int, sync_invoices: bool = True, user_id:
         o = result.outcomes[t.id]
         t.tag, t.tier, t.loop_id, t.tag_reason, t.invoice_id = o.tag, o.tier, o.loop_id, o.reason, o.invoice_id
         t.tag_source = "ca" if o.overridden else "rule"
+    for t in held:
+        t.tag, t.tier, t.loop_id, t.invoice_id, t.tag_source = ocr_review.HELD_TAG, None, None, None, "rule"
+        t.tag_reason = "OCR อ่านจำนวนเงินไม่มั่นใจ — ยังไม่นำมาคำนวณจนกว่าเจ้าหน้าที่จะตรวจทาน"
     _llm_annotations(db, rows, result)
     for inv in invoices:
         inv.matched_transaction_id = None
@@ -205,6 +212,8 @@ def run_analysis(db: Session, case_id: int, sync_invoices: bool = True, user_id:
             item.suspicion_score, item.system_note = w.score, w.note
 
     payload = serialize(result, sync, period)
+    payload["ocr_held"] = {"rows": len(held), "credit": f"{sum((t.credit for t in held), Decimal('0')):.2f}",
+                           "debit": f"{sum((t.debit for t in held), Decimal('0')):.2f}"}
     payload.update(_evidence(db, case, result, rows, period, alt_sync))
     analysis = Analysis(case_id=case_id, engine_version=result.engine_version, duration_ms=duration_ms,
                         result=payload)

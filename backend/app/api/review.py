@@ -28,12 +28,15 @@ from app.schemas import (
     DocumentOut,
     DocumentVerifyOut,
     LineageOut,
+    OcrReviewIn,
+    OcrReviewOut,
     OverrideIn,
     OverrideOut,
     ReasonIn,
+    TransactionOut,
     WatchlistOut,
 )
-from app.services import audit
+from app.services import audit, ocr_review
 from app.services.analysis import AnalysisError, run_analysis
 
 router = APIRouter(tags=["review"])
@@ -139,6 +142,32 @@ def revert_override(case_id: int, txn_id: int, body: ReasonIn, request: Request,
     analysis = _rerun(db, case_id, user, request, "tag_override_revert")
     db.refresh(t)
     return OverrideOut(transaction=txn_out(t, _page_no(db, t)), analysis=analysis_out(analysis))
+
+
+@router.get("/api/cases/{case_id}/ocr-review", response_model=list[TransactionOut])
+def ocr_review_queue(case_id: int, status: str = Query("all", pattern="^(all|pending)$"), db: Session = Depends(get_db)):
+    """E2-09: OCR rows that needed (or still need) a human look, in document order."""
+    q = select(Transaction).where(Transaction.case_id == case_id, Transaction.review_status.is_not(None))
+    if status == "pending":
+        q = q.where(Transaction.review_status == ocr_review.PENDING)
+    rows = db.scalars(q.order_by(Transaction.document_id, Transaction.row_index)).all()
+    pages = dict(db.execute(select(Page.id, Page.page_no).where(Page.id.in_({t.page_id for t in rows if t.page_id}))).all())
+    return [txn_out(t, pages.get(t.page_id)) for t in rows]
+
+
+@router.post("/api/cases/{case_id}/ocr-review/{txn_id}", response_model=OcrReviewOut)
+def ocr_review_resolve(case_id: int, txn_id: int, body: OcrReviewIn, request: Request, db: Session = Depends(get_db),
+                       user: User = Depends(require_role("CA"))):
+    """E2-10: confirm or correct an OCR reading; re-checks balances and re-runs the engine."""
+    values = {k: getattr(body, k) for k in ("debit", "credit", "balance")} if body.action == "correct" else None
+    try:
+        res = ocr_review.resolve(db, case_id, txn_id, body.action, user.id, body.reason, values, client_ip(request))
+    except ocr_review.ReviewError as e:
+        db.rollback()
+        raise HTTPException(422, str(e)) from e
+    a = _rerun(db, case_id, user, request, trigger="ocr_review")
+    return OcrReviewOut(txn=txn_out(res.txn, _page_no(db, res.txn)), changed=res.changed,
+                        pending_left=res.pending_left, analysis=analysis_out(a))
 
 
 @router.get("/api/cases/{case_id}/audit", response_model=list[AuditEntryOut])

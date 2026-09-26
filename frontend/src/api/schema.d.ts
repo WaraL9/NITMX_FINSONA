@@ -422,6 +422,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/ocr-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ocr Review Queue
+         * @description E2-09: OCR rows that needed (or still need) a human look, in document order.
+         */
+        get: operations["ocr_review_queue_api_cases__case_id__ocr_review_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/ocr-review/{txn_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ocr Review Resolve
+         * @description E2-10: confirm or correct an OCR reading; re-checks balances and re-runs the engine.
+         */
+        post: operations["ocr_review_resolve_api_cases__case_id__ocr_review__txn_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases/{case_id}/audit": {
         parameters: {
             query?: never;
@@ -987,6 +1027,13 @@ export interface components {
             timings_ms: {
                 [key: string]: number;
             };
+            /**
+             * Ocr Held
+             * @description OCR rows held out of the math pending review
+             */
+            ocr_held?: {
+                [key: string]: unknown;
+            } | null;
             /** Revenue Monthly */
             revenue_monthly?: string | null;
             /** Costs Monthly */
@@ -1743,6 +1790,49 @@ export interface components {
             /** Narrative */
             narrative: string;
         };
+        /** OcrReport */
+        OcrReport: {
+            /** Provider */
+            provider: string;
+            /** Model */
+            model: string;
+            /** Words */
+            words: number;
+            /** Mean Confidence */
+            mean_confidence: number;
+            /** Threshold */
+            threshold: number;
+            /**
+             * Review Pending
+             * @default 0
+             */
+            review_pending: number;
+        };
+        /** OcrReviewIn */
+        OcrReviewIn: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "confirm" | "correct";
+            /** Debit */
+            debit?: number | string | null;
+            /** Credit */
+            credit?: number | string | null;
+            /** Balance */
+            balance?: number | string | null;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** OcrReviewOut */
+        OcrReviewOut: {
+            txn: components["schemas"]["TransactionOut"];
+            /** Changed */
+            changed: boolean;
+            /** Pending Left */
+            pending_left: number;
+            analysis: components["schemas"]["AnalysisOut"];
+        };
         /** OverrideIn */
         OverrideIn: {
             /**
@@ -1817,6 +1907,7 @@ export interface components {
             account_created: boolean;
             /** Warnings */
             warnings: string[];
+            ocr?: components["schemas"]["OcrReport"] | null;
         };
         /** PolicyIn */
         PolicyIn: {
@@ -2129,6 +2220,17 @@ export interface components {
             tag_reason?: string | null;
             /** Tag Source */
             tag_source?: string | null;
+            /** Review Status */
+            review_status?: ("pending" | "confirmed" | "corrected") | null;
+            /** Review Reasons */
+            review_reasons?: string[] | null;
+            /**
+             * Ocr Fields
+             * @description OCR confidence per key field
+             */
+            ocr_fields?: {
+                [key: string]: number;
+            } | null;
         };
         /** TransactionPage */
         TransactionPage: {
@@ -3191,6 +3293,79 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OverrideOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ocr_review_queue_api_cases__case_id__ocr_review_get: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ocr_review_resolve_api_cases__case_id__ocr_review__txn_id__post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                case_id: number;
+                txn_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OcrReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OcrReviewOut"];
                 };
             };
             /** @description Validation Error */

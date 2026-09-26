@@ -16,6 +16,9 @@ class Settings(BaseSettings):
 
     # Feature flags (E0-06). AI calls fall back to cached responses when live is off.
     use_live_ocr: bool = False
+    azure_di_endpoint: str = ""  # Azure AI Document Intelligence (live OCR)
+    azure_di_key: str = ""
+    ocr_review_threshold: float = 0.5  # rows with a key field below this go to human review (E2-09)
     use_live_llm: bool = False
     llm_provider: str = "anthropic"  # the gateway's only live adapter today
     llm_model: str = "claude-opus-5"

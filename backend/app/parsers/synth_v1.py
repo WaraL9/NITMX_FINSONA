@@ -16,7 +16,7 @@ import pdfplumber
 
 from app.core.dates import parse_thai_date
 from app.core.money import to_money
-from app.parsers.base import BBox, PageInfo, ParsedRow, ParsedStatement, ParseError, register
+from app.parsers.base import BBox, PageInfo, PageWords, ParsedRow, ParsedStatement, ParseError, register
 
 MARKER = "FINSONA-SYNTH-STATEMENT v1"
 
@@ -31,6 +31,7 @@ HEADERS = {
     "รายละเอียด": "details",
 }
 NUMERIC = {"debit", "credit", "balance"}
+KEY_FIELDS = ("date", "time", "debit", "credit", "balance")  # the ones the engine's numbers depend on
 
 MONEY_RE = re.compile(r"^-?\d{1,3}(,\d{3})*\.\d{2}$")
 DATE_RE = re.compile(r"^\d{2}/\d{2}/\d{2}$")
@@ -105,31 +106,40 @@ class SynthV1Parser:
         return out
 
     def parse(self, pdf: pdfplumber.PDF) -> ParsedStatement:
-        info = self._header_info(pdf.pages[0].extract_text() or "")
+        pages = [
+            PageWords(p.page_number, float(p.width), float(p.height),
+                      p.extract_words(x_tolerance=1.5, y_tolerance=2, extra_attrs=["size"]))
+            for p in pdf.pages
+        ]
+        return self.parse_words(pdf.pages[0].extract_text() or "", pages)
+
+    def parse_words(self, first_page_text: str, page_words: list[PageWords]) -> ParsedStatement:
+        info = self._header_info(first_page_text)
         warnings: list[str] = []
         pages: list[PageInfo] = []
         rows: list[ParsedRow] = []
 
-        for page in pdf.pages:
-            pno = page.page_number
-            pages.append(PageInfo(pno, float(page.width), float(page.height)))
-            words = [
-                w for w in page.extract_words(x_tolerance=1.5, y_tolerance=2, extra_attrs=["size"])
-                if w["size"] <= MAX_TEXT_SIZE
-            ]
+        for page in page_words:
+            pno = page.page_no
+            pages.append(PageInfo(pno, page.width, page.height))
+            words = [w for w in page.words if w.get("size", 0) <= MAX_TEXT_SIZE]
             found = _columns(words)
             if not found:
                 warnings.append(f"page {pno}: table header not found")
                 continue
             cols, header_bottom = found
             table_x0 = cols[0].x0 - 2
-            table_x1 = float(page.width) - table_x0
-            body = [w for w in words if w["top"] > header_bottom + 1 and w["bottom"] < float(page.height) - 30]
+            table_x1 = page.width - table_x0
+            body = [w for w in words if w["top"] > header_bottom + 1 and w["bottom"] < page.height - 30]
 
             for line in _group_lines(body):
                 cells: dict[str, list[str]] = {}
+                conf: dict[str, float] = {}
                 for w in line:
-                    cells.setdefault(_assign(w, cols), []).append(w["text"])
+                    key = _assign(w, cols)
+                    cells.setdefault(key, []).append(w["text"])
+                    if "confidence" in w:
+                        conf[key] = min(conf.get(key, 1.0), float(w["confidence"]))
                 date_txt = " ".join(cells.get("date", []))
                 if not DATE_RE.match(date_txt):
                     # Continuation of a wrapped details cell.
@@ -167,6 +177,8 @@ class SynthV1Parser:
                         counterparty_name=cp.group("name") if cp else None,
                         counterparty_bank=cp.group("bank") if cp else None,
                         counterparty_account=cp.group("acct") if cp else None,
+                        confidence=min((conf[k] for k in KEY_FIELDS if k in conf), default=1.0),
+                        field_confidence={k: round(v, 3) for k, v in conf.items() if k in KEY_FIELDS},
                     )
                 )
 

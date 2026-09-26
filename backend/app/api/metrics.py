@@ -21,7 +21,8 @@ def _cost(tag: str):
 
 METRICS = {
     # waterfall (company-account credits)
-    "gross_raw_inflow": [COMPANY, CREDIT],
+    # OCR rows held for review (E2-09) are outside every figure until checked.
+    "gross_raw_inflow": [COMPANY, CREDIT, Transaction.tag != "ocr_pending"],
     "own_account_loops": [COMPANY, CREDIT, Transaction.tag == "own_transfer_loop"],
     "internal_transfers": [COMPANY, CREDIT, Transaction.tag == "own_transfer_internal"],
     "owner_family_inflow": [COMPANY, CREDIT, Transaction.tag == "owner_injection"],

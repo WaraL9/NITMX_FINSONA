@@ -6,7 +6,7 @@ rounds it through a float. The frontend formats it for display only.
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, PlainSerializer
 
@@ -84,6 +84,16 @@ class ParseReport(BaseModel):
     was_encrypted: bool
     account_created: bool
     warnings: list[str]
+    ocr: "OcrReport | None" = None
+
+
+class OcrReport(BaseModel):
+    provider: str
+    model: str
+    words: int
+    mean_confidence: float
+    threshold: float
+    review_pending: int = 0
 
 
 DocumentKind = Literal["statement", "pp30", "etax_invoice", "utility_bill", "evidence"]
@@ -137,6 +147,9 @@ class TransactionOut(BaseModel):
     loop_id: str | None = None
     tag_reason: str | None = None
     tag_source: str | None = None
+    review_status: Literal["pending", "confirmed", "corrected"] | None = None
+    review_reasons: list[str] | None = None
+    ocr_fields: dict[str, float] | None = Field(default=None, description="OCR confidence per key field")
 
 
 class TransactionPage(BaseModel):
@@ -211,6 +224,7 @@ class AnalysisOut(BaseModel):
     watchlist_count: int
     connector: dict | None
     timings_ms: dict[str, float] = {}
+    ocr_held: dict[str, Any] | None = Field(default=None, description="OCR rows held out of the math pending review")
     revenue_monthly: str | None = None
     costs_monthly: str | None = None
     t1_monthly: str | None = None
@@ -288,6 +302,21 @@ class DecisionIn(BaseModel):
 
 class ReasonIn(BaseModel):
     reason: str = Field(min_length=10, max_length=2000)
+
+
+class OcrReviewIn(BaseModel):
+    action: Literal["confirm", "correct"]
+    debit: Decimal | None = Field(default=None, ge=0, max_digits=15, decimal_places=2)
+    credit: Decimal | None = Field(default=None, ge=0, max_digits=15, decimal_places=2)
+    balance: Decimal | None = Field(default=None, max_digits=15, decimal_places=2)
+    reason: str | None = Field(default=None, max_length=2000)
+
+
+class OcrReviewOut(BaseModel):
+    txn: TransactionOut
+    changed: bool
+    pending_left: int
+    analysis: AnalysisOut
 
 
 class DecisionOut(BaseModel):

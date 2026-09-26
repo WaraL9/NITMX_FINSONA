@@ -20,7 +20,11 @@ class ParseError(ValueError):
 
 
 class UnsupportedFormat(ParseError):
-    """No registered parser recognises this document (routes to OCR later, E2-08)."""
+    """No registered parser recognises this document."""
+
+
+class NoTextLayer(UnsupportedFormat):
+    """Image-only PDF (a scan or photo): route to OCR (E2-08)."""
 
 
 @dataclass
@@ -43,7 +47,8 @@ class ParsedRow:
     credit: Decimal
     balance: Decimal
     bbox: BBox
-    confidence: float = 1.0
+    confidence: float = 1.0  # min over the key fields; 1.0 for a digital text layer
+    field_confidence: dict[str, float] = field(default_factory=dict)  # OCR only (E2-09)
     counterparty_name: str | None = None
     counterparty_bank: str | None = None
     counterparty_account: str | None = None
@@ -54,6 +59,31 @@ class PageInfo:
     page_no: int
     width: float
     height: float
+
+
+@dataclass
+class PageWords:
+    """One page as positioned words — from a PDF text layer or an OCR provider (E2-08).
+
+    Each word: text, x0, top, x1, bottom (PDF points, top-left origin), size (font size or
+    glyph height) and, from OCR, confidence in [0, 1].
+    """
+
+    page_no: int
+    width: float
+    height: float
+    words: list[dict]
+
+
+def page_text(words: list[dict], tol: float = 2.0) -> str:
+    """Rebuild reading-order text from positioned words (for format detection on OCR output)."""
+    lines: list[list[dict]] = []
+    for w in sorted(words, key=lambda w: (w["top"], w["x0"])):
+        if lines and abs(lines[-1][0]["top"] - w["top"]) <= tol:
+            lines[-1].append(w)
+        else:
+            lines.append([w])
+    return "\n".join(" ".join(w["text"] for w in sorted(line, key=lambda w: w["x0"])) for line in lines)
 
 
 @dataclass
@@ -97,6 +127,8 @@ class StatementParser(Protocol):
 
     def parse(self, pdf: pdfplumber.PDF) -> ParsedStatement: ...
 
+    def parse_words(self, first_page_text: str, pages: list[PageWords]) -> ParsedStatement: ...
+
 
 _REGISTRY: list[StatementParser] = []
 
@@ -115,8 +147,21 @@ def parse_statement(pdf_path_or_file) -> ParsedStatement:
             raise ParseError("PDF has no pages")
         first = pdf.pages[0].extract_text() or ""
         if not first.strip():
-            raise UnsupportedFormat("no text layer (scanned image?) — OCR path not available yet")
+            raise NoTextLayer("no text layer (scanned image?) — needs OCR")
         for p in _REGISTRY:
             if p.detect(first):
                 return p.parse(pdf)
     raise UnsupportedFormat("statement layout not recognised by any parser")
+
+
+def parse_statement_words(pages: list[PageWords]) -> ParsedStatement:
+    """Parse OCR output with the same layout parsers as digital PDFs (E2-08)."""
+    from app.parsers import synth_v1  # noqa: F401
+
+    if not pages:
+        raise ParseError("OCR returned no pages")
+    first = page_text(pages[0].words)
+    for p in _REGISTRY:
+        if p.detect(first):
+            return p.parse_words(first, pages)
+    raise UnsupportedFormat("statement layout not recognised in the OCR text")

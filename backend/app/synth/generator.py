@@ -68,7 +68,7 @@ SUPPLIERS = [
     ("บจก. สุขภัณฑ์ ดีไซน์", "BBL"),
     ("บจก. ขนส่ง รวดเร็ว", "KTB"),
 ]
-FAMILY_MEMBER = "นางสมศรี ศรีวงศ์"  # same surname as the director
+FAMILY_MEMBER_FIRST = "นางสมศรี"  # + the director's surname (owner/family rule, E4-04)
 FAMILY_MEMBER_ACCT = ("BAY", "xxx-x-x6604-x")
 
 
@@ -124,6 +124,9 @@ class _Gen:
     def __init__(self, sc: Scenario, seed: int):
         self.sc = sc
         self.rng = random.Random(seed)
+        director = next((a for a in sc.accounts if a.owner_type == "director"), None)
+        last = director.account_name.split()[-1] if director and len(director.account_name.split()) >= 2 else "ศรีวงศ์"
+        self.family_member = f"{FAMILY_MEMBER_FIRST} {last}"
         self.accounts = {a.key: a for a in sc.accounts}
         self.txns: list[SynthTxn] = []
         self._seq = 0
@@ -235,7 +238,7 @@ class _Gen:
         # 500,000 from a family member whose account is not in the file
         bank, acct = FAMILY_MEMBER_ACCT
         for day in (date(2026, 2, 3), date(2026, 5, 6)):
-            self.transfer_in("BBL_CUR", datetime.combine(day, time(13, 15)), D("250000.00"), FAMILY_MEMBER,
+            self.transfer_in("BBL_CUR", datetime.combine(day, time(13, 15)), D("250000.00"), self.family_member,
                              bank, acct, OWNER_INJECTION)
         assert D("1200000.00") == self.sc.revenue.owner_family_inflow
 
@@ -257,11 +260,11 @@ class _Gen:
         items: list[tuple[datetime, Decimal, str, str]] = []
         for y, m in self.months:
             items.append((datetime(y, m, 15, 8, 0), D("40000.00"), "BILL", "ค่างวดรถยนต์ส่วนบุคคล สัญญา HP-5521"))
-            items.append((self.rand_dt((y, m)), D("60000.00"), "TR-OUT", f"ไปยัง {FAMILY_MEMBER} {bank} {acct} ค่าใช้จ่ายบ้าน"))
+            items.append((self.rand_dt((y, m)), D("60000.00"), "TR-OUT", f"ไปยัง {self.family_member} {bank} {acct} ค่าใช้จ่ายบ้าน"))
         items.append((datetime(2026, 1, 8, 10, 0), D("150000.00"), "BILL", "ค่าเทอม รร.นานาชาติ บุตร ภาคเรียนที่ 2"))
         items.append((datetime(2026, 5, 12, 10, 0), D("150000.00"), "BILL", "ค่าเทอม รร.นานาชาติ บุตร ภาคเรียนที่ 1"))
         for at, amt, code, details in items:
-            cp = FAMILY_MEMBER if code == "TR-OUT" else None
+            cp = self.family_member if code == "TR-OUT" else None
             self.add(SynthTxn("BBL_CUR", at, code, "MOBILE" if code == "TR-OUT" else "AUTO", details, HOUSEHOLD,
                               debit=amt, counterparty=cp,
                               counterparty_account=acct if code == "TR-OUT" else None))

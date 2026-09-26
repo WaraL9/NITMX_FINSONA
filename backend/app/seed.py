@@ -20,6 +20,7 @@ from datetime import datetime, timedelta, timezone
 from app.services import consent
 from app.services.analysis import run_analysis
 from app.services.ingest import ingest_document
+from app.synth import cases
 from app.synth.build import build_case
 
 # Demo accounts (username, display name, role). Passwords = settings.demo_password.
@@ -86,9 +87,35 @@ def seed(reset: bool = True) -> int:
         demo.import_llm_cache(db)
         run_analysis(db, case.id)
         case_id = case.id
+        _seed_somjai(db, users)
     if reset:
         demo.take_snapshot()
     return case_id
+
+
+def _seed_somjai(db, users) -> int:
+    """Case 2: RM-sourced, one statement is a scan -> OCR review queue (E2-08/09/10)."""
+    sc = cases.somjai()
+    case = Case(
+        company_name=sc.case.company_name, tax_id=sc.case.tax_id, industry=sc.case.industry,
+        business_age_years=sc.case.business_age_years, requested_amount=sc.loan_request.amount,
+        purpose=sc.case.purpose, tenor_months=sc.loan_request.tenor_months, annual_rate=sc.loan_request.annual_rate,
+        status="in_review", source=sc.case.source, period_start=sc.case.period_start, period_end=sc.case.period_end,
+        accounts=[Account(bank_code=a.bank_code, account_no_masked=a.account_no_masked, account_name=a.account_name,
+                          account_type=a.account_type, owner_type=a.owner_type) for a in sc.accounts],
+    )
+    db.add(case)
+    db.flush()
+    case.rm_user_id = users["RM"].id
+    case.submitted_at = datetime.now(timezone.utc) - timedelta(hours=6)
+    case.contact_phone = "089-555-0142"
+    consent.record(db, case.id, {p: True for p in consent.PURPOSES}, users["RM"].id)
+    db.commit()
+    for built in build_case("somjai", scenario=sc, seed=7, scanned=frozenset({cases.SCANNED_KEY})):
+        ingest_document(db, case.id, built.path.read_bytes(), built.path.name, kind=built.kind,
+                        password=built.password)
+    run_analysis(db, case.id)
+    return case.id
 
 
 if __name__ == "__main__":

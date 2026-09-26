@@ -15,6 +15,7 @@ const ACTION: Record<string, string> = {
   tag_override: "CA ปรับการจัดหมวด",
   tag_override_revert: "ยกเลิกการปรับการจัดหมวด",
   lineage_view: "เปิดดูพิกัดเอกสาร",
+  ocr_review: "ตรวจทาน OCR",
   login: "เข้าสู่ระบบ",
   policy_change: "เปลี่ยนนโยบายสินเชื่อ",
   consent_change: "เปลี่ยนความยินยอม",

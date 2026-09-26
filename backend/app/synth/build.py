@@ -15,10 +15,11 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from app.config import settings
-from app.scenario import load_scenario
+from app.scenario import Scenario, load_scenario
 from app.synth.generator import generate
 from app.synth.statement_pdf import render_statement
 from app.synth.alt_data import make_alt_data
+from app.synth.scan import scan_statement
 from app.synth.tax_docs import make_invoices, make_pp30, render_pp30
 
 
@@ -34,8 +35,10 @@ def generated_dir(name: str = "kitti") -> Path:
     return settings.data_dir / "generated" / name
 
 
-def build_case(name: str = "kitti", out_dir: Path | None = None, seed: int = 42) -> list[BuiltDoc]:
-    sc = load_scenario(name)
+def build_case(name: str = "kitti", out_dir: Path | None = None, seed: int = 42,
+               scenario: Scenario | None = None, scanned: frozenset[str] = frozenset()) -> list[BuiltDoc]:
+    """`scanned` lists account keys whose statement is delivered as an image-only scan (E2-08)."""
+    sc = scenario or load_scenario(name)
     out_dir = out_dir or generated_dir(name)
     out_dir.mkdir(parents=True, exist_ok=True)
     gen = generate(sc, seed=seed)
@@ -46,6 +49,13 @@ def build_case(name: str = "kitti", out_dir: Path | None = None, seed: int = 42)
     for key, acct in gen.accounts.items():
         pdf = out_dir / f"statement_{acct.spec.bank_code}_{key}.pdf"
         bands = render_statement(acct, period, pdf, password=acct.spec.pdf_password)
+        password = acct.spec.pdf_password
+        if key in scanned:
+            digital, pdf = pdf, out_dir / f"scan_{acct.spec.bank_code}_{key}.pdf"
+            scan_statement(digital, pdf, settings.data_dir / "generated" / "ocr_recorded", password=password,
+                           seed=seed + len(key))
+            digital.unlink()
+            password = None  # a photocopy has no PDF password
         truth["accounts"][key] = {
             "file": pdf.name,
             "bank_code": acct.spec.bank_code,
@@ -53,7 +63,7 @@ def build_case(name: str = "kitti", out_dir: Path | None = None, seed: int = 42)
             "opening_balance": f"{acct.opening_balance:.2f}",
             "rows": [dict(t.truth(), band=asdict(b)) for t, b in zip(acct.rows, bands, strict=True)],
         }
-        built.append(BuiltDoc(key, "statement", pdf, acct.spec.pdf_password))
+        built.append(BuiltDoc(key, "statement", pdf, password))
 
     invoices = make_invoices(gen)
     (out_dir / "promptbiz_invoices.json").write_text(

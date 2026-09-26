@@ -27,7 +27,11 @@ from app.core.money import to_money
 import pdfplumber
 
 from app.models import Account, Case, Document, Page, TaxFiling, Transaction
-from app.parsers.base import ParsedStatement, ParseError, UnsupportedFormat, parse_statement
+from app.ocr.base import OcrResult, OcrUnavailable
+from app.ocr.base import get_provider as get_ocr_provider
+from app.services import ocr_review
+from app.parsers.base import (NoTextLayer, ParsedStatement, ParseError, UnsupportedFormat, parse_statement,
+                               parse_statement_words)
 from app.parsers.pp30 import ParsedPP30, detect_pp30, parse_pp30
 
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
@@ -185,6 +189,7 @@ def ingest_document(
 
     stmt: ParsedStatement | None = None
     pp30: ParsedPP30 | None = None
+    ocr: OcrResult | None = None
     if kind == "pp30":
         try:
             pp30 = parse_pp30(io.BytesIO(plain))
@@ -193,6 +198,17 @@ def ingest_document(
     if kind == "statement":
         try:
             stmt = parse_statement(io.BytesIO(plain))
+        except NoTextLayer:
+            # Scanned/photographed statement: OCR, then the same layout parser (E2-08).
+            try:
+                ocr = get_ocr_provider().analyze(plain, digest)
+                stmt = parse_statement_words(ocr.pages)
+            except OcrUnavailable as e:
+                raise UnsupportedDocument(str(e)) from e
+            except UnsupportedFormat as e:
+                raise UnsupportedDocument(f"OCR read the file but the layout is not recognised: {e}") from e
+            except ParseError as e:
+                raise ParseFailed(f"OCR: {e}") from e
         except UnsupportedFormat as e:
             raise UnsupportedDocument(str(e)) from e
         except ParseError as e:
@@ -256,11 +272,12 @@ def ingest_document(
                 bbox_y1=r.bbox.bottom,
                 confidence=r.confidence,
                 extractor_version=stmt.parser_version,
+                ocr_fields=r.field_confidence if ocr else None,
             )
             for r in stmt.rows
         )
         breaks = stmt.continuity_breaks()
-        doc.parser = stmt.parser
+        doc.parser = f"ocr:{ocr.provider}+{stmt.parser}" if ocr else stmt.parser
         doc.parse_report = {
             "parser": stmt.parser,
             "parser_version": stmt.parser_version,
@@ -281,6 +298,12 @@ def ingest_document(
             "account_created": created,
             "warnings": stmt.warnings,
         }
+        if ocr is not None:
+            doc.parse_report["ocr"] = {"provider": ocr.provider, "model": ocr.model, "words": ocr.word_count,
+                                       "mean_confidence": ocr.mean_confidence,
+                                       "threshold": settings.ocr_review_threshold}
+            db.flush()
+            ocr_review.flag_document(db, doc)
     if pp30 is not None:
         _store_pp30(db, case, doc, pp30)
     db.commit()

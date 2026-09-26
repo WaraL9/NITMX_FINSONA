@@ -46,6 +46,7 @@ export const tagLabel: Record<string, string> = {
   own_transfer_loop: "เงินโอนวน",
   own_transfer_internal: "โอนระหว่างบัญชีบริษัท",
   owner_injection: "เงินจากเจ้าของ/ครอบครัว",
+  ocr_pending: "รอตรวจทาน OCR (ยังไม่นับ)",
   owner_drawing: "โอนให้เจ้าของ",
   household: "ค่าใช้จ่ายครัวเรือน",
   debt_service: "ผ่อนหนี้เดิม",

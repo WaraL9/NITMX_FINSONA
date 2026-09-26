@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, FileSignature, FileText, History, LayoutDashboard, ListChecks, Loader2, RefreshCw, Scale, TriangleAlert } from "lucide-react";
+import { Building2, FileSignature, FileText, History, LayoutDashboard, ListChecks, Loader2, RefreshCw, Scale, ScanLine, TriangleAlert } from "lucide-react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { api, errorMessage, unwrap, type Analysis, type CaseDetail } from "@/api/client";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
@@ -14,6 +14,7 @@ import { LoopsCard } from "@/components/workbench/LoopGraph";
 import { PipelineStrip } from "@/components/workbench/PipelineStrip";
 import { SizingSandbox } from "@/components/workbench/SizingSandbox";
 import { TierCards } from "@/components/workbench/TierCards";
+import { OcrReviewPanel } from "@/components/workbench/OcrReviewPanel";
 import { WatchlistPanel } from "@/components/workbench/WatchlistPanel";
 import { WaterfallChart } from "@/components/workbench/WaterfallChart";
 import { caseStatus, formatRate, ownerType } from "@/lib/labels";
@@ -25,6 +26,7 @@ const TABS = [
   { id: "tiers", label: "กระทบยอด 3 เส้า", icon: Scale },
   { id: "watchlist", label: "Watchlist ดุลยพินิจ", icon: ListChecks },
   { id: "documents", label: "เอกสาร & ธุรกรรม", icon: FileText },
+  { id: "ocr", label: "ตรวจทาน OCR", icon: ScanLine },
   { id: "audit", label: "Audit Log", icon: History },
   { id: "memo", label: "Credit Memo", icon: FileSignature },
 ] as const;
@@ -126,6 +128,14 @@ export default function CaseWorkbench() {
     enabled: Number.isFinite(id),
   });
 
+  // E2-09: the OCR tab exists only when the case has scanned documents.
+  const { data: ocrRows } = useQuery({
+    queryKey: ["ocr-review", id],
+    queryFn: async () => unwrap(await api.GET("/api/cases/{case_id}/ocr-review", { params: { path: { case_id: id } } })),
+    enabled: Number.isFinite(id),
+  });
+  const ocrPending = ocrRows?.filter((r) => r.review_status === "pending").length ?? 0;
+
   if (isLoading) return <p className="text-sm text-muted">กำลังโหลด…</p>;
   if (isError || !c) {
     // 404/403 means the case is really not there (or not yours); anything else is a connection problem.
@@ -145,8 +155,17 @@ export default function CaseWorkbench() {
         </p>
       )}
 
+      {ocrPending > 0 && tab !== "ocr" && (
+        <button data-testid="ocr-banner" onClick={() => setTab("ocr")}
+          className="flex w-full items-center gap-2 rounded-md border border-judge/40 bg-judge-soft px-3 py-2 text-left text-sm text-body hover:border-judge">
+          <ScanLine className="size-4 shrink-0 text-judge" />
+          มีเอกสารสแกน {ocrPending} แถวที่ OCR อ่านไม่มั่นใจ — ตรวจทานก่อนจึงจะลงนาม Credit Memo ได้
+          <span className="ml-auto font-medium text-navy">ตรวจทาน →</span>
+        </button>
+      )}
+
       <nav className="flex flex-wrap gap-1 border-b border-line">
-        {TABS.map((t) => {
+        {TABS.filter((t) => t.id !== "ocr" || (ocrRows?.length ?? 0) > 0).map((t) => {
           return (
             <button
               key={t.id}
@@ -161,6 +180,7 @@ export default function CaseWorkbench() {
               <t.icon className="size-4" />
               {t.label}
               {t.id === "watchlist" && pending > 0 && <Badge tone="judge">{pending}</Badge>}
+              {t.id === "ocr" && ocrPending > 0 && <Badge tone="judge">{ocrPending}</Badge>}
             </button>
           );
         })}
@@ -193,6 +213,7 @@ export default function CaseWorkbench() {
         </div>
       )}
       {a && tab === "watchlist" && <WatchlistPanel caseId={id} />}
+      {tab === "ocr" && <OcrReviewPanel caseId={id} />}
       {tab === "documents" && (
         <div className="space-y-5">
           <DocumentsPanel caseId={id} accounts={c.accounts} />

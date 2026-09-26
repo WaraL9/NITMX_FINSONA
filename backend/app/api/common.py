@@ -27,4 +27,7 @@ def txn_out(t: Transaction, page_no: int | None) -> TransactionOut:
         loop_id=t.loop_id,
         tag_reason=t.tag_reason,
         tag_source=t.tag_source,
+        review_status=t.review_status,
+        review_reasons=t.review_reasons,
+        ocr_fields=t.ocr_fields,
     )

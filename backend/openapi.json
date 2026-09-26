@@ -1877,6 +1877,158 @@
         }
       }
     },
+    "/api/cases/{case_id}/ocr-review": {
+      "get": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Ocr Review Queue",
+        "description": "E2-09: OCR rows that needed (or still need) a human look, in document order.",
+        "operationId": "ocr_review_queue_api_cases__case_id__ocr_review_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(all|pending)$",
+              "default": "all",
+              "title": "Status"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TransactionOut"
+                  },
+                  "title": "Response Ocr Review Queue Api Cases  Case Id  Ocr Review Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/ocr-review/{txn_id}": {
+      "post": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Ocr Review Resolve",
+        "description": "E2-10: confirm or correct an OCR reading; re-checks balances and re-runs the engine.",
+        "operationId": "ocr_review_resolve_api_cases__case_id__ocr_review__txn_id__post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "txn_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Txn Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OcrReviewIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OcrReviewOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/cases/{case_id}/audit": {
       "get": {
         "tags": [
@@ -3744,6 +3896,19 @@
             "type": "object",
             "title": "Timings Ms",
             "default": {}
+          },
+          "ocr_held": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Held",
+            "description": "OCR rows held out of the math pending review"
           },
           "revenue_monthly": {
             "anyOf": [
@@ -6026,6 +6191,146 @@
         ],
         "title": "NarrativeIn"
       },
+      "OcrReport": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "words": {
+            "type": "integer",
+            "title": "Words"
+          },
+          "mean_confidence": {
+            "type": "number",
+            "title": "Mean Confidence"
+          },
+          "threshold": {
+            "type": "number",
+            "title": "Threshold"
+          },
+          "review_pending": {
+            "type": "integer",
+            "title": "Review Pending",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider",
+          "model",
+          "words",
+          "mean_confidence",
+          "threshold"
+        ],
+        "title": "OcrReport"
+      },
+      "OcrReviewIn": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "confirm",
+              "correct"
+            ],
+            "title": "Action"
+          },
+          "debit": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,13}|(?=[\\d.]{1,16}0*$)\\d{0,13}\\.\\d{0,2}0*$)"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Debit"
+          },
+          "credit": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,13}|(?=[\\d.]{1,16}0*$)\\d{0,13}\\.\\d{0,2}0*$)"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credit"
+          },
+          "balance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,13}|(?=[\\d.]{1,16}0*$)\\d{0,13}\\.\\d{0,2}0*$)"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Balance"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "title": "OcrReviewIn"
+      },
+      "OcrReviewOut": {
+        "properties": {
+          "txn": {
+            "$ref": "#/components/schemas/TransactionOut"
+          },
+          "changed": {
+            "type": "boolean",
+            "title": "Changed"
+          },
+          "pending_left": {
+            "type": "integer",
+            "title": "Pending Left"
+          },
+          "analysis": {
+            "$ref": "#/components/schemas/AnalysisOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "txn",
+          "changed",
+          "pending_left",
+          "analysis"
+        ],
+        "title": "OcrReviewOut"
+      },
       "OverrideIn": {
         "properties": {
           "value": {
@@ -6256,6 +6561,16 @@
             },
             "type": "array",
             "title": "Warnings"
+          },
+          "ocr": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OcrReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -7288,6 +7603,51 @@
               }
             ],
             "title": "Tag Source"
+          },
+          "review_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "confirmed",
+                  "corrected"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Status"
+          },
+          "review_reasons": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Reasons"
+          },
+          "ocr_fields": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Fields",
+            "description": "OCR confidence per key field"
           }
         },
         "type": "object",
