@@ -18,11 +18,14 @@ import { PdfPage } from "./PdfPage";
 type View =
   | { kind: "metric"; caseId: number; metric: string; label: string; expected?: string }
   | { kind: "loop"; caseId: number; loopId: string; label: string }
+  | { kind: "rows"; caseId: number; ids: number[]; label: string }
   | { kind: "txn"; txnId: number; back?: View };
 
 interface Ctx {
   openMetric: (caseId: number, metric: string, label: string, expected?: string) => void;
   openLoop: (caseId: number, loopId: string, label: string) => void;
+  /** Explicit rows, e.g. the evidence behind an anomaly flag or a customer (E4-09, E5-06). */
+  openRows: (caseId: number, ids: number[], label: string) => void;
   openTxn: (txnId: number) => void;
   close: () => void;
 }
@@ -42,6 +45,7 @@ export function LineageProvider({ children }: { children: ReactNode }) {
     () => ({
       openMetric: (caseId, metric, label, expected) => setView({ kind: "metric", caseId, metric, label, expected }),
       openLoop: (caseId, loopId, label) => setView({ kind: "loop", caseId, loopId, label }),
+      openRows: (caseId, ids, label) => setView({ kind: "rows", caseId, ids: ids.slice(0, 500), label }),
       openTxn: (txnId) => setView((v) => ({ kind: "txn", txnId, back: v && v.kind !== "txn" ? v : undefined })),
       close,
     }),
@@ -94,12 +98,14 @@ function Header({ title, subtitle, onBack, onClose }: { title: ReactNode; subtit
 
 const PAGE = 25;
 
-function RowsView({ view, onPick, onClose }: { view: Extract<View, { kind: "metric" | "loop" }>; onPick: (id: number) => void; onClose: () => void }) {
+function RowsView({ view, onPick, onClose }: { view: Extract<View, { kind: "metric" | "loop" | "rows" }>; onPick: (id: number) => void; onClose: () => void }) {
   const [offset, setOffset] = useState(0);
   const query =
     view.kind === "metric"
       ? { metric: view.metric, sort: "amount_desc" as const }
-      : { loop_id: view.loopId, sort: "time" as const };
+      : view.kind === "loop"
+        ? { loop_id: view.loopId, sort: "time" as const }
+        : { ids: view.ids.join(","), sort: "time" as const };
   const { data } = useQuery({
     queryKey: ["lineage-rows", view.caseId, query, offset],
     queryFn: async () =>

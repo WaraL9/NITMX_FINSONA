@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from app.connectors.base import ConnectorError
 from app.connectors.promptbiz import get_invoice_source
 from app.connectors.utility import get_utility_source
-from app.engine import altdata, cash_pattern
+from app.engine import altdata, anomalies, cash_pattern, concentration
 from app.engine.explain import ExplainInputs, explain
 from app.engine.pipeline import analyze
 from app.engine.types import AnalysisResult, EAccount, EFiling, EInvoice, ETxn, Policy
@@ -271,7 +271,26 @@ def _evidence(db: Session, case: Case, r: AnalysisResult, rows: list[Transaction
         cash_pattern_detected=cash.detected, cash_total=cash.total, policy=policy_svc.current(db),
     ))
     wf, costs, tiers = r.waterfall, r.costs, r.tiers
+    company = {a.id for a in db.scalars(select(Account).where(Account.case_id == case.id, Account.owner_type == "company"))}
+    buyers = dict(db.execute(select(Invoice.id, Invoice.buyer_name).where(Invoice.case_id == case.id)).all())
+    conc = concentration.analyze(
+        [concentration.Receipt(t.id, t.posted_at, t.credit, buyers.get(r.outcomes[t.id].invoice_id) or t.counterparty_name)
+         for t in rows if t.account_id in company and r.outcomes[t.id].tier in ("T1_golden", "T2_tax", "T3_operational")],
+        months)
+    found = anomalies.detect(
+        [anomalies.ATxn(t.id, t.posted_at, t.debit, t.credit, r.outcomes[t.id].tag, r.outcomes[t.id].tier,
+                        t.counterparty_name, t.account_id in company) for t in rows],
+        period[1], months)
     return {
+        "concentration": {
+            "identified": f"{conc.identified:.2f}", "unidentified": f"{conc.unidentified:.2f}",
+            "customers": conc.customers, "top1_share": str(conc.top1_share), "top5_share": str(conc.top5_share),
+            "hhi": conc.hhi, "level": conc.level, "flags": conc.flags,
+            "top": [{"name": c.name, "amount": f"{c.amount:.2f}", "share": str(c.share), "receipts": c.receipts,
+                     "months_active": c.months_active, "txn_ids": c.txn_ids} for c in conc.top],
+        },
+        "anomalies": [{"kind": a.kind, "severity": a.severity, "title": a.title, "detail": a.detail,
+                       "amount": f"{a.amount:.2f}", "txn_ids": a.txn_ids} for a in found],
         "revenue_monthly": f"{wf['verified_operating_revenue'] / months:.2f}",
         "costs_monthly": f"{costs['business_operating'] / months:.2f}",
         "t1_monthly": f"{tiers['T1_golden'] / months:.2f}",

@@ -1157,6 +1157,25 @@
             }
           },
           {
+            "name": "ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d+(,\\d+){0,499}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "explicit rows, e.g. the rows behind an anomaly flag",
+              "title": "Ids"
+            },
+            "description": "explicit rows, e.g. the rows behind an anomaly flag"
+          },
+          {
             "name": "metric",
             "in": "query",
             "required": false,
@@ -3910,6 +3929,24 @@
             "title": "Ocr Held",
             "description": "OCR rows held out of the math pending review"
           },
+          "concentration": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConcentrationOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "anomalies": {
+            "items": {
+              "$ref": "#/components/schemas/AnomalyOut"
+            },
+            "type": "array",
+            "title": "Anomalies",
+            "default": []
+          },
           "revenue_monthly": {
             "anyOf": [
               {
@@ -4017,6 +4054,59 @@
           "connector"
         ],
         "title": "AnalysisOut"
+      },
+      "AnomalyOut": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "pass_through",
+              "period_end",
+              "revenue_spike",
+              "round_cash"
+            ],
+            "title": "Kind"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "info",
+              "watch",
+              "high"
+            ],
+            "title": "Severity"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          },
+          "txn_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Txn Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "severity",
+          "title",
+          "detail",
+          "amount",
+          "txn_ids"
+        ],
+        "title": "AnomalyOut",
+        "description": "E4-09: informational pattern flags; they never change a figure."
       },
       "ApiError": {
         "properties": {
@@ -4802,6 +4892,71 @@
         ],
         "title": "ChainStatusOut"
       },
+      "ConcentrationOut": {
+        "properties": {
+          "identified": {
+            "type": "string",
+            "title": "Identified"
+          },
+          "unidentified": {
+            "type": "string",
+            "title": "Unidentified"
+          },
+          "customers": {
+            "type": "integer",
+            "title": "Customers"
+          },
+          "top1_share": {
+            "type": "string",
+            "title": "Top1 Share"
+          },
+          "top5_share": {
+            "type": "string",
+            "title": "Top5 Share"
+          },
+          "hhi": {
+            "type": "integer",
+            "title": "Hhi"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "low",
+              "moderate",
+              "high"
+            ],
+            "title": "Level"
+          },
+          "flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Flags"
+          },
+          "top": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerShareOut"
+            },
+            "type": "array",
+            "title": "Top"
+          }
+        },
+        "type": "object",
+        "required": [
+          "identified",
+          "unidentified",
+          "customers",
+          "top1_share",
+          "top5_share",
+          "hhi",
+          "level",
+          "flags",
+          "top"
+        ],
+        "title": "ConcentrationOut",
+        "description": "E5-06: who the verified revenue comes from."
+      },
       "ConsentState": {
         "properties": {
           "purpose": {
@@ -4837,6 +4992,47 @@
           "recorded_at"
         ],
         "title": "ConsentState"
+      },
+      "CustomerShareOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          },
+          "share": {
+            "type": "string",
+            "title": "Share"
+          },
+          "receipts": {
+            "type": "integer",
+            "title": "Receipts"
+          },
+          "months_active": {
+            "type": "integer",
+            "title": "Months Active"
+          },
+          "txn_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Txn Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "amount",
+          "share",
+          "receipts",
+          "months_active",
+          "txn_ids"
+        ],
+        "title": "CustomerShareOut"
       },
       "DecisionIn": {
         "properties": {

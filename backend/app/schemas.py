@@ -225,6 +225,8 @@ class AnalysisOut(BaseModel):
     connector: dict | None
     timings_ms: dict[str, float] = {}
     ocr_held: dict[str, Any] | None = Field(default=None, description="OCR rows held out of the math pending review")
+    concentration: "ConcentrationOut | None" = None
+    anomalies: "list[AnomalyOut]" = []
     revenue_monthly: str | None = None
     costs_monthly: str | None = None
     t1_monthly: str | None = None
@@ -302,6 +304,38 @@ class DecisionIn(BaseModel):
 
 class ReasonIn(BaseModel):
     reason: str = Field(min_length=10, max_length=2000)
+
+
+class CustomerShareOut(BaseModel):
+    name: str
+    amount: str
+    share: str
+    receipts: int
+    months_active: int
+    txn_ids: list[int]
+
+
+class ConcentrationOut(BaseModel):
+    """E5-06: who the verified revenue comes from."""
+    identified: str
+    unidentified: str
+    customers: int
+    top1_share: str
+    top5_share: str
+    hhi: int
+    level: Literal["low", "moderate", "high"]
+    flags: list[str]
+    top: list[CustomerShareOut]
+
+
+class AnomalyOut(BaseModel):
+    """E4-09: informational pattern flags; they never change a figure."""
+    kind: Literal["pass_through", "period_end", "revenue_spike", "round_cash"]
+    severity: Literal["info", "watch", "high"]
+    title: str
+    detail: str
+    amount: str
+    txn_ids: list[int]
 
 
 class OcrReviewIn(BaseModel):

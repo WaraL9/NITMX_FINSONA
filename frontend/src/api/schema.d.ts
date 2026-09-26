@@ -1034,6 +1034,12 @@ export interface components {
             ocr_held?: {
                 [key: string]: unknown;
             } | null;
+            concentration?: components["schemas"]["ConcentrationOut"] | null;
+            /**
+             * Anomalies
+             * @default []
+             */
+            anomalies: components["schemas"]["AnomalyOut"][];
             /** Revenue Monthly */
             revenue_monthly?: string | null;
             /** Costs Monthly */
@@ -1053,6 +1059,30 @@ export interface components {
              * @default []
              */
             drivers: components["schemas"]["DriverOut"][];
+        };
+        /**
+         * AnomalyOut
+         * @description E4-09: informational pattern flags; they never change a figure.
+         */
+        AnomalyOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "pass_through" | "period_end" | "revenue_spike" | "round_cash";
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "info" | "watch" | "high";
+            /** Title */
+            title: string;
+            /** Detail */
+            detail: string;
+            /** Amount */
+            amount: string;
+            /** Txn Ids */
+            txn_ids: number[];
         };
         /** ApiError */
         ApiError: {
@@ -1318,6 +1348,33 @@ export interface components {
             /** Detail */
             detail: string | null;
         };
+        /**
+         * ConcentrationOut
+         * @description E5-06: who the verified revenue comes from.
+         */
+        ConcentrationOut: {
+            /** Identified */
+            identified: string;
+            /** Unidentified */
+            unidentified: string;
+            /** Customers */
+            customers: number;
+            /** Top1 Share */
+            top1_share: string;
+            /** Top5 Share */
+            top5_share: string;
+            /** Hhi */
+            hhi: number;
+            /**
+             * Level
+             * @enum {string}
+             */
+            level: "low" | "moderate" | "high";
+            /** Flags */
+            flags: string[];
+            /** Top */
+            top: components["schemas"]["CustomerShareOut"][];
+        };
         /** ConsentState */
         ConsentState: {
             /** Purpose */
@@ -1328,6 +1385,21 @@ export interface components {
             granted: boolean;
             /** Recorded At */
             recorded_at: string | null;
+        };
+        /** CustomerShareOut */
+        CustomerShareOut: {
+            /** Name */
+            name: string;
+            /** Amount */
+            amount: string;
+            /** Share */
+            share: string;
+            /** Receipts */
+            receipts: number;
+            /** Months Active */
+            months_active: number;
+            /** Txn Ids */
+            txn_ids: number[];
         };
         /** DecisionIn */
         DecisionIn: {
@@ -2976,6 +3048,8 @@ export interface operations {
                 tier?: string | null;
                 tag?: string | null;
                 loop_id?: string | null;
+                /** @description explicit rows, e.g. the rows behind an anomaly flag */
+                ids?: string | null;
                 /** @description lineage: rows behind an analysis figure, e.g. T1_golden, own_account_loops, business_operating, household */
                 metric?: string | null;
                 sort?: "time" | "amount_desc";

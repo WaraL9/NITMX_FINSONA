@@ -94,6 +94,7 @@ def list_transactions(
     tier: str | None = None,
     tag: str | None = None,
     loop_id: str | None = None,
+    ids: str | None = Query(None, pattern=r"^\d+(,\d+){0,499}$", description="explicit rows, e.g. the rows behind an anomaly flag"),
     metric: str | None = Query(None, description="lineage: rows behind an analysis figure, e.g. T1_golden, "
                                                  "own_account_loops, business_operating, household"),
     sort: Literal["time", "amount_desc"] = "time",
@@ -113,6 +114,8 @@ def list_transactions(
         filters.append(Transaction.tag == tag)
     if loop_id:
         filters.append(Transaction.loop_id == loop_id)
+    if ids:
+        filters.append(Transaction.id.in_({int(i) for i in ids.split(",")}))
     if q:
         like = f"%{q}%"
         filters.append(Transaction.description.like(like) | Transaction.counterparty_name.like(like))

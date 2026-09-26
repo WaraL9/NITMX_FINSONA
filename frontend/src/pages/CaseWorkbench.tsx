@@ -12,6 +12,7 @@ import { AltDataPanel, DriversPanel } from "@/components/workbench/InsightsPanel
 import { MemoPanel } from "@/components/workbench/MemoPanel";
 import { LoopsCard } from "@/components/workbench/LoopGraph";
 import { PipelineStrip } from "@/components/workbench/PipelineStrip";
+import { AnomaliesPanel, ConcentrationPanel } from "@/components/workbench/RiskPanels";
 import { SizingSandbox } from "@/components/workbench/SizingSandbox";
 import { TierCards } from "@/components/workbench/TierCards";
 import { OcrReviewPanel } from "@/components/workbench/OcrReviewPanel";
@@ -203,6 +204,10 @@ export default function CaseWorkbench() {
           <div className="grid gap-5 xl:grid-cols-[1.6fr_1fr]">
             <DriversPanel caseId={id} a={a} />
             <AltDataPanel caseId={id} a={a} />
+          </div>
+          <div className="grid gap-5 xl:grid-cols-[1.6fr_1fr]">
+            <ConcentrationPanel caseId={id} a={a} />
+            <AnomaliesPanel caseId={id} a={a} />
           </div>
         </div>
       )}
