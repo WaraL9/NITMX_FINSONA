@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     secret_key: str = ""  # token signing key; generated into backend/.secret when empty
     demo_password: str = "finsona-demo"  # seeded demo accounts only
     demo_mode: bool = True  # show demo accounts on the login screen; set false outside demos
+    snapshot_dir: Path = BACKEND_DIR / ".demo_snapshot"  # E16-01 instant reset
+    llm_cache_file: Path | None = REPO_DIR / "data" / "llm_cache.json"  # E16-02 offline replay
+    frontend_dist: Path = REPO_DIR / "frontend" / "dist"  # served by the API in production (E16-05)
 
 
 settings = Settings()

@@ -49,3 +49,23 @@ def health() -> Health:
         live_llm=gateway.status()["live"],
         demo_mode=settings.demo_mode,
     )
+
+
+# E16-05: in production the API also serves the built SPA (one process, one port, no CORS).
+# Registered last so every /api and /sandbox route wins; unknown API paths still 404 as JSON.
+if (settings.frontend_dist / "index.html").exists():
+    from fastapi import HTTPException
+    from fastapi.responses import FileResponse
+    from fastapi.staticfiles import StaticFiles
+
+    _dist = settings.frontend_dist.resolve()
+    app.mount("/assets", StaticFiles(directory=_dist / "assets"), name="assets")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def spa(path: str) -> FileResponse:
+        if path.startswith(("api/", "sandbox/")):
+            raise HTTPException(404, "not found")
+        f = (_dist / path).resolve()
+        if path and f.is_file() and f.is_relative_to(_dist):
+            return FileResponse(f)
+        return FileResponse(_dist / "index.html", headers={"Cache-Control": "no-cache"})

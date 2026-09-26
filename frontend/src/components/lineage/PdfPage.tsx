@@ -97,6 +97,7 @@ export function PdfPage({ url, page, bbox, className }: PdfPageProps) {
       {scale && bbox && (
         <div
           ref={box}
+          data-testid="bbox"
           className="pointer-events-none absolute rounded-sm border-2 border-[#f97316] bg-[#f97316]/15 shadow-[0_0_0_4px_rgba(249,115,22,0.18)]"
           style={{
             left: bbox[0] * scale,

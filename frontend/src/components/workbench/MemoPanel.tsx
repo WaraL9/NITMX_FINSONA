@@ -283,7 +283,7 @@ function SignOff({ p, caseId }: { p: MemoPackage; caseId: number }) {
         placeholder="เหตุผลประกอบการตัดสินใจ เช่น กระแสเงินสดจริงยืนยันด้วย PromptBiz ร้อยละ 60 เสนอวงเงินตามโครงสร้างปลอดภัยแทนการปฏิเสธ"
         className="mt-3 w-full rounded-md border border-line bg-surface p-3 text-sm text-ink outline-none focus:border-navy" />
       {sign.isError && <p className="mt-1 text-sm text-risk">{sign.error.message}</p>}
-      <Button className="mt-3 w-full" size="lg" disabled={reason.trim().length < 10 || !amountOk || sign.isPending} onClick={() => sign.mutate()}>
+      <Button className="mt-3 w-full" size="lg" data-testid="sign-memo" disabled={reason.trim().length < 10 || !amountOk || sign.isPending} onClick={() => sign.mutate()}>
         {sign.isPending ? <Loader2 className="size-4 animate-spin" /> : <FileSignature className="size-4" />}
         ลงนามและออก Credit Memo 1 หน้า (PDF)
       </Button>

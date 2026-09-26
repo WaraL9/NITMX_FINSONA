@@ -102,7 +102,7 @@ export function SizingSandbox({ caseId, a, requested }: { caseId: number; a: Ana
         <div>
           <div className="flex items-baseline justify-between">
             <span className="text-sm text-muted">วงเงินจำลอง</span>
-            <span className="num font-mono text-3xl font-semibold text-ink">{formatTHB(String(amount), 0)}</span>
+            <span data-testid="sim-amount" className="num font-mono text-3xl font-semibold text-ink">{formatTHB(String(amount), 0)}</span>
           </div>
           <Slider
             min={MIN}
@@ -119,7 +119,7 @@ export function SizingSandbox({ caseId, a, requested }: { caseId: number; a: Ana
             <span>{formatMillions(String(max))}</span>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button size="sm" variant="verified" onClick={() => setAmount(Math.max(MIN, Math.min(max, safe)))} disabled={safe < MIN}>
+            <Button size="sm" variant="verified" data-testid="use-safe-limit" onClick={() => setAmount(Math.max(MIN, Math.min(max, safe)))} disabled={safe < MIN}>
               <Target className="size-4" /> ใช้วงเงินปลอดภัย {formatMillions(s.safe_limit, 2)}
             </Button>
             <Button size="sm" variant="secondary" onClick={() => setAmount(requestedNum)}>
@@ -150,7 +150,7 @@ export function SizingSandbox({ caseId, a, requested }: { caseId: number; a: Ana
         <div className="grid min-w-72 grid-cols-2 gap-3">
           <div className={cn("col-span-2 rounded-lg border p-4 transition-colors", toneBox)}>
             <div className="text-xs text-muted">DSCR (ความสามารถชำระหนี้)</div>
-            <div className={cn("num font-mono text-4xl font-bold", toneText)}>{dscr !== null ? dscr.toFixed(2) : "—"}×</div>
+            <div data-testid="sim-dscr" className={cn("num font-mono text-4xl font-bold", toneText)}>{dscr !== null ? dscr.toFixed(2) : "—"}×</div>
             <div className={cn("mt-1 text-xs", toneText)}>
               {s.meets_target
                 ? "ผ่านเกณฑ์ — อยู่ในกรอบความปลอดภัย"
@@ -178,7 +178,7 @@ export function SizingSandbox({ caseId, a, requested }: { caseId: number; a: Ana
         </div>
       </div>
 
-      <div className={cn("mt-5 rounded-md border border-verified/40 bg-verified-soft p-3 text-sm", safeFlash && "flash")}>
+      <div data-testid="structure" className={cn("mt-5 rounded-md border border-verified/40 bg-verified-soft p-3 text-sm", safeFlash && "flash")}>
         <Badge tone="verified" className="mr-2">
           ข้อเสนอแนะเชิงโครงสร้าง
         </Badge>

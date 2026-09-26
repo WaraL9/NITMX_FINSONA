@@ -24,6 +24,7 @@ export function Figure({ caseId, metric, label, value, format = "baht", negative
   return (
     <button
       type="button"
+      data-testid={`fig-${metric}`}
       onClick={(e) => {
         e.stopPropagation();
         openMetric(caseId, metric, label, expected ?? value);

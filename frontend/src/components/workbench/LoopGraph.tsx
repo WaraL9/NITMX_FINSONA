@@ -157,7 +157,7 @@ export function LoopsCard({ caseId, a, accounts }: { caseId: number; a: Analysis
         }
         subtitle="ตรวจจับด้วยกราฟธุรกรรมตามเวลา · ตัดยอดออกจากรายได้โดยอัตโนมัติ"
         action={
-          <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>
+          <Button size="sm" variant="secondary" data-testid="open-loop-graph" onClick={() => setOpen(true)}>
             ดูผังเส้นทางเงินวน
           </Button>
         }

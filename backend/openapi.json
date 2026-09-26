@@ -502,6 +502,56 @@
         }
       }
     },
+    "/api/demo/reset": {
+      "post": {
+        "tags": [
+          "session"
+        ],
+        "summary": "Demo Reset",
+        "description": "E16-01: restore the freshly-seeded demo in one click. Disabled outside demo mode.",
+        "operationId": "demo_reset_api_demo_reset_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoResetOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/compliance": {
       "get": {
         "tags": [
@@ -4665,6 +4715,24 @@
           "analysis"
         ],
         "title": "DecisionOut"
+      },
+      "DemoResetOut": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          },
+          "ms": {
+            "type": "integer",
+            "title": "Ms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mode",
+          "ms"
+        ],
+        "title": "DemoResetOut"
       },
       "DocumentOut": {
         "properties": {

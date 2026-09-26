@@ -29,7 +29,7 @@ export function PipelineStrip({ caseId, a }: { caseId: number; a: Analysis }) {
   ];
 
   return (
-    <div key={a.id} className="flex flex-wrap items-stretch gap-2">
+    <div key={a.id} data-testid="pipeline" className="flex flex-wrap items-stretch gap-2">
       {steps.map((s, i) => (
         <div key={s.title} className="rise flex min-w-40 flex-1 items-center gap-2" style={{ animationDelay: `${i * 90}ms` }}>
           <div className="flex flex-1 items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2">

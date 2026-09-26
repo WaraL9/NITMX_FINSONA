@@ -23,3 +23,7 @@ data/private/
 data/generated/
 backend/.secret
 backend/.storage_key
+
+backend/.demo_snapshot/
+e2e/results/
+e2e/report/

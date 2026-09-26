@@ -5,6 +5,8 @@ import tempfile
 _tmp = tempfile.mkdtemp(prefix="finsona-test-")
 os.environ["FINSONA_DATABASE_URL"] = f"sqlite:///{_tmp}/test.db".replace("\\", "/")
 os.environ["FINSONA_STORAGE_DIR"] = f"{_tmp}/storage"
+os.environ["FINSONA_SNAPSHOT_DIR"] = f"{_tmp}/snapshot"
+os.environ["FINSONA_LLM_CACHE_FILE"] = f"{_tmp}/llm_cache.json"
 
 import json  # noqa: E402
 from pathlib import Path  # noqa: E402

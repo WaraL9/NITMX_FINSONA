@@ -134,6 +134,7 @@ function RowsView({ view, onPick, onClose }: { view: Extract<View, { kind: "metr
         {data?.items.map((t) => (
           <button
             key={t.id}
+            data-testid="lineage-row"
             onClick={() => onPick(t.id)}
             className="flex w-full items-center gap-3 border-b border-line px-5 py-2.5 text-left hover:bg-surface"
           >

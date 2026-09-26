@@ -8,8 +8,9 @@ ingest pipeline, so the demo data exercises the same parser a real upload does.
 """
 
 import argparse
+import shutil
 
-from app import auth
+from app import auth, demo
 from app.config import settings
 from app.db import Base, SessionLocal, create_all, engine
 from app.models import Account, Case, Transaction, User
@@ -32,7 +33,14 @@ USERS = [
 
 def seed(reset: bool = True) -> int:
     if reset:
+        try:  # keep LLM responses across reseeds (E16-02)
+            with SessionLocal() as db:
+                demo.export_llm_cache(db)
+        except Exception:  # noqa: BLE001 - first run: no table yet
+            pass
         Base.metadata.drop_all(engine)
+        if settings.storage_dir.exists():
+            shutil.rmtree(settings.storage_dir)
     create_all()
     sc = load_scenario("kitti")
     with SessionLocal() as db:
@@ -75,8 +83,12 @@ def seed(reset: bool = True) -> int:
         for built in build_case("kitti"):
             ingest_document(db, case.id, built.path.read_bytes(), built.path.name, kind=built.kind,
                             password=built.password)
+        demo.import_llm_cache(db)
         run_analysis(db, case.id)
-        return case.id
+        case_id = case.id
+    if reset:
+        demo.take_snapshot()
+    return case_id
 
 
 if __name__ == "__main__":

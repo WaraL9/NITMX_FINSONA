@@ -5,15 +5,16 @@ includes prev_hash). Changing or deleting any past entry breaks every hash after
 verify() reports the first entry where the chain no longer holds.
 
 One global chain covers every case, so entries can't be dropped from one case unnoticed.
-Appends read the chain head and write in the caller's transaction; SQLite serialises
-writers, which is enough for this single-node deployment. A multi-node deployment would
-need a DB sequence/lock around the append.
+Appends take the write lock (insert) before reading the chain head, inside the caller's
+transaction; SQLite serialises writers, which is enough for this single-node deployment.
+A server database would need an explicit lock (e.g. SELECT ... FOR UPDATE on a head row).
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import secrets
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
@@ -70,8 +71,13 @@ def log(
     after: dict[str, Any] | None = None,
     reason: str | None = None,
 ) -> AuditEntry:
-    """Append an entry. Flushes but does not commit — it lands with the caller's transaction."""
-    last = db.scalar(select(AuditEntry).order_by(AuditEntry.id.desc()).limit(1))
+    """Append an entry. Flushes but does not commit — it lands with the caller's transaction.
+
+    The row is inserted *before* the chain head is read: the insert takes SQLite's write
+    lock, so no other transaction can commit an entry between reading the head and our
+    commit. Reading the head first let two concurrent requests link to the same parent
+    and fork the chain (found by the E16-03 browser smoke test).
+    """
     e = AuditEntry(
         case_id=case_id,
         ts=datetime.now(timezone.utc).replace(tzinfo=None),
@@ -83,10 +89,14 @@ def log(
         before=_jsonable(before),
         after=_jsonable(after),
         reason=reason,
-        prev_hash=last.hash if last else GENESIS,
+        prev_hash=GENESIS,
+        hash=secrets.token_hex(32),  # unique placeholder until linked below
     )
-    e.hash = _digest(e)
     db.add(e)
+    db.flush()
+    last = db.scalar(select(AuditEntry).where(AuditEntry.id < e.id).order_by(AuditEntry.id.desc()).limit(1))
+    e.prev_hash = last.hash if last else GENESIS
+    e.hash = _digest(e)
     db.flush()
     return e
 

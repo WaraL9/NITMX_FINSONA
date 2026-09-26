@@ -90,3 +90,20 @@ def users(db: Session = Depends(get_db), user: User = Depends(current_user)):
     if user.role not in ("CA", "AUDITOR"):
         return [user]
     return list(db.scalars(select(User).order_by(User.id)))
+
+
+class DemoResetOut(BaseModel):
+    mode: str  # "snapshot" (instant) | "reseed" (snapshot stale or missing)
+    ms: int
+
+
+@router.post("/api/demo/reset", response_model=DemoResetOut)
+def demo_reset(db: Session = Depends(get_db), user: User = Depends(require_role("CA"))):
+    """E16-01: restore the freshly-seeded demo in one click. Disabled outside demo mode."""
+    from app import demo
+    from app.config import settings
+
+    if not settings.demo_mode:
+        raise HTTPException(403, "demo reset is disabled (FINSONA_DEMO_MODE=false)")
+    db.close()  # release this request's connection before the database is replaced
+    return demo.reset()

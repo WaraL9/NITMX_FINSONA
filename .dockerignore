@@ -1,0 +1,13 @@
+**/node_modules
+**/.venv
+**/__pycache__
+frontend/dist
+backend/storage
+backend/.demo_snapshot
+backend/*.db
+backend/.secret
+backend/.storage_key
+backend/.env
+data/generated
+data/private
+.git

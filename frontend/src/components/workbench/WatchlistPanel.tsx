@@ -223,6 +223,7 @@ export function WatchlistPanel({ caseId }: { caseId: number }) {
             {items?.map((i) => (
               <button
                 key={i.id}
+                data-testid="wl-item"
                 onClick={() => setSelectedId(i.id)}
                 className={cn(
                   "w-full rounded-md border px-3 py-2.5 text-left transition-colors",

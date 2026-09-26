@@ -148,6 +148,17 @@ def _key(purpose: str, provider: str, model: str, system: str, user: str, schema
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
+def _persist(db: Session) -> None:
+    """Write new live responses to the cache file so they replay offline and survive reseeds."""
+    from app import demo
+
+    try:
+        db.flush()
+        demo.export_llm_cache(db)
+    except OSError:
+        pass
+
+
 def complete_json(db: Session, purpose: str, system: str, user: str, schema: dict[str, Any],
                   max_tokens: int = 2048, case_id: int | None = None) -> LLMResult:
     """Cached structured completion. Raises LLMUnavailable when nothing can answer.
@@ -183,4 +194,5 @@ def complete_json(db: Session, purpose: str, system: str, user: str, schema: dic
         raise
     db.merge(LlmCache(key=key, provider=provider, model=model, purpose=purpose, response=data))
     log("live")
+    _persist(db)
     return LLMResult(data, "live", provider, model)

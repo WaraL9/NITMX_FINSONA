@@ -85,7 +85,7 @@ export default function CaseWorkbench() {
     );
   const qc = useQueryClient();
 
-  const { data: c, isLoading, isError } = useQuery({
+  const { data: c, isLoading, isError, error } = useQuery({
     queryKey: ["case", id],
     queryFn: async () => unwrap(await api.GET("/api/cases/{case_id}", { params: { path: { case_id: id } } })),
     enabled: Number.isFinite(id),
@@ -119,10 +119,21 @@ export default function CaseWorkbench() {
     },
   });
 
-  if (isLoading) return <p className="text-sm text-muted">กำลังโหลด…</p>;
-  if (isError || !c) return <p className="text-sm text-risk">ไม่พบแฟ้มสินเชื่อนี้</p>;
+  // Tab badge = items still awaiting a CA decision (same query the Watchlist panel uses).
+  const { data: watchlist } = useQuery({
+    queryKey: ["watchlist", id],
+    queryFn: async () => unwrap(await api.GET("/api/cases/{case_id}/watchlist", { params: { path: { case_id: id } } })),
+    enabled: Number.isFinite(id),
+  });
 
-  const pending = a ? a.watchlist_count : 0;
+  if (isLoading) return <p className="text-sm text-muted">กำลังโหลด…</p>;
+  if (isError || !c) {
+    // 404/403 means the case is really not there (or not yours); anything else is a connection problem.
+    const missing = !error || /^API 40[34]/.test(error.message);
+    return <p className="text-sm text-risk">{missing ? "ไม่พบแฟ้มสินเชื่อนี้ หรือคุณไม่มีสิทธิ์เข้าถึง" : "โหลดแฟ้มไม่สำเร็จ — ตรวจการเชื่อมต่อแล้วลองใหม่"}</p>;
+  }
+
+  const pending = watchlist?.filter((i) => i.status === "pending" || i.status === "queried").length ?? 0;
 
   return (
     <div className="space-y-5">
@@ -139,6 +150,7 @@ export default function CaseWorkbench() {
           return (
             <button
               key={t.id}
+              data-testid={`tab-${t.id}`}
               onClick={() => setTab(t.id)}
               className={cn(
                 "-mb-px flex items-center gap-2 border-b-2 px-3 py-2.5 text-sm transition-colors",

@@ -1,8 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Moon, Sun, UserRound } from "lucide-react";
-import { Link, Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
+import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { ErrorBoundary, OfflineBanner } from "@/components/AppStatus";
 import { api, unwrap } from "@/api/client";
 import { LineageProvider } from "@/components/lineage/LineageDrawer";
+import { DemoReset } from "@/components/DemoReset";
 import { Badge } from "@/components/ui/badge";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD, login, logout, ROLE_HOME, useSession } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
@@ -84,6 +86,7 @@ function UserMenu() {
       ) : (
         <span className="text-ink">{session.user.name}</span>
       )}
+      {health?.demo_mode && session.user.role === "CA" && <DemoReset />}
       <button
         onClick={() => {
           logout();
@@ -128,6 +131,7 @@ function RoleNav() {
 
 export default function App() {
   const session = useSession();
+  const { pathname } = useLocation();
   return (
     <div className="min-h-screen bg-canvas">
       <header className="sticky top-0 z-10 border-b border-line bg-panel/90 backdrop-blur">
@@ -135,7 +139,7 @@ export default function App() {
           <Link to="/" className="flex items-center gap-2">
             <span className="grid size-7 place-items-center rounded-md bg-navy text-xs font-bold text-white">F</span>
             <span className="font-semibold tracking-tight whitespace-nowrap text-ink">FINSONA AI</span>
-            <span className="hidden text-xs whitespace-nowrap text-muted 2xl:inline">Underwriting Workbench</span>
+            <span className="hidden text-xs whitespace-nowrap text-muted min-[1800px]:inline">Underwriting Workbench</span>
           </Link>
           <RoleNav />
           <div className="ml-auto flex items-center gap-3">
@@ -146,8 +150,10 @@ export default function App() {
             <ThemeToggle />
           </div>
         </div>
+        <OfflineBanner />
       </header>
       <main className="mx-auto max-w-[1400px] px-6 py-8">
+        <ErrorBoundary resetKey={pathname}>
         <LineageProvider>
         {!session ? (
           <Routes>
@@ -173,6 +179,7 @@ export default function App() {
         </Routes>
         )}
         </LineageProvider>
+        </ErrorBoundary>
       </main>
     </div>
   );
