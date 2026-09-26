@@ -62,7 +62,11 @@ export async function login(username: string, password: string): Promise<Session
     body: JSON.stringify({ username, password }),
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(typeof body.detail === "string" ? body.detail : "เข้าสู่ระบบไม่สำเร็จ");
+  if (!res.ok) {
+    if (res.status === 401) throw new Error("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
+    if (res.status === 429) throw new Error("ลองรหัสผิดหลายครั้ง — กรุณารอสักครู่แล้วลองใหม่");
+    throw new Error("เข้าสู่ระบบไม่สำเร็จ");
+  }
   setSession({ token: body.token, user: body.user });
   return body.user;
 }

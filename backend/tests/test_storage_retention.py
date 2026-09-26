@@ -53,3 +53,14 @@ def test_delete_case_removes_files_and_logs(client, statement_path):
 
         entry = db.query(AuditEntry).filter(AuditEntry.action == "case_deleted", AuditEntry.case_id == cid).one()
         assert entry.before["documents"][0]["sha256"] == up["sha256"]
+
+
+def test_compliance_status_is_live(client):
+    from tests.helpers import SME
+
+    c = client.get("/api/compliance").json()
+    ch = c["checks"]
+    assert ch["encryption"]["ok"] and ch["encryption"]["files"] > 0
+    assert ch["audit_chain"]["ok"] and ch["pii_masking"]["ok"]
+    assert {x["status"] for x in c["controls"]} == {"implemented", "sandbox", "planned"}
+    assert client.get("/api/compliance", headers=SME).status_code == 403

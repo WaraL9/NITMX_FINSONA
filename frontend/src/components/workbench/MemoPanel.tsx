@@ -292,6 +292,33 @@ function SignOff({ p, caseId }: { p: MemoPackage; caseId: number }) {
   );
 }
 
+/** E14-04: the exact masked text the last AI call carried (or would have carried). */
+function WhatTheAiSaw({ caseId, version }: { caseId: number; version: string }) {
+  const { data } = useQuery({
+    queryKey: ["llm-calls", caseId, version],
+    queryFn: async () => unwrap(await api.GET("/api/cases/{case_id}/llm-calls", { params: { path: { case_id: caseId } } })),
+  });
+  const last = data?.find((c) => c.purpose === "memo_narrative");
+  if (!last) return null;
+  const pii = Object.entries(last.pii_counts);
+  const outcome = { live: "ส่งถึงโมเดลจริง", cache: "ใช้คำตอบจากแคช", unavailable: "ไม่ได้ส่ง (ไม่มี LLM) — ใช้แม่แบบ", error: "ส่งไม่สำเร็จ — ใช้แม่แบบ" }[last.outcome];
+  return (
+    <Card>
+      <details>
+        <summary className="cursor-pointer text-sm font-semibold text-ink">สิ่งที่ AI เห็น (หลังปิดบังข้อมูลส่วนบุคคล)</summary>
+        <div className="mt-2 space-y-2 text-xs">
+          <div className="flex flex-wrap gap-2">
+            <Badge tone="neutral">{last.provider} · {last.model}</Badge>
+            <Badge tone={last.outcome === "live" || last.outcome === "cache" ? "verified" : "judge"}>{outcome}</Badge>
+            {pii.length ? pii.map(([k, v]) => <Badge key={k} tone="navy">ปิดบัง {k} × {v}</Badge>) : <Badge tone="neutral">ไม่พบข้อมูลส่วนบุคคล</Badge>}
+          </div>
+          <pre className="max-h-64 overflow-auto rounded-md border border-line bg-surface p-3 whitespace-pre-wrap text-body">{last.masked_prompt}</pre>
+        </div>
+      </details>
+    </Card>
+  );
+}
+
 /** E11-02/03/04: decision package, narrative, CA sign-off and PDF export. */
 export function MemoPanel({ caseId }: { caseId: number }) {
   const { data: p, isLoading, isError, error } = useQuery({
@@ -310,6 +337,7 @@ export function MemoPanel({ caseId }: { caseId: number }) {
       <div className="space-y-5">
         <SignOff key={p.memo.status} p={p} caseId={caseId} />
         <NarrativeEditor p={p} caseId={caseId} />
+        <WhatTheAiSaw caseId={caseId} version={`${p.memo.id}-${p.memo.narrative_source}-${p.memo.narrative.length}`} />
       </div>
     </div>
   );

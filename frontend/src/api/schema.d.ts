@@ -106,6 +106,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Policy */
+        get: operations["get_policy_api_policy_get"];
+        /** Put Policy */
+        put: operations["put_policy_api_policy_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Metrics
+         * @description E15-05: latest evaluation run (python -m app.eval.run), dated and tied to a git commit.
+         */
+        get: operations["metrics_api_metrics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/users": {
         parameters: {
             query?: never;
@@ -115,6 +153,23 @@ export interface paths {
         };
         /** Users */
         get: operations["users_api_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/compliance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Compliance */
+        get: operations["compliance_api_compliance_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -152,7 +207,11 @@ export interface paths {
         get: operations["get_case_api_cases__case_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Remove Case
+         * @description E14-08: delete a case and all its files; the deletion itself is audit-logged.
+         */
+        delete: operations["remove_case_api_cases__case_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -360,6 +419,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Audit Log
+         * @description E9-07: the whole chain (including deleted cases), filterable.
+         */
+        get: operations["audit_log_api_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audit.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Audit Csv
+         * @description E9-07: CSV export for Internal Audit / BOT, with the hashes so the chain can be re-checked offline.
+         */
+        get: operations["audit_csv_api_audit_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/audit/verify": {
         parameters: {
             query?: never;
@@ -511,6 +610,26 @@ export interface paths {
         };
         /** Memo Pdf */
         get: operations["memo_pdf_api_cases__case_id__memo_pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/llm-calls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Llm Calls
+         * @description E14-04: the exact masked text each AI call carried for this case.
+         */
+        get: operations["llm_calls_api_cases__case_id__llm_calls_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1376,6 +1495,37 @@ export interface components {
             /** Sha256 Verified */
             sha256_verified: boolean | null;
         };
+        /** LlmCallOut */
+        LlmCallOut: {
+            /** Id */
+            id: number;
+            /** Purpose */
+            purpose: string;
+            /** Provider */
+            provider: string;
+            /** Model */
+            model: string;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "live" | "cache" | "unavailable" | "error";
+            /** Masked System */
+            masked_system: string;
+            /** Masked Prompt */
+            masked_prompt: string;
+            /** Pii Counts */
+            pii_counts: {
+                [key: string]: number;
+            };
+            /** Note */
+            note: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
         /** LlmStatusOut */
         LlmStatusOut: {
             /** Live */
@@ -1641,6 +1791,19 @@ export interface components {
             /** Warnings */
             warnings: string[];
         };
+        /** PolicyIn */
+        PolicyIn: {
+            /** Min Dscr */
+            min_dscr?: number | string | null;
+            /** Target Dscr */
+            target_dscr?: number | string | null;
+            /** Max Dsr */
+            max_dsr?: number | string | null;
+            /** Trade Line Ratio */
+            trade_line_ratio?: number | string | null;
+            /** Reason */
+            reason: string;
+        };
         /** PolicyOut */
         PolicyOut: {
             /** Min Dscr */
@@ -1649,6 +1812,37 @@ export interface components {
             target_dscr: string;
             /** Max Dsr */
             max_dsr: string;
+        };
+        /** PolicyStateOut */
+        PolicyStateOut: {
+            /** Current */
+            current: {
+                [key: string]: string;
+            };
+            /** History */
+            history: components["schemas"]["PolicyVersionOut"][];
+        };
+        /** PolicyVersionOut */
+        PolicyVersionOut: {
+            /** Id */
+            id: number;
+            /** Min Dscr */
+            min_dscr: string;
+            /** Target Dscr */
+            target_dscr: string;
+            /** Max Dsr */
+            max_dsr: string;
+            /** Trade Line Ratio */
+            trade_line_ratio: string;
+            /** Reason */
+            reason: string | null;
+            /** Updated By */
+            updated_by: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** PrequalIn */
         PrequalIn: {
@@ -2192,6 +2386,105 @@ export interface operations {
             };
         };
     };
+    get_policy_api_policy_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyStateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_policy_api_policy_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PolicyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyStateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    metrics_api_metrics_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     users_api_users_get: {
         parameters: {
             query?: never;
@@ -2210,6 +2503,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    compliance_api_compliance_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -2309,6 +2635,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CaseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_case_api_cases__case_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -2814,6 +3179,75 @@ export interface operations {
             };
         };
     };
+    audit_log_api_audit_get: {
+        parameters: {
+            query?: {
+                action?: string | null;
+                user_id?: number | null;
+                case_id?: number | null;
+                limit?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditEntryOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    audit_csv_api_audit_csv_get: {
+        parameters: {
+            query?: {
+                action?: string | null;
+                user_id?: number | null;
+                case_id?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     verify_audit_api_audit_verify_get: {
         parameters: {
             query?: never;
@@ -3107,6 +3541,39 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    llm_calls_api_cases__case_id__llm_calls_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LlmCallOut"][];
+                };
             };
             /** @description Validation Error */
             422: {

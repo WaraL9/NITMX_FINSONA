@@ -10,7 +10,10 @@ import { cn } from "@/lib/utils";
 import CaseList from "@/pages/CaseList";
 import CaseWorkbench from "@/pages/CaseWorkbench";
 import DesignSystem from "@/pages/DesignSystem";
+import CompliancePage from "@/pages/Compliance";
 import Login from "@/pages/Login";
+import MetricsPage from "@/pages/Metrics";
+import PolicyPage from "@/pages/Policy";
 import RmApp from "@/pages/RmApp";
 import SmePortal from "@/pages/SmePortal";
 
@@ -87,7 +90,7 @@ function UserMenu() {
           qc.clear();
           navigate("/login");
         }}
-        className="rounded-md px-2 py-1 text-muted hover:bg-surface-2 hover:text-ink"
+        className="rounded-md px-2 py-1 whitespace-nowrap text-muted hover:bg-surface-2 hover:text-ink"
       >
         ออกจากระบบ
       </button>
@@ -101,7 +104,7 @@ function NavItem({ to, children }: { to: string; children: string }) {
       to={to}
       end
       className={({ isActive }) =>
-        cn("rounded-md px-3 py-1.5 text-sm", isActive ? "bg-surface-2 font-medium text-ink" : "text-muted hover:text-ink")
+        cn("rounded-md px-2.5 py-1.5 text-sm whitespace-nowrap", isActive ? "bg-surface-2 font-medium text-ink" : "text-muted hover:text-ink")
       }
     >
       {children}
@@ -116,7 +119,9 @@ function RoleNav() {
       {(role === "CA" || role === "AUDITOR") && <NavItem to="/">แฟ้มสินเชื่อ</NavItem>}
       {(role === "RM" || role === "CA") && <NavItem to="/rm">RM Field</NavItem>}
       {role === "SME" && <NavItem to="/sme">สินเชื่อของฉัน</NavItem>}
-      <NavItem to="/design">Design system</NavItem>
+      {(role === "CA" || role === "AUDITOR") && <NavItem to="/policy">นโยบายสินเชื่อ</NavItem>}
+      {(role === "CA" || role === "AUDITOR") && <NavItem to="/metrics">ตัวชี้วัด</NavItem>}
+      {(role === "CA" || role === "AUDITOR") && <NavItem to="/compliance">ธรรมาภิบาล</NavItem>}
     </nav>
   );
 }
@@ -126,15 +131,17 @@ export default function App() {
   return (
     <div className="min-h-screen bg-canvas">
       <header className="sticky top-0 z-10 border-b border-line bg-panel/90 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-6 px-6">
+        <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-4 px-6">
           <Link to="/" className="flex items-center gap-2">
             <span className="grid size-7 place-items-center rounded-md bg-navy text-xs font-bold text-white">F</span>
-            <span className="font-semibold tracking-tight text-ink">FINSONA AI</span>
-            <span className="hidden text-xs text-muted sm:inline">Underwriting Workbench</span>
+            <span className="font-semibold tracking-tight whitespace-nowrap text-ink">FINSONA AI</span>
+            <span className="hidden text-xs whitespace-nowrap text-muted 2xl:inline">Underwriting Workbench</span>
           </Link>
           <RoleNav />
           <div className="ml-auto flex items-center gap-3">
-            <HealthIndicator />
+            <div className="hidden 2xl:block">
+              <HealthIndicator />
+            </div>
             <UserMenu />
             <ThemeToggle />
           </div>
@@ -158,6 +165,9 @@ export default function App() {
           <Route path="/cases/:caseId" element={<CaseWorkbench />} />
           <Route path="/rm" element={<RmApp />} />
           <Route path="/sme" element={<SmePortal />} />
+          <Route path="/policy" element={<PolicyPage />} />
+          <Route path="/metrics" element={<MetricsPage />} />
+          <Route path="/compliance" element={<CompliancePage />} />
           <Route path="/design" element={<DesignSystem />} />
           <Route path="*" element={<p className="text-muted">ไม่พบหน้านี้</p>} />
         </Routes>

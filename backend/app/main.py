@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.ai import gateway
 from fastapi import Depends
 
-from app.api import analysis, cases, documents, field, memo, review, sandbox, session
+from app.api import analysis, cases, compliance, documents, field, memo, review, sandbox, session
 from app.api.deps import scope_guard
 from app.config import settings
 from app.db import create_all
@@ -35,7 +35,7 @@ app.include_router(field.public)
 app.include_router(sandbox.router)
 # Everything else requires a session and passes the role/case-scope guard (E14-01).
 _guarded = [Depends(scope_guard)]
-for r in (session.router, cases.router, documents.router, analysis.router, review.router, memo.router, field.router):
+for r in (session.router, compliance.router, cases.router, documents.router, analysis.router, review.router, memo.router, field.router):
     app.include_router(r, dependencies=_guarded)
 
 
