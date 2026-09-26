@@ -13,6 +13,7 @@ context (loops, owner money) but are never the business's income or expense.
 
 from __future__ import annotations
 
+import time
 from collections import Counter, defaultdict
 from datetime import date
 from decimal import Decimal
@@ -46,8 +47,20 @@ def analyze(
     period_start: date,
     period_end: date,
     decisions: dict[int, Decision] | None = None,
+    overrides: dict[int, tuple[str, str]] | None = None,
 ) -> AnalysisResult:
+    """overrides: txn id -> (value, CA reason); see types.CREDIT_OVERRIDES / DEBIT_OVERRIDES."""
     decisions = decisions or {}
+    overrides = overrides or {}
+    timings: dict[str, float] = {}
+    clock = time.perf_counter()
+
+    def lap(stage: str) -> None:
+        nonlocal clock
+        now = time.perf_counter()
+        timings[stage] = round((now - clock) * 1000, 2)
+        clock = now
+
     company = {a.id for a in accounts if a.owner_type == "company"}
     owners = {a.id for a in accounts if a.owner_type in ("director", "family")}
     family_surnames = {s for a in accounts if a.id in owners if (s := rules.surname(a.account_name))}
@@ -74,6 +87,8 @@ def analyze(
             else:
                 outcomes[t.id] = Outcome("own_transfer_internal", "โอนระหว่างบัญชีของบริษัท — ไม่ใช่รายได้/รายจ่าย")
 
+    lap("loops")
+
     # 2. classify everything else
     revenue_candidates: list[ETxn] = []
     for t in txns:
@@ -90,6 +105,8 @@ def analyze(
         elif t.debit > 0:
             tag, reason = rules.tag_company_debit(t, family_surnames)
             outcomes[t.id] = Outcome(tag, reason)
+
+    lap("classify")
 
     # 3. tiers
     party_counts = Counter(rules.normalize_party(t.counterparty_name) for t in revenue_candidates
@@ -133,6 +150,24 @@ def analyze(
             o.tag = "ca_excluded"
     watchlist.sort(key=lambda w: (-w.score, -by_id[w.txn_id].credit))
 
+    # CA overrides win over every engine conclusion.
+    for tid, (value, why) in overrides.items():
+        t = by_id.get(tid)
+        if t is None or t.account_id not in company:
+            continue
+        o = outcomes[tid]
+        o.overridden = True
+        o.reason = f"CA override: {why} (เดิม: {o.reason})"
+        if t.credit > 0:
+            if value == "non_revenue":
+                o.tier, o.tag = None, "ca_non_revenue"
+            else:
+                o.tier = value
+                o.tag = "ca_unverified" if value == "T4_unverified" else "ca_revenue"
+        elif t.debit > 0:
+            o.tag = "ca_business_cost" if value == "business_cost" else "ca_non_business"
+    lap("tiers")
+
     # 5. aggregate
     def total(ids_filter) -> Decimal:
         return sum((t.credit for t in txns if t.account_id in company and ids_filter(outcomes[t.id])), ZERO)
@@ -149,9 +184,10 @@ def analyze(
         "unverified_pending": unverified_pending,
         "unverified_excluded": unverified_excluded,
         "accepted_by_ca": accepted,
+        "ca_non_revenue": total(lambda o: o.tag == "ca_non_revenue"),
         "verified_operating_revenue": sum(tier_totals.values(), ZERO),
     }
-    accounted = (waterfall["own_account_loops"] + waterfall["internal_transfers"]
+    accounted = (waterfall["own_account_loops"] + waterfall["internal_transfers"] + waterfall["ca_non_revenue"]
                  + waterfall["owner_family_inflow"] + unverified_pending + unverified_excluded
                  + waterfall["verified_operating_revenue"])
 
@@ -159,16 +195,18 @@ def analyze(
     by_tag: dict[str, Decimal] = defaultdict(lambda: ZERO)
     for t in debits:
         by_tag[outcomes[t.id].tag] += t.debit
-    business = sum((v for k, v in by_tag.items() if k in rules.COST_TAGS), ZERO)
+    cost_tags = rules.COST_TAGS | {"ca_business_cost"}
+    business = sum((v for k, v in by_tag.items() if k in cost_tags), ZERO)
     months = _months(period_start, period_end)
     costs = {
         "business_operating": business,
-        **{f"cost_{k}": by_tag.get(k, ZERO) for k in sorted(rules.COST_TAGS)},
+        **{f"cost_{k}": by_tag.get(k, ZERO) for k in sorted(cost_tags)},
         "household": by_tag.get("household", ZERO) + by_tag.get("owner_drawing", ZERO),
         "debt_service_total": by_tag.get("debt_service", ZERO),
         "own_transfers_out": by_tag.get("own_transfer_loop", ZERO) + by_tag.get("own_transfer_internal", ZERO),
     }
     cfo = waterfall["verified_operating_revenue"] - business
+    lap("aggregate")
     notes = []
     if accounted != waterfall["gross_raw_inflow"]:
         notes.append(f"waterfall does not reconcile: {accounted} vs {waterfall['gross_raw_inflow']}")
@@ -187,4 +225,5 @@ def analyze(
         existing_debt_monthly=(costs["debt_service_total"] / months).quantize(Decimal("0.01")),
         reconciles=accounted == waterfall["gross_raw_inflow"],
         notes=notes,
+        timings_ms=timings,
     )

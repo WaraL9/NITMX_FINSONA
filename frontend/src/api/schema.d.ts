@@ -149,6 +149,162 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Users */
+        get: operations["users_api_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Me */
+        get: operations["me_api_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/watchlist/{item_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide */
+        post: operations["decide_api_cases__case_id__watchlist__item_id__decision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/transactions/{txn_id}/override": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Override */
+        put: operations["set_override_api_cases__case_id__transactions__txn_id__override_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/transactions/{txn_id}/override/revert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revert Override */
+        post: operations["revert_override_api_cases__case_id__transactions__txn_id__override_revert_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Case Audit */
+        get: operations["case_audit_api_cases__case_id__audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audit/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Verify Audit */
+        get: operations["verify_audit_api_audit_verify_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/documents/{document_id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Verify Document */
+        get: operations["verify_document_api_documents__document_id__verify_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transactions/{txn_id}/lineage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lineage
+         * @description Everything needed to show a transaction on its source page; the view itself is audit-logged.
+         */
+        get: operations["lineage_api_transactions__txn_id__lineage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sandbox/promptbiz/v1/sellers/{seller_tax_id}/invoices": {
         parameters: {
             query?: never;
@@ -254,6 +410,13 @@ export interface components {
             connector: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Timings Ms
+             * @default {}
+             */
+            timings_ms: {
+                [key: string]: number;
+            };
         };
         /** ApiError */
         ApiError: {
@@ -263,6 +426,44 @@ export interface components {
             message: string;
             /** Existing Document Id */
             existing_document_id?: number | null;
+        };
+        /** AuditEntryOut */
+        AuditEntryOut: {
+            /** Id */
+            id: number;
+            /** Case Id */
+            case_id: number | null;
+            /**
+             * Ts
+             * Format: date-time
+             */
+            ts: string;
+            /** User Id */
+            user_id: number | null;
+            /** User Name */
+            user_name?: string | null;
+            /** Ip */
+            ip: string | null;
+            /** Action */
+            action: string;
+            /** Target Type */
+            target_type: string | null;
+            /** Target Id */
+            target_id: string | null;
+            /** Before */
+            before: {
+                [key: string]: unknown;
+            } | null;
+            /** After */
+            after: {
+                [key: string]: unknown;
+            } | null;
+            /** Reason */
+            reason: string | null;
+            /** Prev Hash */
+            prev_hash: string;
+            /** Hash */
+            hash: string;
         };
         /** Body_upload_document_api_cases__case_id__documents_post */
         Body_upload_document_api_cases__case_id__documents_post: {
@@ -378,6 +579,35 @@ export interface components {
              */
             created_at: string;
         };
+        /** ChainStatusOut */
+        ChainStatusOut: {
+            /** Ok */
+            ok: boolean;
+            /** Entries */
+            entries: number;
+            /** First Bad Id */
+            first_bad_id: number | null;
+            /** Detail */
+            detail: string | null;
+        };
+        /** DecisionIn */
+        DecisionIn: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "accept" | "exclude" | "query_rm" | "reopen";
+            /**
+             * Reason
+             * @description professional reasoning, required
+             */
+            reason: string;
+        };
+        /** DecisionOut */
+        DecisionOut: {
+            item: components["schemas"]["WatchlistOut"];
+            analysis: components["schemas"]["AnalysisOut"];
+        };
         /** DocumentOut */
         DocumentOut: {
             /** Id */
@@ -405,6 +635,19 @@ export interface components {
             /** Parse Report */
             parse_report: components["schemas"]["ParseReport"] | components["schemas"]["PP30ParseReport"] | null;
         };
+        /** DocumentVerifyOut */
+        DocumentVerifyOut: {
+            /** Document Id */
+            document_id: number;
+            /** Filename */
+            filename: string;
+            /** Recorded Sha256 */
+            recorded_sha256: string;
+            /** Current Sha256 */
+            current_sha256: string;
+            /** Verified */
+            verified: boolean;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -425,6 +668,17 @@ export interface components {
             live_ocr: boolean;
             /** Live Llm */
             live_llm: boolean;
+        };
+        /** LineageOut */
+        LineageOut: {
+            transaction: components["schemas"]["TransactionOut"];
+            document: components["schemas"]["DocumentOut"] | null;
+            /** Page Width */
+            page_width: number | null;
+            /** Page Height */
+            page_height: number | null;
+            /** Sha256 Verified */
+            sha256_verified: boolean | null;
         };
         /** LoopLegOut */
         LoopLegOut: {
@@ -454,6 +708,21 @@ export interface components {
             hours: number;
             /** Legs */
             legs: components["schemas"]["LoopLegOut"][];
+        };
+        /** OverrideIn */
+        OverrideIn: {
+            /**
+             * Value
+             * @enum {string}
+             */
+            value: "T1_golden" | "T2_tax" | "T3_operational" | "T4_unverified" | "non_revenue" | "business_cost" | "non_business";
+            /** Reason */
+            reason: string;
+        };
+        /** OverrideOut */
+        OverrideOut: {
+            transaction: components["schemas"]["TransactionOut"];
+            analysis: components["schemas"]["AnalysisOut"];
         };
         /** PP30ParseReport */
         PP30ParseReport: {
@@ -523,6 +792,11 @@ export interface components {
             target_dscr: string;
             /** Max Dsr */
             max_dsr: string;
+        };
+        /** ReasonIn */
+        ReasonIn: {
+            /** Reason */
+            reason: string;
         };
         /** SizingOut */
         SizingOut: {
@@ -620,17 +894,41 @@ export interface components {
             loop_id?: string | null;
             /** Tag Reason */
             tag_reason?: string | null;
+            /** Tag Source */
+            tag_source?: string | null;
         };
         /** TransactionPage */
         TransactionPage: {
             /** Total */
             total: number;
+            /**
+             * Sum Debit
+             * @default 0.00
+             */
+            sum_debit: string;
+            /**
+             * Sum Credit
+             * @default 0.00
+             */
+            sum_credit: string;
             /** Offset */
             offset: number;
             /** Limit */
             limit: number;
             /** Items */
             items: components["schemas"]["TransactionOut"][];
+        };
+        /** UserOut */
+        UserOut: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "CA" | "RM" | "SME" | "AUDITOR";
         };
         /** ValidationError */
         ValidationError: {
@@ -674,6 +972,11 @@ export interface components {
             unverified_excluded: string;
             /** Accepted By Ca */
             accepted_by_ca: string;
+            /**
+             * Ca Non Revenue
+             * @default 0.00
+             */
+            ca_non_revenue: string;
             /** Verified Operating Revenue */
             verified_operating_revenue: string;
         };
@@ -804,7 +1107,9 @@ export interface operations {
     upload_document_api_cases__case_id__documents_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
             path: {
                 case_id: number;
             };
@@ -893,6 +1198,9 @@ export interface operations {
                 tier?: string | null;
                 tag?: string | null;
                 loop_id?: string | null;
+                /** @description lineage: rows behind an analysis figure, e.g. T1_golden, own_account_loops, business_operating, household */
+                metric?: string | null;
+                sort?: "time" | "amount_desc";
                 offset?: number;
                 limit?: number;
             };
@@ -958,7 +1266,9 @@ export interface operations {
     run_api_cases__case_id__analysis_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
             path: {
                 case_id: number;
             };
@@ -1040,6 +1350,286 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WatchlistOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    users_api_users_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"][];
+                };
+            };
+        };
+    };
+    me_api_me_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_api_cases__case_id__watchlist__item_id__decision_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path: {
+                case_id: number;
+                item_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_override_api_cases__case_id__transactions__txn_id__override_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path: {
+                case_id: number;
+                txn_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OverrideIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverrideOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revert_override_api_cases__case_id__transactions__txn_id__override_revert_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path: {
+                case_id: number;
+                txn_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverrideOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    case_audit_api_cases__case_id__audit_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditEntryOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_audit_api_audit_verify_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChainStatusOut"];
+                };
+            };
+        };
+    };
+    verify_document_api_documents__document_id__verify_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentVerifyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lineage_api_transactions__txn_id__lineage_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path: {
+                txn_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LineageOut"];
                 };
             };
             /** @description Validation Error */

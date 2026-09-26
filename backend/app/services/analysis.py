@@ -17,7 +17,8 @@ from app.connectors.base import ConnectorError
 from app.connectors.promptbiz import get_invoice_source
 from app.engine.pipeline import analyze
 from app.engine.types import AnalysisResult, EAccount, EFiling, EInvoice, ETxn
-from app.models import Account, Analysis, Case, Invoice, TaxFiling, Transaction, WatchlistItem
+from app.models import Account, Analysis, Case, Invoice, TagOverride, TaxFiling, Transaction, WatchlistItem
+from app.services import audit
 
 
 class AnalysisError(Exception):
@@ -84,10 +85,12 @@ def serialize(r: AnalysisResult, sync: dict | None, period: tuple[date, date]) -
         ],
         "watchlist_count": len(r.watchlist),
         "connector": sync,
+        "timings_ms": r.timings_ms,
     }
 
 
-def run_analysis(db: Session, case_id: int, sync_invoices: bool = True) -> Analysis:
+def run_analysis(db: Session, case_id: int, sync_invoices: bool = True, user_id: int | None = None,
+                 ip: str | None = None, trigger: str = "manual") -> Analysis:
     case = db.get(Case, case_id)
     if case is None:
         raise AnalysisError(f"case {case_id} not found")
@@ -97,6 +100,10 @@ def run_analysis(db: Session, case_id: int, sync_invoices: bool = True) -> Analy
             sync = sync_promptbiz(db, case)
         except ConnectorError as e:
             sync = {"error": str(e)}
+    else:
+        # Re-runs after a CA decision reuse the invoices already synced; keep their provenance.
+        previous = latest_analysis(db, case_id)
+        sync = previous.result.get("connector") if previous else None
 
     accounts = list(db.scalars(select(Account).where(Account.case_id == case_id)))
     rows = list(db.scalars(select(Transaction).where(Transaction.case_id == case_id)))
@@ -106,6 +113,8 @@ def run_analysis(db: Session, case_id: int, sync_invoices: bool = True) -> Analy
     filings = list(db.scalars(select(TaxFiling).where(TaxFiling.case_id == case_id)))
     existing_items = {w.transaction_id: w for w in db.scalars(select(WatchlistItem).where(WatchlistItem.case_id == case_id))}
     decisions = {tid: w.status for tid, w in existing_items.items() if w.status in ("accepted", "excluded")}
+    overrides = {o.transaction_id: (o.value, o.reason)
+                 for o in db.scalars(select(TagOverride).where(TagOverride.case_id == case_id))}
     period = _period(case, rows)
 
     started = time.perf_counter()
@@ -118,13 +127,14 @@ def run_analysis(db: Session, case_id: int, sync_invoices: bool = True) -> Analy
         period[0],
         period[1],
         decisions,
+        overrides,
     )
     duration_ms = int((time.perf_counter() - started) * 1000)
 
     for t in rows:
         o = result.outcomes[t.id]
         t.tag, t.tier, t.loop_id, t.tag_reason, t.invoice_id = o.tag, o.tier, o.loop_id, o.reason, o.invoice_id
-        t.tag_source = "rule"
+        t.tag_source = "ca" if o.overridden else "rule"
     for inv in invoices:
         inv.matched_transaction_id = None
     inv_by_id = {i.id: i for i in invoices}
@@ -147,6 +157,15 @@ def run_analysis(db: Session, case_id: int, sync_invoices: bool = True) -> Analy
     analysis = Analysis(case_id=case_id, engine_version=result.engine_version, duration_ms=duration_ms,
                         result=serialize(result, sync, period))
     db.add(analysis)
+    db.flush()
+    audit.log(db, "analysis_run", case_id=case_id, user_id=user_id, ip=ip, target_type="analysis",
+              target_id=analysis.id, after={
+                  "trigger": trigger,
+                  "engine_version": result.engine_version,
+                  "verified_operating_revenue": f"{result.waterfall['verified_operating_revenue']:.2f}",
+                  "clean_cash_flow_monthly": f"{result.clean_cash_flow_monthly:.2f}",
+                  "reconciles": result.reconciles,
+              })
     if case.status in ("draft", "processing"):
         case.status = "in_review"
     db.commit()

@@ -11,10 +11,15 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
 
-ENGINE_VERSION = "engine-2.0"
+ENGINE_VERSION = "engine-2.1"
 
 Tier = Literal["T1_golden", "T2_tax", "T3_operational", "T4_unverified"]
 Decision = Literal["accepted", "excluded"]
+
+# CA overrides (E9-04): company-account credits can be re-tiered or marked non-revenue;
+# company-account debits can be counted in or out of business costs.
+CREDIT_OVERRIDES = ("T1_golden", "T2_tax", "T3_operational", "T4_unverified", "non_revenue")
+DEBIT_OVERRIDES = ("business_cost", "non_business")
 
 
 @dataclass(frozen=True)
@@ -73,6 +78,7 @@ class Outcome:
     tier: Tier | None = None
     loop_id: str | None = None
     invoice_id: int | None = None
+    overridden: bool = False
 
 
 @dataclass
@@ -115,3 +121,4 @@ class AnalysisResult:
     existing_debt_monthly: Decimal
     reconciles: bool
     notes: list[str] = field(default_factory=list)
+    timings_ms: dict[str, float] = field(default_factory=dict)

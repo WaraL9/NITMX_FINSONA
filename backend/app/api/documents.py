@@ -1,13 +1,17 @@
+from decimal import Decimal
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.api.deps import client_ip, current_user
 from app.db import get_db
-from app.models import Case, Document, Page, Transaction
+from app.services import audit
+from app.api.metrics import metric_filters
+from app.models import Account, Case, Document, Page, Transaction, User
 from app.api.common import txn_out
 from app.schemas import ApiError, DocumentKind, DocumentOut, TransactionPage
 from app.services.ingest import IngestError, ingest_document
@@ -32,23 +36,30 @@ def _require_case(db: Session, case_id: int) -> Case:
 )
 async def upload_document(
     case_id: int,
+    request: Request,
     file: UploadFile = File(...),
     kind: DocumentKind | Literal["auto"] = Form("auto"),
     password: str | None = Form(None),
     account_id: int | None = Form(None),
     db: Session = Depends(get_db),
+    user: User = Depends(current_user),
 ):
     _require_case(db, case_id)
     data = await file.read()
     try:
         result = ingest_document(
             db, case_id, data, file.filename or "upload.pdf", kind=kind, password=password or None,
-            account_id=account_id,
+            account_id=account_id, user_id=user.id,
         )
     except IngestError as e:
         db.rollback()
         return JSONResponse(status_code=e.status, content={"code": e.code, "message": e.message, **e.extra})
-    return result.document
+    doc = result.document
+    audit.log(db, "document_upload", case_id=case_id, user_id=user.id, ip=client_ip(request),
+              target_type="document", target_id=doc.id,
+              after={"filename": doc.filename, "sha256": doc.sha256, "kind": doc.kind, "pages": doc.page_count})
+    db.commit()
+    return doc
 
 
 @router.get("/api/cases/{case_id}/documents", response_model=list[DocumentOut])
@@ -78,6 +89,9 @@ def list_transactions(
     tier: str | None = None,
     tag: str | None = None,
     loop_id: str | None = None,
+    metric: str | None = Query(None, description="lineage: rows behind an analysis figure, e.g. T1_golden, "
+                                                 "own_account_loops, business_operating, household"),
+    sort: Literal["time", "amount_desc"] = "time",
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=500),
     db: Session = Depends(get_db),
@@ -97,14 +111,26 @@ def list_transactions(
     if q:
         like = f"%{q}%"
         filters.append(Transaction.description.like(like) | Transaction.counterparty_name.like(like))
-    total = db.scalar(select(func.count()).select_from(Transaction).where(*filters)) or 0
+    if metric:
+        try:
+            filters.extend(metric_filters(metric))
+        except KeyError as e:
+            raise HTTPException(422, f"unknown metric {metric!r}") from e
+    base = select(Transaction).join(Account, Account.id == Transaction.account_id).where(*filters).subquery()
+    total, sum_debit, sum_credit = db.execute(
+        select(func.count(), func.coalesce(func.sum(base.c.debit), 0), func.coalesce(func.sum(base.c.credit), 0))
+    ).one()
+    order = ((Transaction.credit + Transaction.debit).desc(), Transaction.posted_at) if sort == "amount_desc" else (
+        Transaction.posted_at, Transaction.account_id, Transaction.row_index)
     rows = db.execute(
         select(Transaction, Page.page_no)
+        .join(Account, Account.id == Transaction.account_id)
         .outerjoin(Page, Page.id == Transaction.page_id)
         .where(*filters)
-        .order_by(Transaction.posted_at, Transaction.account_id, Transaction.row_index)
+        .order_by(*order)
         .offset(offset)
         .limit(limit)
     ).all()
     items = [txn_out(t, page_no) for t, page_no in rows]
-    return TransactionPage(total=total, offset=offset, limit=limit, items=items)
+    return TransactionPage(total=total or 0, offset=offset, limit=limit, items=items,
+                           sum_debit=f"{Decimal(sum_debit):.2f}", sum_credit=f"{Decimal(sum_credit):.2f}")

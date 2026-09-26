@@ -199,8 +199,9 @@ class AuditEntry(Base):
 
     __tablename__ = "audit_log"
     id: Mapped[int] = mapped_column(primary_key=True)
-    case_id: Mapped[int | None] = mapped_column(ForeignKey("cases.id", ondelete="SET NULL"), index=True)
-    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    # Plain column, not a foreign key: audit rows must never be rewritten (e.g. SET NULL on delete).
+    case_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    ts: Mapped[datetime] = mapped_column(DateTime)  # naive UTC, exactly as hashed
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     ip: Mapped[str | None] = mapped_column(String(64))
     action: Mapped[str] = mapped_column(String(64))
@@ -223,3 +224,16 @@ class Analysis(Base):
     engine_version: Mapped[str] = mapped_column(String(32))
     duration_ms: Mapped[int] = mapped_column(Integer, default=0)
     result: Mapped[dict[str, Any]] = mapped_column(JSON)
+
+
+class TagOverride(Base):
+    """A CA's override of the engine's classification for one transaction (E9-04)."""
+
+    __tablename__ = "tag_overrides"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), index=True)
+    transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id", ondelete="CASCADE"), unique=True)
+    value: Mapped[str] = mapped_column(String(24))
+    reason: Mapped[str] = mapped_column(Text)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

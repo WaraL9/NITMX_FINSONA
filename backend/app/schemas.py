@@ -135,10 +135,13 @@ class TransactionOut(BaseModel):
     tier: str | None = None
     loop_id: str | None = None
     tag_reason: str | None = None
+    tag_source: str | None = None
 
 
 class TransactionPage(BaseModel):
     total: int
+    sum_debit: str = "0.00"
+    sum_credit: str = "0.00"
     offset: int
     limit: int
     items: list[TransactionOut]
@@ -160,6 +163,7 @@ class Waterfall(BaseModel):
     unverified_pending: str
     unverified_excluded: str
     accepted_by_ca: str
+    ca_non_revenue: str = "0.00"
     verified_operating_revenue: str
 
 
@@ -205,6 +209,7 @@ class AnalysisOut(BaseModel):
     loops: list[LoopOut]
     watchlist_count: int
     connector: dict | None
+    timings_ms: dict[str, float] = {}
 
 
 class PolicyOut(BaseModel):
@@ -237,3 +242,84 @@ class WatchlistOut(BaseModel):
     system_note: str
     reason: str | None
     transaction: TransactionOut
+
+
+# ---------- people, decisions, overrides, audit, lineage ----------
+
+class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    name: str
+    role: Literal["CA", "RM", "SME", "AUDITOR"]
+
+
+WatchlistAction = Literal["accept", "exclude", "query_rm", "reopen"]
+
+
+class DecisionIn(BaseModel):
+    action: WatchlistAction
+    reason: str = Field(min_length=10, max_length=2000, description="professional reasoning, required")
+
+
+class ReasonIn(BaseModel):
+    reason: str = Field(min_length=10, max_length=2000)
+
+
+class DecisionOut(BaseModel):
+    item: WatchlistOut
+    analysis: AnalysisOut
+
+
+OverrideValue = Literal["T1_golden", "T2_tax", "T3_operational", "T4_unverified", "non_revenue", "business_cost",
+                        "non_business"]
+
+
+class OverrideIn(BaseModel):
+    value: OverrideValue
+    reason: str = Field(min_length=10, max_length=2000)
+
+
+class OverrideOut(BaseModel):
+    transaction: TransactionOut
+    analysis: AnalysisOut
+
+
+class AuditEntryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    case_id: int | None
+    ts: datetime
+    user_id: int | None
+    user_name: str | None = None
+    ip: str | None
+    action: str
+    target_type: str | None
+    target_id: str | None
+    before: dict | None
+    after: dict | None
+    reason: str | None
+    prev_hash: str
+    hash: str
+
+
+class ChainStatusOut(BaseModel):
+    ok: bool
+    entries: int
+    first_bad_id: int | None
+    detail: str | None
+
+
+class DocumentVerifyOut(BaseModel):
+    document_id: int
+    filename: str
+    recorded_sha256: str
+    current_sha256: str
+    verified: bool
+
+
+class LineageOut(BaseModel):
+    transaction: TransactionOut
+    document: DocumentOut | None
+    page_width: float | None
+    page_height: float | None
+    sha256_verified: bool | None

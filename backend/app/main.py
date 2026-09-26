@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import analysis, cases, documents, sandbox
+from app.api import analysis, cases, documents, review, sandbox
 from app.config import settings
 from app.db import create_all
 from app.schemas import Health
@@ -28,6 +28,7 @@ app.add_middleware(
 app.include_router(cases.router)
 app.include_router(documents.router)
 app.include_router(analysis.router)
+app.include_router(review.router)
 app.include_router(sandbox.router)
 
 

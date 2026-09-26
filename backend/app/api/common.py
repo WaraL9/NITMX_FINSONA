@@ -26,4 +26,5 @@ def txn_out(t: Transaction, page_no: int | None) -> TransactionOut:
         tier=t.tier,
         loop_id=t.loop_id,
         tag_reason=t.tag_reason,
+        tag_source=t.tag_source,
     )

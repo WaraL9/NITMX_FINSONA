@@ -74,3 +74,42 @@ body {
 .num {
   font-variant-numeric: tabular-nums;
 }
+
+/* Changed-number highlight (numbers "ripple" after a CA decision). */
+@keyframes finsona-flash {
+  0% {
+    background-color: color-mix(in srgb, var(--color-verified) 35%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.flash {
+  animation: finsona-flash 1.2s ease-out;
+  border-radius: 4px;
+}
+
+/* A clickable figure: orange dotted underline = "click to see the source" (ITMX spec). */
+.traceable {
+  cursor: pointer;
+  text-decoration: underline dotted var(--color-judge);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px;
+}
+.traceable:hover {
+  color: var(--color-judge);
+}
+
+@keyframes finsona-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise {
+  animation: finsona-rise 0.35s ease-out both;
+}

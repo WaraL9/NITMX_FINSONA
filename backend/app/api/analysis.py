@@ -1,14 +1,15 @@
 from decimal import Decimal, InvalidOperation
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.common import txn_out
+from app.api.deps import client_ip, current_user
 from app.db import get_db
 from app.engine import ratios
 from app.engine.types import Policy
-from app.models import Case, Page, Transaction, WatchlistItem
+from app.models import Case, Page, Transaction, User, WatchlistItem
 from app.schemas import AnalysisOut, PolicyOut, SizingOut, WatchlistOut
 from app.services.analysis import AnalysisError, latest_analysis, run_analysis
 
@@ -30,10 +31,10 @@ def _out(a) -> AnalysisOut:
 
 
 @router.post("/analysis", response_model=AnalysisOut)
-def run(case_id: int, db: Session = Depends(get_db)):
+def run(case_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
     _case(db, case_id)
     try:
-        return _out(run_analysis(db, case_id))
+        return _out(run_analysis(db, case_id, user_id=user.id, ip=client_ip(request)))
     except AnalysisError as e:
         raise HTTPException(422, str(e)) from e
 

@@ -33,8 +33,8 @@ def _q(d: Decimal) -> Decimal:
     return d.quantize(Decimal("0.01"), ROUND_HALF_UP)
 
 
-def _names_match(a: str, b: str) -> bool:
-    na, nb = normalize_party(a), normalize_party(b)
+def _names_match(na: str, nb: str) -> bool:
+    """Both arguments already normalised with normalize_party."""
     return bool(na) and bool(nb) and (na == nb or na in nb or nb in na)
 
 
@@ -45,10 +45,14 @@ def match_invoices(receipts: list[ETxn], invoices: list[EInvoice]) -> dict[int, 
         by_buyer[normalize_party(inv.buyer_name)].append(inv)
     used: set[int] = set()
     out: dict[int, tuple[EInvoice, str]] = {}
+    fuzzy_cache: dict[str, list[EInvoice]] = {}
     for r in sorted(receipts, key=lambda t: (t.posted_at, t.id)):
-        pool = by_buyer.get(normalize_party(r.counterparty_name), [])
-        if not pool:
-            pool = [i for i in invoices if _names_match(i.buyer_name, r.counterparty_name or "")]
+        name = normalize_party(r.counterparty_name)
+        pool = by_buyer.get(name, [])
+        if not pool and name:
+            if name not in fuzzy_cache:
+                fuzzy_cache[name] = [i for b, invs in by_buyer.items() if _names_match(b, name) for i in invs]
+            pool = fuzzy_cache[name]
         best: tuple[Decimal, int, EInvoice, str] | None = None
         for inv in pool:
             if inv.id in used:
