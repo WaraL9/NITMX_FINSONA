@@ -18,6 +18,7 @@ from app.config import settings
 from app.scenario import load_scenario
 from app.synth.generator import generate
 from app.synth.statement_pdf import render_statement
+from app.synth.alt_data import make_alt_data
 from app.synth.tax_docs import make_invoices, make_pp30, render_pp30
 
 
@@ -58,6 +59,10 @@ def build_case(name: str = "kitti", out_dir: Path | None = None, seed: int = 42)
     (out_dir / "promptbiz_invoices.json").write_text(
         json.dumps({"seller_tax_id": sc.case.tax_id, "invoices": [i.to_json() for i in invoices]},
                    ensure_ascii=False, indent=1),
+        encoding="utf-8",
+    )
+    (out_dir / "alt_data.json").write_text(
+        json.dumps({"tax_id": sc.case.tax_id, "scenarios": make_alt_data(gen)}, ensure_ascii=False, indent=1),
         encoding="utf-8",
     )
     truth["pp30"] = {}

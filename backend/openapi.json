@@ -579,7 +579,7 @@
           "analysis"
         ],
         "summary": "Sizing",
-        "description": "DSCR/DSR for a loan size, plus the safe limit — cheap enough to call on every slider move.",
+        "description": "DSCR/DSR for a loan size, the safe limit and a proposed structure — cheap enough for\nevery slider move. Cash flow used is after the alternative-data haircut (E6-06);\nstress shocks (E6-05) are applied to monthly revenue and costs before the haircut.",
         "operationId": "sizing_api_cases__case_id__sizing_get",
         "parameters": [
           {
@@ -642,6 +642,44 @@
               ],
               "title": "Annual Rate"
             }
+          },
+          {
+            "name": "revenue_drop",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "stress: 0.10 = revenue 10% lower",
+              "default": "0",
+              "title": "Revenue Drop"
+            },
+            "description": "stress: 0.10 = revenue 10% lower"
+          },
+          {
+            "name": "cost_rise",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "stress: 0.10 = operating costs 10% higher",
+              "default": "0",
+              "title": "Cost Rise"
+            },
+            "description": "stress: 0.10 = operating costs 10% higher"
+          },
+          {
+            "name": "rate_rise_bp",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 2000,
+              "minimum": 0,
+              "description": "stress: +100 = rate one point higher",
+              "default": 0,
+              "title": "Rate Rise Bp"
+            },
+            "description": "stress: +100 = rate one point higher"
           }
         ],
         "responses": {
@@ -697,6 +735,75 @@
                     "$ref": "#/components/schemas/WatchlistOut"
                   },
                   "title": "Response Watchlist Api Cases  Case Id  Watchlist Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/sandbox/alt-scenario": {
+      "put": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Set Alt Scenario",
+        "description": "Sandbox-only what-if: switch the utility connector's scenario and re-analyse.\n\nExists so the early-warning rules can be demonstrated; it never touches live data.",
+        "operationId": "set_alt_scenario_api_cases__case_id__sandbox_alt_scenario_put",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AltScenarioIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisOut"
                 }
               }
             }
@@ -1187,6 +1294,421 @@
         }
       }
     },
+    "/api/cases/{case_id}/memo": {
+      "get": {
+        "tags": [
+          "memo"
+        ],
+        "summary": "Get Memo",
+        "description": "Decision package (E11-01): everything the 1-page memo shows, plus the draft state.",
+        "operationId": "get_memo_api_cases__case_id__memo_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoPackageOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/memo/regenerate": {
+      "post": {
+        "tags": [
+          "memo"
+        ],
+        "summary": "Regenerate",
+        "operationId": "regenerate_api_cases__case_id__memo_regenerate_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoPackageOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/memo/narrative": {
+      "put": {
+        "tags": [
+          "memo"
+        ],
+        "summary": "Edit Narrative",
+        "operationId": "edit_narrative_api_cases__case_id__memo_narrative_put",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NarrativeIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoPackageOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/memo/sign": {
+      "post": {
+        "tags": [
+          "memo"
+        ],
+        "summary": "Sign",
+        "operationId": "sign_api_cases__case_id__memo_sign_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoPackageOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/memo/reopen": {
+      "post": {
+        "tags": [
+          "memo"
+        ],
+        "summary": "Reopen",
+        "operationId": "reopen_api_cases__case_id__memo_reopen_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "x-user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoPackageOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/memo/pdf": {
+      "get": {
+        "tags": [
+          "memo"
+        ],
+        "summary": "Memo Pdf",
+        "operationId": "memo_pdf_api_cases__case_id__memo_pdf_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/llm/status": {
+      "get": {
+        "tags": [
+          "memo"
+        ],
+        "summary": "Llm Status",
+        "operationId": "llm_status_api_llm_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LlmStatusOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sandbox/utility/v1/customers/{tax_id}/bills": {
+      "get": {
+        "tags": [
+          "sandbox"
+        ],
+        "summary": "Utility Bills",
+        "operationId": "utility_bills_sandbox_utility_v1_customers__tax_id__bills_get",
+        "parameters": [
+          {
+            "name": "tax_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tax Id"
+            }
+          },
+          {
+            "name": "scenario",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "clean",
+              "title": "Scenario"
+            }
+          },
+          {
+            "name": "x-consent-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Consent-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Utility Bills Sandbox Utility V1 Customers  Tax Id  Bills Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/sandbox/promptbiz/v1/sellers/{seller_tax_id}/invoices": {
       "get": {
         "tags": [
@@ -1315,6 +1837,79 @@
         ],
         "title": "AccountOut"
       },
+      "AltDataOut": {
+        "properties": {
+          "months_covered": {
+            "type": "integer",
+            "title": "Months Covered"
+          },
+          "bills": {
+            "type": "integer",
+            "title": "Bills"
+          },
+          "on_time": {
+            "type": "integer",
+            "title": "On Time"
+          },
+          "late_30": {
+            "type": "integer",
+            "title": "Late 30"
+          },
+          "late_60_or_unpaid": {
+            "type": "integer",
+            "title": "Late 60 Or Unpaid"
+          },
+          "haircut": {
+            "type": "string",
+            "title": "Haircut"
+          },
+          "ews": {
+            "type": "boolean",
+            "title": "Ews"
+          },
+          "liveness_confirmed": {
+            "type": "boolean",
+            "title": "Liveness Confirmed"
+          },
+          "signals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Signals"
+          }
+        },
+        "type": "object",
+        "required": [
+          "months_covered",
+          "bills",
+          "on_time",
+          "late_30",
+          "late_60_or_unpaid",
+          "haircut",
+          "ews",
+          "liveness_confirmed",
+          "signals"
+        ],
+        "title": "AltDataOut"
+      },
+      "AltScenarioIn": {
+        "properties": {
+          "scenario": {
+            "type": "string",
+            "enum": [
+              "clean",
+              "late_electricity_twice"
+            ],
+            "title": "Scenario"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scenario"
+        ],
+        "title": "AltScenarioIn"
+      },
       "AnalysisOut": {
         "properties": {
           "id": {
@@ -1414,6 +2009,90 @@
             "type": "object",
             "title": "Timings Ms",
             "default": {}
+          },
+          "revenue_monthly": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revenue Monthly"
+          },
+          "costs_monthly": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Costs Monthly"
+          },
+          "t1_monthly": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "T1 Monthly"
+          },
+          "sizing_cfo_monthly": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sizing Cfo Monthly"
+          },
+          "alt_data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AltDataOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "alt_connector": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alt Connector"
+          },
+          "cash_pattern": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CashPatternOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "drivers": {
+            "items": {
+              "$ref": "#/components/schemas/DriverOut"
+            },
+            "type": "array",
+            "title": "Drivers",
+            "default": []
           }
         },
         "type": "object",
@@ -1938,6 +2617,52 @@
         ],
         "title": "CaseSummary"
       },
+      "CashPatternOut": {
+        "properties": {
+          "detected": {
+            "type": "boolean",
+            "title": "Detected"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "total": {
+            "type": "string",
+            "title": "Total"
+          },
+          "average": {
+            "type": "string",
+            "title": "Average"
+          },
+          "top_weekdays": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Top Weekdays"
+          },
+          "weekday_share": {
+            "type": "number",
+            "title": "Weekday Share"
+          },
+          "morning_share": {
+            "type": "number",
+            "title": "Morning Share"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detected",
+          "count",
+          "total",
+          "average",
+          "top_weekdays",
+          "weekday_share",
+          "morning_share"
+        ],
+        "title": "CashPatternOut"
+      },
       "ChainStatusOut": {
         "properties": {
           "ok": {
@@ -2134,6 +2859,56 @@
         ],
         "title": "DocumentVerifyOut"
       },
+      "DriverOut": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "positive",
+              "risk",
+              "info"
+            ],
+            "title": "Kind"
+          },
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          },
+          "impact": {
+            "type": "string",
+            "title": "Impact"
+          },
+          "metric": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metric"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "key",
+          "title",
+          "detail",
+          "impact",
+          "metric"
+        ],
+        "title": "DriverOut"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -2240,6 +3015,41 @@
         ],
         "title": "LineageOut"
       },
+      "LlmStatusOut": {
+        "properties": {
+          "live": {
+            "type": "boolean",
+            "title": "Live"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "live",
+          "provider",
+          "model",
+          "note"
+        ],
+        "title": "LlmStatusOut"
+      },
       "LoopLegOut": {
         "properties": {
           "debit_txn_id": {
@@ -2309,6 +3119,445 @@
           "legs"
         ],
         "title": "LoopOut"
+      },
+      "MemoCase": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "company_name": {
+            "type": "string",
+            "title": "Company Name"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry"
+          },
+          "business_age_years": {
+            "type": "integer",
+            "title": "Business Age Years"
+          },
+          "requested_amount": {
+            "type": "string",
+            "title": "Requested Amount"
+          },
+          "purpose": {
+            "type": "string",
+            "title": "Purpose"
+          },
+          "tenor_months": {
+            "type": "integer",
+            "title": "Tenor Months"
+          },
+          "annual_rate": {
+            "type": "string",
+            "title": "Annual Rate"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "processing",
+              "in_review",
+              "decided"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "company_name",
+          "industry",
+          "business_age_years",
+          "requested_amount",
+          "purpose",
+          "tenor_months",
+          "annual_rate",
+          "status"
+        ],
+        "title": "MemoCase"
+      },
+      "MemoPackageOut": {
+        "properties": {
+          "case": {
+            "$ref": "#/components/schemas/MemoCase"
+          },
+          "analysis": {
+            "$ref": "#/components/schemas/AnalysisOut"
+          },
+          "sizing_request": {
+            "$ref": "#/components/schemas/MemoSizing"
+          },
+          "sizing_safe": {
+            "$ref": "#/components/schemas/MemoSizing"
+          },
+          "watchlist": {
+            "items": {
+              "$ref": "#/components/schemas/MemoWatch"
+            },
+            "type": "array",
+            "title": "Watchlist"
+          },
+          "documents": {
+            "type": "integer",
+            "title": "Documents"
+          },
+          "memo": {
+            "$ref": "#/components/schemas/MemoState"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case",
+          "analysis",
+          "sizing_request",
+          "sizing_safe",
+          "watchlist",
+          "documents",
+          "memo"
+        ],
+        "title": "MemoPackageOut"
+      },
+      "MemoSizing": {
+        "properties": {
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          },
+          "dscr": {
+            "type": "string",
+            "title": "Dscr"
+          },
+          "new_payment": {
+            "type": "string",
+            "title": "New Payment"
+          },
+          "passes_min": {
+            "type": "boolean",
+            "title": "Passes Min"
+          },
+          "meets_target": {
+            "type": "boolean",
+            "title": "Meets Target"
+          },
+          "safe_limit": {
+            "type": "string",
+            "title": "Safe Limit"
+          },
+          "max_at_min": {
+            "type": "string",
+            "title": "Max At Min"
+          },
+          "policy": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Policy"
+          },
+          "structure": {
+            "$ref": "#/components/schemas/MemoStructure"
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount",
+          "dscr",
+          "new_payment",
+          "passes_min",
+          "meets_target",
+          "safe_limit",
+          "max_at_min",
+          "policy",
+          "structure"
+        ],
+        "title": "MemoSizing"
+      },
+      "MemoState": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "signed"
+            ],
+            "title": "Status"
+          },
+          "narrative": {
+            "type": "string",
+            "title": "Narrative"
+          },
+          "narrative_source": {
+            "type": "string",
+            "enum": [
+              "llm",
+              "llm-cache",
+              "template",
+              "ca_edited"
+            ],
+            "title": "Narrative Source"
+          },
+          "recommendation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "approve",
+                  "approve_structured",
+                  "decline"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommendation"
+          },
+          "approved_amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved Amount"
+          },
+          "trade_line_amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trade Line Amount"
+          },
+          "ca_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ca Reason"
+          },
+          "signed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signed By"
+          },
+          "signed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signed At"
+          },
+          "analysis_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analysis Id"
+          },
+          "pdf_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pdf Sha256"
+          },
+          "audit_head": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audit Head"
+          },
+          "has_pdf": {
+            "type": "boolean",
+            "title": "Has Pdf"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "narrative",
+          "narrative_source",
+          "recommendation",
+          "approved_amount",
+          "trade_line_amount",
+          "ca_reason",
+          "signed_by",
+          "signed_at",
+          "analysis_id",
+          "pdf_sha256",
+          "audit_head",
+          "has_pdf"
+        ],
+        "title": "MemoState"
+      },
+      "MemoStructure": {
+        "properties": {
+          "needed": {
+            "type": "boolean",
+            "title": "Needed"
+          },
+          "term_loan": {
+            "type": "string",
+            "title": "Term Loan"
+          },
+          "trade_line": {
+            "type": "string",
+            "title": "Trade Line"
+          },
+          "total": {
+            "type": "string",
+            "title": "Total"
+          },
+          "shortfall": {
+            "type": "string",
+            "title": "Shortfall"
+          },
+          "trade_line_ratio": {
+            "type": "string",
+            "title": "Trade Line Ratio"
+          }
+        },
+        "type": "object",
+        "required": [
+          "needed",
+          "term_loan",
+          "trade_line",
+          "total",
+          "shortfall",
+          "trade_line_ratio"
+        ],
+        "title": "MemoStructure"
+      },
+      "MemoWatch": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "txn_id": {
+            "type": "integer",
+            "title": "Txn Id"
+          },
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "counterparty": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counterparty"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "accepted",
+              "excluded",
+              "queried"
+            ],
+            "title": "Status"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "decided_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided By"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "txn_id",
+          "date",
+          "counterparty",
+          "amount",
+          "status",
+          "reason",
+          "decided_by"
+        ],
+        "title": "MemoWatch"
+      },
+      "NarrativeIn": {
+        "properties": {
+          "narrative": {
+            "type": "string",
+            "maxLength": 6000,
+            "minLength": 20,
+            "title": "Narrative"
+          }
+        },
+        "type": "object",
+        "required": [
+          "narrative"
+        ],
+        "title": "NarrativeIn"
       },
       "OverrideIn": {
         "properties": {
@@ -2603,6 +3852,61 @@
         ],
         "title": "ReasonIn"
       },
+      "SignIn": {
+        "properties": {
+          "recommendation": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "approve_structured",
+              "decline"
+            ],
+            "title": "Recommendation"
+          },
+          "approved_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved Amount"
+          },
+          "trade_line_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trade Line Amount"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 10,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "recommendation",
+          "reason"
+        ],
+        "title": "SignIn"
+      },
       "SizingOut": {
         "properties": {
           "amount": {
@@ -2674,6 +3978,29 @@
           },
           "policy": {
             "$ref": "#/components/schemas/PolicyOut"
+          },
+          "haircut": {
+            "type": "string",
+            "title": "Haircut"
+          },
+          "stressed": {
+            "type": "boolean",
+            "title": "Stressed"
+          },
+          "revenue_drop": {
+            "type": "string",
+            "title": "Revenue Drop"
+          },
+          "cost_rise": {
+            "type": "string",
+            "title": "Cost Rise"
+          },
+          "rate_rise_bp": {
+            "type": "integer",
+            "title": "Rate Rise Bp"
+          },
+          "structure": {
+            "$ref": "#/components/schemas/StructureOut"
           }
         },
         "type": "object",
@@ -2691,9 +4018,53 @@
           "meets_target",
           "safe_limit",
           "max_at_min",
-          "policy"
+          "policy",
+          "haircut",
+          "stressed",
+          "revenue_drop",
+          "cost_rise",
+          "rate_rise_bp",
+          "structure"
         ],
         "title": "SizingOut"
+      },
+      "StructureOut": {
+        "properties": {
+          "needed": {
+            "type": "boolean",
+            "title": "Needed"
+          },
+          "term_loan": {
+            "type": "string",
+            "title": "Term Loan"
+          },
+          "trade_line": {
+            "type": "string",
+            "title": "Trade Line"
+          },
+          "total": {
+            "type": "string",
+            "title": "Total"
+          },
+          "shortfall": {
+            "type": "string",
+            "title": "Shortfall"
+          },
+          "trade_line_ratio": {
+            "type": "string",
+            "title": "Trade Line Ratio"
+          }
+        },
+        "type": "object",
+        "required": [
+          "needed",
+          "term_loan",
+          "trade_line",
+          "total",
+          "shortfall",
+          "trade_line_ratio"
+        ],
+        "title": "StructureOut"
       },
       "Tiers": {
         "properties": {

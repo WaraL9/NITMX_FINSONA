@@ -67,6 +67,10 @@ class Policy:
     min_dscr: Decimal = Decimal("1.25")
     target_dscr: Decimal = Decimal("1.35")
     max_dsr: Decimal = Decimal("0.80")
+    # Trade Line (E6-07): self-liquidating invoice financing settled through PromptBiz,
+    # sized as a share of average monthly Golden (invoice-matched) receipts.
+    trade_line_ratio: Decimal = Decimal("0.40")
+    trade_line_step: Decimal = Decimal("100000")
 
 
 @dataclass

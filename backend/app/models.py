@@ -48,6 +48,8 @@ class Case(Base):
     source: Mapped[str] = mapped_column(String(16), default="sme_portal")
     period_start: Mapped[date | None] = mapped_column(Date)
     period_end: Mapped[date | None] = mapped_column(Date)
+    # Sandbox-only what-if for the utility connector (demo control; never on live data).
+    sandbox_alt_scenario: Mapped[str] = mapped_column(String(32), default="clean")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     accounts: Mapped[list["Account"]] = relationship(back_populates="case", cascade="all, delete-orphan")
@@ -237,3 +239,41 @@ class TagOverride(Base):
     reason: Mapped[str] = mapped_column(Text)
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class LlmCache(Base):
+    """LLM responses keyed by a hash of (provider, model, prompt, schema) (E7-01).
+
+    Makes the demo reproducible and offline-capable: a response generated once is
+    replayed instead of calling the API again.
+    """
+
+    __tablename__ = "llm_cache"
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    provider: Mapped[str] = mapped_column(String(32))
+    model: Mapped[str] = mapped_column(String(64))
+    purpose: Mapped[str] = mapped_column(String(32))
+    response: Mapped[dict[str, Any]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class CreditMemo(Base):
+    """The 1-page credit memo for a case (E11): draft narrative, then CA sign-off + PDF."""
+
+    __tablename__ = "credit_memos"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), unique=True)
+    status: Mapped[str] = mapped_column(String(16), default="draft")  # draft | signed
+    narrative: Mapped[str] = mapped_column(Text, default="")
+    narrative_source: Mapped[str] = mapped_column(String(16), default="template")  # llm | llm-cache | template | ca_edited
+    recommendation: Mapped[str | None] = mapped_column(String(32))  # approve | approve_structured | decline
+    approved_amount: Mapped[Decimal | None] = mapped_column(Money)
+    trade_line_amount: Mapped[Decimal | None] = mapped_column(Money)
+    ca_reason: Mapped[str | None] = mapped_column(Text)
+    signed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    signed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    analysis_id: Mapped[int | None] = mapped_column(ForeignKey("analyses.id", ondelete="SET NULL"))
+    pdf_path: Mapped[str | None] = mapped_column(String(500))
+    pdf_sha256: Mapped[str | None] = mapped_column(String(64))
+    audit_head: Mapped[str | None] = mapped_column(String(64))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)

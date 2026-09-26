@@ -121,7 +121,9 @@ export interface paths {
         };
         /**
          * Sizing
-         * @description DSCR/DSR for a loan size, plus the safe limit — cheap enough to call on every slider move.
+         * @description DSCR/DSR for a loan size, the safe limit and a proposed structure — cheap enough for
+         *     every slider move. Cash flow used is after the alternative-data haircut (E6-06);
+         *     stress shocks (E6-05) are applied to monthly revenue and costs before the haircut.
          */
         get: operations["sizing_api_cases__case_id__sizing_get"];
         put?: never;
@@ -142,6 +144,28 @@ export interface paths {
         /** Watchlist */
         get: operations["watchlist_api_cases__case_id__watchlist_get"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/sandbox/alt-scenario": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Alt Scenario
+         * @description Sandbox-only what-if: switch the utility connector's scenario and re-analyse.
+         *
+         *     Exists so the early-warning rules can be demonstrated; it never touches live data.
+         */
+        put: operations["set_alt_scenario_api_cases__case_id__sandbox_alt_scenario_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -305,6 +329,145 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/memo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Memo
+         * @description Decision package (E11-01): everything the 1-page memo shows, plus the draft state.
+         */
+        get: operations["get_memo_api_cases__case_id__memo_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/memo/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Regenerate */
+        post: operations["regenerate_api_cases__case_id__memo_regenerate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/memo/narrative": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Edit Narrative */
+        put: operations["edit_narrative_api_cases__case_id__memo_narrative_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/memo/sign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign */
+        post: operations["sign_api_cases__case_id__memo_sign_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/memo/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen */
+        post: operations["reopen_api_cases__case_id__memo_reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/memo/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Memo Pdf */
+        get: operations["memo_pdf_api_cases__case_id__memo_pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/llm/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Llm Status */
+        get: operations["llm_status_api_llm_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sandbox/utility/v1/customers/{tax_id}/bills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Utility Bills */
+        get: operations["utility_bills_sandbox_utility_v1_customers__tax_id__bills_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sandbox/promptbiz/v1/sellers/{seller_tax_id}/invoices": {
         parameters: {
             query?: never;
@@ -360,6 +523,35 @@ export interface components {
              * @enum {string}
              */
             owner_type: "company" | "director" | "family" | "external";
+        };
+        /** AltDataOut */
+        AltDataOut: {
+            /** Months Covered */
+            months_covered: number;
+            /** Bills */
+            bills: number;
+            /** On Time */
+            on_time: number;
+            /** Late 30 */
+            late_30: number;
+            /** Late 60 Or Unpaid */
+            late_60_or_unpaid: number;
+            /** Haircut */
+            haircut: string;
+            /** Ews */
+            ews: boolean;
+            /** Liveness Confirmed */
+            liveness_confirmed: boolean;
+            /** Signals */
+            signals: string[];
+        };
+        /** AltScenarioIn */
+        AltScenarioIn: {
+            /**
+             * Scenario
+             * @enum {string}
+             */
+            scenario: "clean" | "late_electricity_twice";
         };
         /** AnalysisOut */
         AnalysisOut: {
@@ -417,6 +609,25 @@ export interface components {
             timings_ms: {
                 [key: string]: number;
             };
+            /** Revenue Monthly */
+            revenue_monthly?: string | null;
+            /** Costs Monthly */
+            costs_monthly?: string | null;
+            /** T1 Monthly */
+            t1_monthly?: string | null;
+            /** Sizing Cfo Monthly */
+            sizing_cfo_monthly?: string | null;
+            alt_data?: components["schemas"]["AltDataOut"] | null;
+            /** Alt Connector */
+            alt_connector?: {
+                [key: string]: unknown;
+            } | null;
+            cash_pattern?: components["schemas"]["CashPatternOut"] | null;
+            /**
+             * Drivers
+             * @default []
+             */
+            drivers: components["schemas"]["DriverOut"][];
         };
         /** ApiError */
         ApiError: {
@@ -579,6 +790,23 @@ export interface components {
              */
             created_at: string;
         };
+        /** CashPatternOut */
+        CashPatternOut: {
+            /** Detected */
+            detected: boolean;
+            /** Count */
+            count: number;
+            /** Total */
+            total: string;
+            /** Average */
+            average: string;
+            /** Top Weekdays */
+            top_weekdays: string[];
+            /** Weekday Share */
+            weekday_share: number;
+            /** Morning Share */
+            morning_share: number;
+        };
         /** ChainStatusOut */
         ChainStatusOut: {
             /** Ok */
@@ -648,6 +876,24 @@ export interface components {
             /** Verified */
             verified: boolean;
         };
+        /** DriverOut */
+        DriverOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "positive" | "risk" | "info";
+            /** Key */
+            key: string;
+            /** Title */
+            title: string;
+            /** Detail */
+            detail: string;
+            /** Impact */
+            impact: string;
+            /** Metric */
+            metric: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -680,6 +926,17 @@ export interface components {
             /** Sha256 Verified */
             sha256_verified: boolean | null;
         };
+        /** LlmStatusOut */
+        LlmStatusOut: {
+            /** Live */
+            live: boolean;
+            /** Provider */
+            provider: string;
+            /** Model */
+            model: string;
+            /** Note */
+            note: string | null;
+        };
         /** LoopLegOut */
         LoopLegOut: {
             /** Debit Txn Id */
@@ -708,6 +965,143 @@ export interface components {
             hours: number;
             /** Legs */
             legs: components["schemas"]["LoopLegOut"][];
+        };
+        /** MemoCase */
+        MemoCase: {
+            /** Id */
+            id: number;
+            /** Company Name */
+            company_name: string;
+            /** Industry */
+            industry: string;
+            /** Business Age Years */
+            business_age_years: number;
+            /** Requested Amount */
+            requested_amount: string;
+            /** Purpose */
+            purpose: string;
+            /** Tenor Months */
+            tenor_months: number;
+            /** Annual Rate */
+            annual_rate: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "processing" | "in_review" | "decided";
+        };
+        /** MemoPackageOut */
+        MemoPackageOut: {
+            case: components["schemas"]["MemoCase"];
+            analysis: components["schemas"]["AnalysisOut"];
+            sizing_request: components["schemas"]["MemoSizing"];
+            sizing_safe: components["schemas"]["MemoSizing"];
+            /** Watchlist */
+            watchlist: components["schemas"]["MemoWatch"][];
+            /** Documents */
+            documents: number;
+            memo: components["schemas"]["MemoState"];
+        };
+        /** MemoSizing */
+        MemoSizing: {
+            /** Amount */
+            amount: string;
+            /** Dscr */
+            dscr: string;
+            /** New Payment */
+            new_payment: string;
+            /** Passes Min */
+            passes_min: boolean;
+            /** Meets Target */
+            meets_target: boolean;
+            /** Safe Limit */
+            safe_limit: string;
+            /** Max At Min */
+            max_at_min: string;
+            /** Policy */
+            policy: {
+                [key: string]: string;
+            };
+            structure: components["schemas"]["MemoStructure"];
+        };
+        /** MemoState */
+        MemoState: {
+            /** Id */
+            id: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "signed";
+            /** Narrative */
+            narrative: string;
+            /**
+             * Narrative Source
+             * @enum {string}
+             */
+            narrative_source: "llm" | "llm-cache" | "template" | "ca_edited";
+            /** Recommendation */
+            recommendation: ("approve" | "approve_structured" | "decline") | null;
+            /** Approved Amount */
+            approved_amount: string | null;
+            /** Trade Line Amount */
+            trade_line_amount: string | null;
+            /** Ca Reason */
+            ca_reason: string | null;
+            /** Signed By */
+            signed_by: string | null;
+            /** Signed At */
+            signed_at: string | null;
+            /** Analysis Id */
+            analysis_id: number | null;
+            /** Pdf Sha256 */
+            pdf_sha256: string | null;
+            /** Audit Head */
+            audit_head: string | null;
+            /** Has Pdf */
+            has_pdf: boolean;
+        };
+        /** MemoStructure */
+        MemoStructure: {
+            /** Needed */
+            needed: boolean;
+            /** Term Loan */
+            term_loan: string;
+            /** Trade Line */
+            trade_line: string;
+            /** Total */
+            total: string;
+            /** Shortfall */
+            shortfall: string;
+            /** Trade Line Ratio */
+            trade_line_ratio: string;
+        };
+        /** MemoWatch */
+        MemoWatch: {
+            /** Id */
+            id: number;
+            /** Txn Id */
+            txn_id: number;
+            /** Date */
+            date: string;
+            /** Counterparty */
+            counterparty: string | null;
+            /** Amount */
+            amount: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "accepted" | "excluded" | "queried";
+            /** Reason */
+            reason: string | null;
+            /** Decided By */
+            decided_by: string | null;
+        };
+        /** NarrativeIn */
+        NarrativeIn: {
+            /** Narrative */
+            narrative: string;
         };
         /** OverrideIn */
         OverrideIn: {
@@ -798,6 +1192,20 @@ export interface components {
             /** Reason */
             reason: string;
         };
+        /** SignIn */
+        SignIn: {
+            /**
+             * Recommendation
+             * @enum {string}
+             */
+            recommendation: "approve" | "approve_structured" | "decline";
+            /** Approved Amount */
+            approved_amount?: number | string | null;
+            /** Trade Line Amount */
+            trade_line_amount?: number | string | null;
+            /** Reason */
+            reason: string;
+        };
         /** SizingOut */
         SizingOut: {
             /** Amount */
@@ -830,6 +1238,32 @@ export interface components {
             /** Max At Min */
             max_at_min: string;
             policy: components["schemas"]["PolicyOut"];
+            /** Haircut */
+            haircut: string;
+            /** Stressed */
+            stressed: boolean;
+            /** Revenue Drop */
+            revenue_drop: string;
+            /** Cost Rise */
+            cost_rise: string;
+            /** Rate Rise Bp */
+            rate_rise_bp: number;
+            structure: components["schemas"]["StructureOut"];
+        };
+        /** StructureOut */
+        StructureOut: {
+            /** Needed */
+            needed: boolean;
+            /** Term Loan */
+            term_loan: string;
+            /** Trade Line */
+            trade_line: string;
+            /** Total */
+            total: string;
+            /** Shortfall */
+            shortfall: string;
+            /** Trade Line Ratio */
+            trade_line_ratio: string;
         };
         /** Tiers */
         Tiers: {
@@ -1303,6 +1737,12 @@ export interface operations {
                 amount?: string | null;
                 tenor_months?: number | null;
                 annual_rate?: string | null;
+                /** @description stress: 0.10 = revenue 10% lower */
+                revenue_drop?: string;
+                /** @description stress: 0.10 = operating costs 10% higher */
+                cost_rise?: string;
+                /** @description stress: +100 = rate one point higher */
+                rate_rise_bp?: number;
             };
             header?: never;
             path: {
@@ -1350,6 +1790,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WatchlistOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_alt_scenario_api_cases__case_id__sandbox_alt_scenario_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AltScenarioIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalysisOut"];
                 };
             };
             /** @description Validation Error */
@@ -1630,6 +2107,265 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LineageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_memo_api_cases__case_id__memo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoPackageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    regenerate_api_cases__case_id__memo_regenerate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoPackageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_narrative_api_cases__case_id__memo_narrative_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NarrativeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoPackageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sign_api_cases__case_id__memo_sign_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoPackageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_api_cases__case_id__memo_reopen_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-user-id"?: number | null;
+            };
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoPackageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    memo_pdf_api_cases__case_id__memo_pdf_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    llm_status_api_llm_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LlmStatusOut"];
+                };
+            };
+        };
+    };
+    utility_bills_sandbox_utility_v1_customers__tax_id__bills_get: {
+        parameters: {
+            query?: {
+                scenario?: string;
+            };
+            header?: {
+                "x-consent-token"?: string | null;
+            };
+            path: {
+                tax_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

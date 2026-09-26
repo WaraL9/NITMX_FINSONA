@@ -210,12 +210,29 @@ class AnalysisOut(BaseModel):
     watchlist_count: int
     connector: dict | None
     timings_ms: dict[str, float] = {}
+    revenue_monthly: str | None = None
+    costs_monthly: str | None = None
+    t1_monthly: str | None = None
+    sizing_cfo_monthly: str | None = None
+    alt_data: "AltDataOut | None" = None
+    alt_connector: dict | None = None
+    cash_pattern: "CashPatternOut | None" = None
+    drivers: list["DriverOut"] = []
 
 
 class PolicyOut(BaseModel):
     min_dscr: DecimalStr
     target_dscr: DecimalStr
     max_dsr: DecimalStr
+
+
+class StructureOut(BaseModel):
+    needed: bool
+    term_loan: MoneyStr
+    trade_line: MoneyStr
+    total: MoneyStr
+    shortfall: MoneyStr
+    trade_line_ratio: DecimalStr
 
 
 class SizingOut(BaseModel):
@@ -233,6 +250,12 @@ class SizingOut(BaseModel):
     safe_limit: MoneyStr
     max_at_min: MoneyStr
     policy: PolicyOut
+    haircut: DecimalStr
+    stressed: bool
+    revenue_drop: DecimalStr
+    cost_rise: DecimalStr
+    rate_rise_bp: int
+    structure: StructureOut
 
 
 class WatchlistOut(BaseModel):
@@ -323,3 +346,133 @@ class LineageOut(BaseModel):
     page_width: float | None
     page_height: float | None
     sha256_verified: bool | None
+
+
+
+class AltDataOut(BaseModel):
+    months_covered: int
+    bills: int
+    on_time: int
+    late_30: int
+    late_60_or_unpaid: int
+    haircut: str
+    ews: bool
+    liveness_confirmed: bool
+    signals: list[str]
+
+
+class CashPatternOut(BaseModel):
+    detected: bool
+    count: int
+    total: str
+    average: str
+    top_weekdays: list[str]
+    weekday_share: float
+    morning_share: float
+
+
+class DriverOut(BaseModel):
+    kind: Literal["positive", "risk", "info"]
+    key: str
+    title: str
+    detail: str
+    impact: str
+    metric: str | None
+
+
+class AltScenarioIn(BaseModel):
+    scenario: Literal["clean", "late_electricity_twice"]
+
+
+AnalysisOut.model_rebuild()
+
+
+# ---------- credit memo ----------
+
+class MemoStructure(BaseModel):
+    needed: bool
+    term_loan: str
+    trade_line: str
+    total: str
+    shortfall: str
+    trade_line_ratio: str
+
+
+class MemoSizing(BaseModel):
+    amount: str
+    dscr: str
+    new_payment: str
+    passes_min: bool
+    meets_target: bool
+    safe_limit: str
+    max_at_min: str
+    policy: dict[str, str]
+    structure: MemoStructure
+
+
+class MemoWatch(BaseModel):
+    id: int
+    txn_id: int
+    date: str
+    counterparty: str | None
+    amount: str
+    status: Literal["pending", "accepted", "excluded", "queried"]
+    reason: str | None
+    decided_by: str | None
+
+
+class MemoCase(BaseModel):
+    id: int
+    company_name: str
+    industry: str
+    business_age_years: int
+    requested_amount: str
+    purpose: str
+    tenor_months: int
+    annual_rate: str
+    status: CaseStatus
+
+
+class MemoState(BaseModel):
+    id: int
+    status: Literal["draft", "signed"]
+    narrative: str
+    narrative_source: Literal["llm", "llm-cache", "template", "ca_edited"]
+    recommendation: Literal["approve", "approve_structured", "decline"] | None
+    approved_amount: str | None
+    trade_line_amount: str | None
+    ca_reason: str | None
+    signed_by: str | None
+    signed_at: str | None
+    analysis_id: int | None
+    pdf_sha256: str | None
+    audit_head: str | None
+    has_pdf: bool
+
+
+class MemoPackageOut(BaseModel):
+    case: MemoCase
+    analysis: AnalysisOut
+    sizing_request: MemoSizing
+    sizing_safe: MemoSizing
+    watchlist: list[MemoWatch]
+    documents: int
+    memo: MemoState
+
+
+class NarrativeIn(BaseModel):
+    narrative: str = Field(min_length=20, max_length=6000)
+
+
+class SignIn(BaseModel):
+    recommendation: Literal["approve", "approve_structured", "decline"]
+    approved_amount: MoneyStr | None = None
+    trade_line_amount: MoneyStr | None = None
+    reason: str = Field(min_length=10, max_length=2000)
+
+
+class LlmStatusOut(BaseModel):
+    live: bool
+    provider: str
+    model: str
+    note: str | None

@@ -14,6 +14,10 @@ const ACTION: Record<string, string> = {
   tag_override: "CA ปรับการจัดหมวด",
   tag_override_revert: "ยกเลิกการปรับการจัดหมวด",
   lineage_view: "เปิดดูพิกัดเอกสาร",
+  memo_signed: "ลงนาม Credit Memo",
+  memo_reopened: "เปิดแก้ไข Credit Memo",
+  memo_narrative_edit: "แก้ไขบทสรุป",
+  sandbox_scenario_change: "เปลี่ยนสถานการณ์ Sandbox",
 };
 
 /** Immutable audit trail for the case (E9-05) with chain verification (E9-06). */
@@ -67,7 +71,7 @@ export function AuditPanel({ caseId }: { caseId: number }) {
               <TD className="font-mono text-xs text-muted">{e.id}</TD>
               <TD className="font-mono text-xs whitespace-nowrap">{e.ts.slice(0, 19).replace("T", " ")}</TD>
               <TD className="text-xs whitespace-nowrap">{e.user_name ?? "ระบบ"}</TD>
-              <TD><Badge tone={e.action === "watchlist_decision" || e.action.startsWith("tag_override") ? "judge" : "neutral"}>{ACTION[e.action] ?? e.action}</Badge></TD>
+              <TD><Badge tone={e.action === "watchlist_decision" || e.action.startsWith("tag_override") || e.action.startsWith("memo") ? "judge" : "neutral"}>{ACTION[e.action] ?? e.action}</Badge></TD>
               <TD className="max-w-md text-xs">
                 {e.reason && <div className="text-ink">“{e.reason}”</div>}
                 {e.after && <div className="truncate font-mono text-[11px] text-muted" title={JSON.stringify(e.after)}>{JSON.stringify(e.after)}</div>}

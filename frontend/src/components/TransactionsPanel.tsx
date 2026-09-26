@@ -1,7 +1,9 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, ExternalLink, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, Search, SlidersHorizontal } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { api, documentFileUrl, unwrap, type Account } from "@/api/client";
+import { api, unwrap, type Account, type Transaction } from "@/api/client";
+import { useLineage } from "@/components/lineage/LineageDrawer";
+import { OverrideDialog } from "@/components/workbench/OverrideDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
@@ -31,6 +33,8 @@ function formatDateTime(iso: string) {
 export function TransactionsPanel({ caseId, accounts }: { caseId: number; accounts: Account[] }) {
   const [accountId, setAccountId] = useState<number | undefined>();
   const [tier, setTier] = useState<string | undefined>();
+  const [overriding, setOverriding] = useState<Transaction | null>(null);
+  const { openTxn } = useLineage();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const q = useDebounced(search.trim());
@@ -118,8 +122,8 @@ export function TransactionsPanel({ caseId, accounts }: { caseId: number; accoun
                 <TR
                   key={t.id}
                   className="cursor-pointer"
-                  onClick={() => t.document_id && window.open(documentFileUrl(t.document_id, t.page_no), "_blank")}
-                  title="เปิดหน้าเอกสารต้นฉบับ"
+                  onClick={() => openTxn(t.id)}
+                  title="ดูบรรทัดนี้บนเอกสารต้นฉบับ"
                 >
                   <TD className="font-mono text-xs whitespace-nowrap">{formatDateTime(t.posted_at)}</TD>
                   <TD className="text-xs whitespace-nowrap">
@@ -141,6 +145,8 @@ export function TransactionsPanel({ caseId, accounts }: { caseId: number; accoun
                       {t.tier && <Badge tone={tierInfo[t.tier]?.tone}>{tierInfo[t.tier]?.short}</Badge>}
                       {t.loop_id && <Badge tone="risk">{t.loop_id}</Badge>}
                       {t.tag && !t.tier && <Badge>{tagLabel[t.tag] ?? t.tag}</Badge>}
+                      {t.tag_source === "ca" && <Badge tone="navy">CA</Badge>}
+                      {t.tag_source === "llm" && <Badge tone="navy">AI แนะนำ</Badge>}
                     </div>
                   </TD>
                   <TD numeric className="text-risk">
@@ -151,8 +157,21 @@ export function TransactionsPanel({ caseId, accounts }: { caseId: number; accoun
                   </TD>
                   <TD numeric>{t.balance ? formatTHB(t.balance) : ""}</TD>
                   <TD numeric className="text-muted">
-                    <span className="inline-flex items-center gap-1">
+                    <span className="inline-flex items-center gap-2">
                       {t.page_no} <ExternalLink className="size-3" />
+                      {a?.owner_type === "company" && t.tier !== "T4_unverified" && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOverriding(t);
+                          }}
+                          className="rounded p-1 text-muted hover:bg-surface-2 hover:text-navy"
+                          title="ปรับการจัดหมวด (CA Override)"
+                          aria-label="ปรับการจัดหมวด"
+                        >
+                          <SlidersHorizontal className="size-3.5" />
+                        </button>
+                      )}
                     </span>
                   </TD>
                 </TR>
@@ -189,6 +208,7 @@ export function TransactionsPanel({ caseId, accounts }: { caseId: number; accoun
           </div>
         </div>
       )}
+      <OverrideDialog caseId={caseId} txn={overriding} onClose={() => setOverriding(null)} />
     </Card>
   );
 }

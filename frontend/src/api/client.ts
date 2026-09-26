@@ -85,3 +85,6 @@ export function errorMessage(err: unknown): string {
   }
   return err instanceof Error ? err.message : "เกิดข้อผิดพลาด";
 }
+export type MemoPackage = components["schemas"]["MemoPackageOut"];
+export type Driver = components["schemas"]["DriverOut"];
+export type SignBody = components["schemas"]["SignIn"];

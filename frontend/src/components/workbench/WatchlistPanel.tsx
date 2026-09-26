@@ -54,6 +54,7 @@ function Detail({ caseId, item, onDone }: { caseId: number; item: WatchlistEntry
       qc.invalidateQueries({ queryKey: ["sizing", caseId] });
       qc.invalidateQueries({ queryKey: ["transactions", caseId] });
       qc.invalidateQueries({ queryKey: ["audit", caseId] });
+      qc.invalidateQueries({ queryKey: ["memo", caseId] });
       const amt = formatTHB(item.transaction.credit, 0);
       const moved = before && before !== after ? ` · วงเงินปลอดภัย ${formatMillions(before, 2)} → ${formatMillions(after, 2)}` : "";
       onDone(

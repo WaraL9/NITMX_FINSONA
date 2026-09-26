@@ -3,7 +3,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import analysis, cases, documents, review, sandbox
+from app.ai import gateway
+from app.api import analysis, cases, documents, memo, review, sandbox
 from app.config import settings
 from app.db import create_all
 from app.schemas import Health
@@ -29,6 +30,7 @@ app.include_router(cases.router)
 app.include_router(documents.router)
 app.include_router(analysis.router)
 app.include_router(review.router)
+app.include_router(memo.router)
 app.include_router(sandbox.router)
 
 
@@ -39,5 +41,5 @@ def health() -> Health:
         version=VERSION,
         connector_mode=settings.connector_mode,
         live_ocr=settings.use_live_ocr,
-        live_llm=settings.use_live_llm,
+        live_llm=gateway.status()["live"],
     )

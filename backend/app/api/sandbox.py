@@ -9,12 +9,25 @@ import time
 
 from fastapi import APIRouter, Header, HTTPException
 
+from app.connectors.base import ConnectorError
 from app.connectors.promptbiz import sandbox_invoices
+from app.connectors.utility import sandbox_bills
 
-router = APIRouter(prefix="/sandbox/promptbiz/v1", tags=["sandbox"])
+router = APIRouter(prefix="/sandbox", tags=["sandbox"])
 
 
-@router.get("/sellers/{seller_tax_id}/invoices")
+@router.get("/utility/v1/customers/{tax_id}/bills")
+def utility_bills(tax_id: str, scenario: str = "clean", x_consent_token: str | None = Header(None)) -> dict:
+    if not x_consent_token:
+        raise HTTPException(401, "X-Consent-Token header required (business owner's consent)")
+    try:
+        bills = sandbox_bills(tax_id, scenario)
+    except ConnectorError as e:
+        raise HTTPException(422, str(e)) from e
+    return {"tax_id": tax_id, "scenario": scenario, "count": len(bills), "bills": bills, "mode": "sandbox"}
+
+
+@router.get("/promptbiz/v1/sellers/{seller_tax_id}/invoices")
 def promptbiz_invoices(seller_tax_id: str, x_consent_token: str | None = Header(None)) -> dict:
     if not x_consent_token:
         raise HTTPException(401, "X-Consent-Token header required (business owner's consent)")

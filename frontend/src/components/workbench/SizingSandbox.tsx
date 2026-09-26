@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Loader2, Target } from "lucide-react";
+import { FlaskConical, Loader2, RotateCcw, Target } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api, unwrap, type Analysis } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
@@ -22,22 +22,50 @@ function useDebounced<T>(value: T, ms: number): T {
   return v;
 }
 
+type StressState = { revenue: number; cost: number; rateBp: number };
+const NO_STRESS: StressState = { revenue: 0, cost: 0, rateBp: 0 };
+
+function StressSlider({ label, value, max, step, unit, onChange }: { label: string; value: number; max: number; step: number; unit: string; onChange: (v: number) => void }) {
+  return (
+    <div>
+      <div className="flex justify-between text-xs">
+        <span className="text-muted">{label}</span>
+        <span className={cn("num font-mono", value ? "text-risk" : "text-muted")}>
+          {value ? `${unit === "bp" ? "+" : "−"}${unit === "bp" ? (value / 100).toFixed(2) : value}${unit === "bp" ? "%" : "%"}` : "0"}
+        </span>
+      </div>
+      <input type="range" min={0} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full cursor-pointer accent-risk" aria-label={label} />
+    </div>
+  );
+}
+
 /**
- * E8-06: Dynamic Safe-Limit sandbox. Every slider move asks the backend engine for
- * DSCR/DSR (no money math in the browser), debounced so dragging stays smooth.
+ * E8-06 Dynamic Safe-Limit sandbox + E8-09 stress test + E6-07 structure proposal.
+ * Every change asks the backend engine (no money math in the browser), debounced.
  */
 export function SizingSandbox({ caseId, a, requested }: { caseId: number; a: Analysis; requested: string }) {
   const requestedNum = Math.round(Number(requested));
   const max = Math.max(5_000_000, requestedNum);
   const [amount, setAmount] = useState(requestedNum);
-  const debounced = useDebounced(amount, 120);
+  const [stress, setStress] = useState<StressState>(NO_STRESS);
+  const [showStress, setShowStress] = useState(false);
+  const q = useDebounced({ amount, ...stress }, 120);
 
   const { data: s, isFetching } = useQuery({
-    queryKey: ["sizing", caseId, a.id, debounced],
+    queryKey: ["sizing", caseId, a.id, q],
     queryFn: async () =>
       unwrap(
         await api.GET("/api/cases/{case_id}/sizing", {
-          params: { path: { case_id: caseId }, query: { amount: String(debounced) } },
+          params: {
+            path: { case_id: caseId },
+            query: {
+              amount: String(q.amount),
+              revenue_drop: String(q.revenue / 100),
+              cost_rise: String(q.cost / 100),
+              rate_rise_bp: q.rateBp,
+            },
+          },
         }),
       ),
     placeholderData: keepPreviousData,
@@ -54,13 +82,21 @@ export function SizingSandbox({ caseId, a, requested }: { caseId: number; a: Ana
     risk: "border-risk/40 bg-risk-soft",
   }[tone];
   const safe = Number(s.safe_limit);
+  const st = s.structure;
+  const haircut = Number(s.haircut);
 
   return (
     <Card>
       <CardHeader
         title="จำลองวงเงินกู้ที่ปลอดภัย (Dynamic Safe-Limit)"
         subtitle={`${s.tenor_months} เดือน · ดอกเบี้ย ${(Number(s.annual_rate) * 100).toFixed(2)}% · เกณฑ์ DSCR ขั้นต่ำ ${s.policy.min_dscr}× · เป้าหมาย ${s.policy.target_dscr}×`}
-        action={isFetching ? <Loader2 className="size-4 animate-spin text-muted" /> : undefined}
+        action={
+          <div className="flex items-center gap-2">
+            {haircut > 0 && <Badge tone="risk">ข้อมูลทางเลือก: ปรับลดกระแสเงินสด {(haircut * 100).toFixed(0)}%</Badge>}
+            {s.stressed && <Badge tone="risk">กำลังทดสอบภาวะวิกฤต</Badge>}
+            {isFetching && <Loader2 className="size-4 animate-spin text-muted" />}
+          </div>
+        }
       />
       <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
         <div>
@@ -89,13 +125,32 @@ export function SizingSandbox({ caseId, a, requested }: { caseId: number; a: Ana
             <Button size="sm" variant="secondary" onClick={() => setAmount(requestedNum)}>
               กลับไปวงเงินที่ขอ
             </Button>
+            <Button size="sm" variant={showStress ? "danger" : "ghost"} onClick={() => setShowStress((v) => !v)}>
+              <FlaskConical className="size-4" /> ทดสอบภาวะวิกฤต (Stress Test)
+            </Button>
           </div>
+          {showStress && (
+            <div className="rise mt-4 grid gap-4 rounded-lg border border-risk/30 bg-risk-soft p-4 sm:grid-cols-3">
+              <StressSlider label="รายได้ลดลง" value={stress.revenue} max={20} step={1} unit="%"
+                onChange={(v) => setStress((x) => ({ ...x, revenue: v }))} />
+              <StressSlider label="ต้นทุนเพิ่มขึ้น" value={stress.cost} max={20} step={1} unit="%"
+                onChange={(v) => setStress((x) => ({ ...x, cost: v }))} />
+              <StressSlider label="ดอกเบี้ยเพิ่มขึ้น" value={stress.rateBp} max={300} step={25} unit="bp"
+                onChange={(v) => setStress((x) => ({ ...x, rateBp: v }))} />
+              <div className="flex items-center justify-between text-xs text-muted sm:col-span-3">
+                <span>คำนวณใหม่จากรายได้และต้นทุนเฉลี่ยต่อเดือนของแฟ้มนี้ — ไม่มีการเดาตัวเลข</span>
+                <Button size="sm" variant="ghost" onClick={() => setStress(NO_STRESS)}>
+                  <RotateCcw className="size-3.5" /> ล้างค่า
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="grid min-w-72 grid-cols-2 gap-3">
           <div className={cn("col-span-2 rounded-lg border p-4 transition-colors", toneBox)}>
             <div className="text-xs text-muted">DSCR (ความสามารถชำระหนี้)</div>
-            <div className={cn("num font-mono text-4xl font-bold", toneText)}>{dscr ? dscr.toFixed(2) : "—"}×</div>
+            <div className={cn("num font-mono text-4xl font-bold", toneText)}>{dscr !== null ? dscr.toFixed(2) : "—"}×</div>
             <div className={cn("mt-1 text-xs", toneText)}>
               {s.meets_target
                 ? "ผ่านเกณฑ์ — อยู่ในกรอบความปลอดภัย"
@@ -113,7 +168,7 @@ export function SizingSandbox({ caseId, a, requested }: { caseId: number; a: Ana
             <div className="num font-mono text-sm text-ink">{s.dsr ? Number(s.dsr).toFixed(2) : "—"}</div>
           </div>
           <div className="rounded-md border border-line bg-surface p-3">
-            <div className="text-[11px] text-muted">กระแสเงินสด/เดือน</div>
+            <div className="text-[11px] text-muted">กระแสเงินสดที่ใช้คำนวณ/เดือน</div>
             <div className="num font-mono text-sm text-ink">{formatTHB(s.cfo_monthly, 0)}</div>
           </div>
           <div className="rounded-md border border-line bg-surface p-3">
@@ -125,18 +180,23 @@ export function SizingSandbox({ caseId, a, requested }: { caseId: number; a: Ana
 
       <div className={cn("mt-5 rounded-md border border-verified/40 bg-verified-soft p-3 text-sm", safeFlash && "flash")}>
         <Badge tone="verified" className="mr-2">
-          ข้อเสนอแนะ
+          ข้อเสนอแนะเชิงโครงสร้าง
         </Badge>
-        {safe >= MIN ? (
+        {safe < MIN ? (
+          <>กระแสเงินสดภายใต้สมมติฐานนี้ยังไม่รองรับหนี้ใหม่ตามเกณฑ์ — ต้องเพิ่มหลักฐานรายได้หรือลดภาระหนี้เดิมก่อน</>
+        ) : st.needed ? (
           <>
-            วงเงินสูงสุดที่ธุรกิจผ่อนไหวและยังรักษา DSCR ≥ {s.policy.target_dscr}× คือ{" "}
-            <span className="num font-mono font-semibold text-verified">{formatTHB(s.safe_limit, 0)} บาท</span>
-            {Number(requested) > safe && (
-              <> — แทนการปฏิเสธคำขอ {formatMillions(requested)} ให้เสนอวงเงินนี้แทน (เพดานที่เกณฑ์ขั้นต่ำ {formatMillions(s.max_at_min, 2)})</>
-            )}
+            แทนการปฏิเสธคำขอ {formatMillions(requested)} เสนอ{" "}
+            <span className="font-semibold text-ink">วงเงินระยะยาว {formatTHB(st.term_loan, 0)} บาท</span> (DSCR ≥ {s.policy.target_dscr}×)
+            {Number(st.trade_line) > 0 && (
+              <>
+                {" "}+ <span className="font-semibold text-ink">วงเงินหมุนเวียน Trade Line {formatTHB(st.trade_line, 0)} บาท</span> ผูกการชำระคืนกับใบแจ้งหนี้บน PromptBiz ({(Number(st.trade_line_ratio) * 100).toFixed(0)}% ของรายรับ Golden ต่อเดือน)
+              </>
+            )}{" "}
+            รวม <span className="num font-mono font-semibold text-verified">{formatTHB(st.total, 0)} บาท</span>
           </>
         ) : (
-          <>กระแสเงินสดปัจจุบันยังไม่รองรับหนี้ใหม่ตามเกณฑ์ — ต้องเพิ่มหลักฐานรายได้หรือลดภาระหนี้เดิมก่อน</>
+          <>วงเงินที่ขอ {formatMillions(requested)} อยู่ในกรอบปลอดภัย (สูงสุด {formatTHB(s.safe_limit, 0)} บาท)</>
         )}
       </div>
     </Card>

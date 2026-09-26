@@ -61,6 +61,43 @@ def limit_at(cfo_monthly: Decimal, existing: Decimal, target_dscr: Decimal, annu
 
 
 @dataclass
+class Stress:
+    """Scenario shocks (E6-05). Revenue and cost shocks apply to the monthly averages."""
+
+    revenue_drop: Decimal = Decimal("0")  # 0.10 = revenue 10% lower
+    cost_rise: Decimal = Decimal("0")  # 0.10 = operating costs 10% higher
+    rate_rise_bp: int = 0  # +100 = interest rate 1 percentage point higher
+
+    @property
+    def active(self) -> bool:
+        return bool(self.revenue_drop or self.cost_rise or self.rate_rise_bp)
+
+
+def stressed_cfo(revenue_monthly: Decimal, cost_monthly: Decimal, stress: Stress) -> Decimal:
+    return revenue_monthly * (1 - stress.revenue_drop) - cost_monthly * (1 + stress.cost_rise)
+
+
+@dataclass
+class Structure:
+    """E6-07: instead of declining an over-sized request, propose what the business can carry."""
+
+    needed: bool
+    term_loan: Decimal
+    trade_line: Decimal
+    total: Decimal
+    shortfall: Decimal  # request - safe limit
+
+
+def structure(requested: Decimal, safe_limit: Decimal, t1_monthly: Decimal, policy: Policy) -> Structure:
+    if requested <= safe_limit:
+        return Structure(False, requested, ZERO, requested, ZERO)
+    shortfall = requested - safe_limit
+    cap = floor_to(t1_monthly * policy.trade_line_ratio, policy.trade_line_step)
+    trade = floor_to(min(shortfall, cap), policy.trade_line_step)
+    return Structure(True, safe_limit, trade, safe_limit + trade, shortfall)
+
+
+@dataclass
 class Sizing:
     amount: Decimal
     annual_rate: Decimal

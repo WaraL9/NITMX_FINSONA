@@ -22,7 +22,9 @@ function HealthIndicator() {
   return (
     <div className="flex items-center gap-2">
       <Badge tone={data.connector_mode === "live" ? "verified" : "judge"}>Connectors: {data.connector_mode}</Badge>
-      <Badge tone={data.live_llm ? "verified" : "neutral"}>LLM: {data.live_llm ? "live" : "cached"}</Badge>
+      <Badge tone={data.live_llm ? "verified" : "neutral"} title={data.live_llm ? "Claude via Anthropic API" : "ไม่มี API key — ใช้แคช/แม่แบบ ตัวเลขทั้งหมดยังมาจากระบบคำนวณ"}>
+        LLM: {data.live_llm ? "live" : "template"}
+      </Badge>
       <Badge tone={data.live_ocr ? "verified" : "neutral"}>OCR: {data.live_ocr ? "live" : "cached"}</Badge>
     </div>
   );

@@ -8,15 +8,11 @@ from app.api.common import txn_out
 from app.api.deps import client_ip, current_user
 from app.db import get_db
 from app.engine import ratios
-from app.engine.types import Policy
 from app.models import Case, Page, Transaction, User, WatchlistItem
-from app.schemas import AnalysisOut, PolicyOut, SizingOut, WatchlistOut
-from app.services.analysis import AnalysisError, latest_analysis, run_analysis
+from app.schemas import AltScenarioIn, AnalysisOut, PolicyOut, SizingOut, StructureOut, WatchlistOut
+from app.services.analysis import DEFAULT_POLICY, AnalysisError, latest_analysis, run_analysis
 
 router = APIRouter(prefix="/api/cases/{case_id}", tags=["analysis"])
-
-# Bank credit policy (E6-08 makes this editable per product).
-DEFAULT_POLICY = Policy()
 
 
 def _case(db: Session, case_id: int) -> Case:
@@ -54,9 +50,14 @@ def sizing(
     amount: str | None = Query(None, description="loan amount THB; defaults to the requested amount"),
     tenor_months: int | None = Query(None, gt=0, le=360),
     annual_rate: str | None = Query(None),
+    revenue_drop: str = Query("0", description="stress: 0.10 = revenue 10% lower"),
+    cost_rise: str = Query("0", description="stress: 0.10 = operating costs 10% higher"),
+    rate_rise_bp: int = Query(0, ge=0, le=2000, description="stress: +100 = rate one point higher"),
     db: Session = Depends(get_db),
 ):
-    """DSCR/DSR for a loan size, plus the safe limit — cheap enough to call on every slider move."""
+    """DSCR/DSR for a loan size, the safe limit and a proposed structure — cheap enough for
+    every slider move. Cash flow used is after the alternative-data haircut (E6-06);
+    stress shocks (E6-05) are applied to monthly revenue and costs before the haircut."""
     case = _case(db, case_id)
     a = latest_analysis(db, case_id)
     if a is None:
@@ -64,13 +65,29 @@ def sizing(
     try:
         amt = Decimal(amount) if amount is not None else case.requested_amount
         rate = Decimal(annual_rate) if annual_rate is not None else case.annual_rate
+        stress = ratios.Stress(Decimal(revenue_drop), Decimal(cost_rise), rate_rise_bp)
     except InvalidOperation as e:
-        raise HTTPException(422, "amount and annual_rate must be decimal numbers") from e
+        raise HTTPException(422, "amount, annual_rate and shocks must be decimal numbers") from e
     if amt <= 0 or not (0 <= rate < 1):
         raise HTTPException(422, "amount must be > 0 and 0 <= annual_rate < 1")
-    s = ratios.size(amt, Decimal(a.result["clean_cash_flow_monthly"]), Decimal(a.result["existing_debt_monthly"]),
-                    rate, tenor_months or case.tenor_months, DEFAULT_POLICY)
+    if not (0 <= stress.revenue_drop <= 1 and 0 <= stress.cost_rise <= 1):
+        raise HTTPException(422, "revenue_drop and cost_rise must be between 0 and 1")
+    r = a.result
+    haircut = Decimal(r.get("alt_data", {}).get("haircut", "0"))
+    if stress.active and "revenue_monthly" in r:
+        base_cfo = ratios.stressed_cfo(Decimal(r["revenue_monthly"]), Decimal(r["costs_monthly"]), stress)
+    else:
+        base_cfo = Decimal(r["clean_cash_flow_monthly"])
+    cfo = (base_cfo * (1 - haircut)).quantize(Decimal("0.01"))
+    rate_used = rate + Decimal(stress.rate_rise_bp) / 10000
+    s = ratios.size(amt, cfo, Decimal(r["existing_debt_monthly"]), rate_used, tenor_months or case.tenor_months,
+                    DEFAULT_POLICY)
+    st = ratios.structure(case.requested_amount, s.safe_limit, Decimal(r.get("t1_monthly", "0")), DEFAULT_POLICY)
     return SizingOut(
+        haircut=haircut, stressed=stress.active, revenue_drop=stress.revenue_drop, cost_rise=stress.cost_rise,
+        rate_rise_bp=stress.rate_rise_bp,
+        structure=StructureOut(needed=st.needed, term_loan=st.term_loan, trade_line=st.trade_line, total=st.total,
+                               shortfall=st.shortfall, trade_line_ratio=DEFAULT_POLICY.trade_line_ratio),
         amount=s.amount, annual_rate=s.annual_rate, tenor_months=s.tenor_months, cfo_monthly=s.cfo_monthly,
         existing_debt_monthly=s.existing_debt_monthly, new_payment=s.new_payment,
         total_debt_service=s.total_debt_service,
@@ -96,3 +113,23 @@ def watchlist(case_id: int, db: Session = Depends(get_db)):
                      reason=w.reason, transaction=txn_out(t, page_no))
         for w, t, page_no in rows
     ]
+
+
+@router.put("/sandbox/alt-scenario", response_model=AnalysisOut)
+def set_alt_scenario(case_id: int, body: AltScenarioIn, request: Request, db: Session = Depends(get_db),
+                     user: User = Depends(current_user)):
+    """Sandbox-only what-if: switch the utility connector's scenario and re-analyse.
+
+    Exists so the early-warning rules can be demonstrated; it never touches live data.
+    """
+    from app.services import audit
+
+    case = _case(db, case_id)
+    before = case.sandbox_alt_scenario
+    case.sandbox_alt_scenario = body.scenario
+    audit.log(db, "sandbox_scenario_change", case_id=case_id, user_id=user.id, ip=client_ip(request),
+              target_type="case", target_id=case_id, before={"scenario": before}, after={"scenario": body.scenario})
+    try:
+        return _out(run_analysis(db, case_id, user_id=user.id, ip=client_ip(request), trigger="sandbox_scenario"))
+    except AnalysisError as e:
+        raise HTTPException(422, str(e)) from e

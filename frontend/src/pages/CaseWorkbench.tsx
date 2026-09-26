@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, FileText, History, LayoutDashboard, ListChecks, Loader2, RefreshCw, Scale, TriangleAlert } from "lucide-react";
+import { Building2, FileSignature, FileText, History, LayoutDashboard, ListChecks, Loader2, RefreshCw, Scale, TriangleAlert } from "lucide-react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { api, errorMessage, unwrap, type Analysis, type CaseDetail } from "@/api/client";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AuditPanel } from "@/components/workbench/AuditPanel";
+import { AltDataPanel, DriversPanel } from "@/components/workbench/InsightsPanels";
+import { MemoPanel } from "@/components/workbench/MemoPanel";
 import { LoopsCard } from "@/components/workbench/LoopGraph";
 import { PipelineStrip } from "@/components/workbench/PipelineStrip";
 import { SizingSandbox } from "@/components/workbench/SizingSandbox";
@@ -24,7 +26,7 @@ const TABS = [
   { id: "watchlist", label: "Watchlist ดุลยพินิจ", icon: ListChecks },
   { id: "documents", label: "เอกสาร & ธุรกรรม", icon: FileText },
   { id: "audit", label: "Audit Log", icon: History },
-  { id: "memo", label: "Credit Memo", icon: FileText, soon: true },
+  { id: "memo", label: "Credit Memo", icon: FileSignature },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
@@ -111,7 +113,7 @@ export default function CaseWorkbench() {
     },
     onSuccess: (data) => {
       qc.setQueryData(["analysis", id], data);
-      for (const k of ["transactions", "case", "watchlist", "sizing", "sizing-safe", "audit"]) {
+      for (const k of ["transactions", "case", "watchlist", "sizing", "sizing-safe", "audit", "memo"]) {
         qc.invalidateQueries({ queryKey: [k, id] });
       }
     },
@@ -134,11 +136,9 @@ export default function CaseWorkbench() {
 
       <nav className="flex flex-wrap gap-1 border-b border-line">
         {TABS.map((t) => {
-          const soon = "soon" in t && t.soon;
           return (
             <button
               key={t.id}
-              disabled={soon}
               onClick={() => setTab(t.id)}
               className={cn(
                 "-mb-px flex items-center gap-2 border-b-2 px-3 py-2.5 text-sm transition-colors",
@@ -149,7 +149,6 @@ export default function CaseWorkbench() {
               <t.icon className="size-4" />
               {t.label}
               {t.id === "watchlist" && pending > 0 && <Badge tone="judge">{pending}</Badge>}
-              {soon && <span className="text-[10px]">(I4)</span>}
             </button>
           );
         })}
@@ -169,6 +168,10 @@ export default function CaseWorkbench() {
             <WaterfallChart caseId={id} a={a} />
             <LoopsCard caseId={id} a={a} accounts={c.accounts} />
           </div>
+          <div className="grid gap-5 xl:grid-cols-[1.6fr_1fr]">
+            <DriversPanel caseId={id} a={a} />
+            <AltDataPanel caseId={id} a={a} />
+          </div>
         </div>
       )}
       {a && tab === "tiers" && (
@@ -185,6 +188,7 @@ export default function CaseWorkbench() {
         </div>
       )}
       {tab === "audit" && <AuditPanel caseId={id} />}
+      {a && tab === "memo" && <MemoPanel caseId={id} />}
     </div>
   );
 }
