@@ -231,7 +231,8 @@ def _llm_annotations(db: Session, rows: list[Transaction], r: AnalysisResult) ->
     from app.ai import tagging
 
     todo = [t for t in rows if r.outcomes[t.id].tag == "other_expense" and not r.outcomes[t.id].overridden]
-    for s in tagging.suggest(db, [(t.id, t.description, t.counterparty_name) for t in todo]):
+    case_id = rows[0].case_id if rows else None
+    for s in tagging.suggest(db, [(t.id, t.description, t.counterparty_name) for t in todo], case_id=case_id):
         t = next(x for x in todo if x.id == s.txn_id)
         t.tag_source = "llm"
         t.tag_reason = f"{t.tag_reason} · AI แนะนำหมวด {s.tag} (ความเชื่อมั่น {s.confidence:.0%}): {s.rationale}"

@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import storage
 from app.api.analysis import _out as analysis_out
 from app.api.common import txn_out
 from app.api.deps import client_ip, current_user, require_role
@@ -157,7 +158,10 @@ def _sha_ok(doc: Document) -> tuple[str, bool]:
     path = Path(doc.storage_path)
     if not path.exists():
         return "", False
-    current = hashlib.sha256(path.read_bytes()).hexdigest()
+    try:
+        current = hashlib.sha256(storage.read(path)).hexdigest()
+    except storage.StorageCorrupt:
+        return "", False
     return current, current == doc.sha256
 
 

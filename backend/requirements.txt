@@ -11,3 +11,4 @@ reportlab==4.*
 pdfplumber==0.11.*
 pypdf==5.*
 anthropic>=0.75
+cryptography>=43

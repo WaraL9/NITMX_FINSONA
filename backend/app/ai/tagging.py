@@ -53,14 +53,14 @@ class Suggestion:
     rationale: str
 
 
-def suggest(db: Session, rows: list[tuple[int, str, str | None]]) -> list[Suggestion]:
+def suggest(db: Session, rows: list[tuple[int, str, str | None]], case_id: int | None = None) -> list[Suggestion]:
     """rows: (txn id, description, counterparty). Returns accepted suggestions only."""
     if not rows:
         return []
     user = "หมวดที่เลือกได้: " + ", ".join(ALLOWED) + "\n\nรายการ:\n" + "\n".join(
         f"- id={tid} รายละเอียด: {desc} | คู่โอน: {cp or '-'}" for tid, desc, cp in rows)
     try:
-        res = gateway.complete_json(db, "txn_tagging", SYSTEM, user, SCHEMA, max_tokens=4000)
+        res = gateway.complete_json(db, "txn_tagging", SYSTEM, user, SCHEMA, max_tokens=4000, case_id=case_id)
     except gateway.LLMUnavailable:
         return []
     ids = {tid for tid, _, _ in rows}

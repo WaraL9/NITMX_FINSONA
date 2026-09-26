@@ -96,7 +96,7 @@ def _template(f: dict[str, str], flags: dict[str, bool]) -> list[str]:
     return paras
 
 
-def draft(db: Session, facts: dict[str, str], flags: dict[str, bool]) -> Narrative:
+def draft(db: Session, facts: dict[str, str], flags: dict[str, bool], case_id: int | None = None) -> Narrative:
     """LLM draft when available (validated, numbers injected), else the template."""
     user = (
         "ข้อเท็จจริงจากระบบคำนวณ (ใช้ชื่อตัวแทนเท่านั้น ห้ามใส่ตัวเลขเอง):\n"
@@ -105,7 +105,8 @@ def draft(db: Session, facts: dict[str, str], flags: dict[str, bool]) -> Narrati
         + "\n\nเขียนบทสรุปผลการวิเคราะห์ 2-3 ย่อหน้าสั้น ๆ สำหรับบันทึกเสนอคณะกรรมการสินเชื่อ"
     )
     try:
-        res = gateway.complete_json(db, "memo_narrative", SYSTEM, user, NARRATIVE_SCHEMA, max_tokens=2000)
+        res = gateway.complete_json(db, "memo_narrative", SYSTEM, user, NARRATIVE_SCHEMA, max_tokens=2000,
+                                    case_id=case_id)
         paragraphs = [p.strip() for p in res.data.get("paragraphs", []) if p.strip()]
         if not paragraphs:
             raise NarrativeInvalid("empty draft")

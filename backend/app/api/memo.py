@@ -5,11 +5,12 @@ from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import storage
 from app.ai import gateway
 from app.api.deps import client_ip, current_user, require_role
 from app.db import get_db
-from app.models import CreditMemo, User
-from app.schemas import LlmStatusOut, MemoPackageOut, NarrativeIn, ReasonIn, SignIn
+from app.models import CreditMemo, LlmCall, User
+from app.schemas import LlmCallOut, LlmStatusOut, MemoPackageOut, NarrativeIn, ReasonIn, SignIn
 from app.services import memo as svc
 
 router = APIRouter(tags=["memo"])
@@ -57,8 +58,13 @@ def memo_pdf(case_id: int, db: Session = Depends(get_db)):
     m = db.scalar(select(CreditMemo).where(CreditMemo.case_id == case_id))
     if m is None or not m.pdf_path or not Path(m.pdf_path).exists():
         raise HTTPException(404, "no signed memo PDF yet")
-    return FileResponse(m.pdf_path, media_type="application/pdf", filename=Path(m.pdf_path).name,
-                        content_disposition_type="inline")
+    return storage.response(Path(m.pdf_path), "application/pdf", Path(m.pdf_path).name)
+
+
+@router.get("/api/cases/{case_id}/llm-calls", response_model=list[LlmCallOut])
+def llm_calls(case_id: int, db: Session = Depends(get_db)):
+    """E14-04: the exact masked text each AI call carried for this case."""
+    return list(db.scalars(select(LlmCall).where(LlmCall.case_id == case_id).order_by(LlmCall.id.desc()).limit(20)))
 
 
 @router.get("/api/llm/status", response_model=LlmStatusOut)

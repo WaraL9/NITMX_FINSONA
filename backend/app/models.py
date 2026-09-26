@@ -334,3 +334,21 @@ class Evidence(Base):
     storage_path: Mapped[str] = mapped_column(String(500))
     uploaded_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+
+class LlmCall(Base):
+    """Every LLM attempt with the exact (masked) prompt it carried (E14-04 "what the AI saw")."""
+
+    __tablename__ = "llm_calls"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    case_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    purpose: Mapped[str] = mapped_column(String(32))
+    provider: Mapped[str] = mapped_column(String(32))
+    model: Mapped[str] = mapped_column(String(64))
+    outcome: Mapped[str] = mapped_column(String(16))  # live | cache | unavailable | error
+    masked_system: Mapped[str] = mapped_column(Text)
+    masked_prompt: Mapped[str] = mapped_column(Text)
+    pii_counts: Mapped[dict[str, Any]] = mapped_column(JSON)
+    note: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

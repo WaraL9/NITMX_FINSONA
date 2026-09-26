@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import storage
 from app.config import settings
 from app.models import Case, Evidence, Query, Transaction, User, WatchlistItem
 from app.services import audit
@@ -102,7 +103,7 @@ def answer(db: Session, q: Query, user: User, note: str, files: list[Upload], ip
         mime, ext = kind
         digest = hashlib.sha256(f.data).hexdigest()
         path = folder / f"{digest}{ext}"
-        path.write_bytes(f.data)
+        storage.write(path, f.data)
         ev = Evidence(case_id=case.id, query_id=q.id, transaction_id=q.transaction_id, filename=f.filename[:255],
                       mime=mime, size=len(f.data), sha256=digest, storage_path=str(path), uploaded_by=user.id)
         db.add(ev)

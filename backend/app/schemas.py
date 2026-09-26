@@ -615,3 +615,18 @@ class ApplicationOut(BaseModel):
     tracker: TrackerOut
     consents: list[ConsentState]
     questions: list[QueryOut]
+
+
+
+class LlmCallOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    purpose: str
+    provider: str
+    model: str
+    outcome: Literal["live", "cache", "unavailable", "error"]
+    masked_system: str
+    masked_prompt: str
+    pii_counts: dict[str, int]
+    note: str | None
+    created_at: datetime

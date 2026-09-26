@@ -24,8 +24,9 @@ from typing import Any, Protocol
 
 from sqlalchemy.orm import Session
 
+from app.ai.pii import mask
 from app.config import settings
-from app.models import LlmCache
+from app.models import LlmCache, LlmCall
 
 log = logging.getLogger("finsona.llm")
 
@@ -148,19 +149,38 @@ def _key(purpose: str, provider: str, model: str, system: str, user: str, schema
 
 
 def complete_json(db: Session, purpose: str, system: str, user: str, schema: dict[str, Any],
-                  max_tokens: int = 2048) -> LLMResult:
-    """Cached structured completion. Raises LLMUnavailable when nothing can answer."""
+                  max_tokens: int = 2048, case_id: int | None = None) -> LLMResult:
+    """Cached structured completion. Raises LLMUnavailable when nothing can answer.
+
+    PII is masked before the prompt is hashed, cached or sent (E14-03), and every attempt
+    is logged with the masked text actually used (E14-04).
+    """
     provider, model = settings.llm_provider, settings.llm_model
     adapter = _get_adapter()
     if adapter is not None:
         provider, model = adapter.provider, adapter.model
-    key = _key(purpose, provider, model, system, user, schema)
+    m_sys, m_user = mask(system), mask(user)
+    counts = {k: m_sys.counts.get(k, 0) + m_user.counts.get(k, 0) for k in {*m_sys.counts, *m_user.counts}}
+
+    def log(outcome: str, note: str | None = None) -> None:
+        db.add(LlmCall(case_id=case_id, purpose=purpose, provider=provider, model=model, outcome=outcome,
+                       masked_system=m_sys.text, masked_prompt=m_user.text, pii_counts=counts, note=note))
+        db.flush()
+
+    key = _key(purpose, provider, model, m_sys.text, m_user.text, schema)
     cached = db.get(LlmCache, key)
     if cached is not None:
+        log("cache")
         return LLMResult(cached.response, "cache", provider, model)
     if adapter is None:
-        raise LLMUnavailable(status()["note"])
-    data = adapter.complete_json(system, user, schema, max_tokens)
+        note = status()["note"]
+        log("unavailable", note)
+        raise LLMUnavailable(note)
+    try:
+        data = adapter.complete_json(m_sys.text, m_user.text, schema, max_tokens)
+    except LLMUnavailable as e:
+        log("error", str(e))
+        raise
     db.merge(LlmCache(key=key, provider=provider, model=model, purpose=purpose, response=data))
-    db.flush()
+    log("live")
     return LLMResult(data, "live", provider, model)

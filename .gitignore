@@ -22,3 +22,4 @@ data/private/
 *.tsbuildinfo
 data/generated/
 backend/.secret
+backend/.storage_key

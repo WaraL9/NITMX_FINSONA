@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.ai import narrative
+from app import storage
 from app.config import settings
 from app.engine import ratios
 from app.memo.pdf import render_memo
@@ -138,7 +139,7 @@ def ensure_draft(db: Session, case: Case, a: dict, s_req: dict, s_safe: dict, re
     stale = m.analysis_id != a["id"] and m.narrative_source != "ca_edited"
     if m.status == "draft" and (regenerate or not m.narrative or stale):
         facts, flags = _facts(case, a, s_req, s_safe, len(case.accounts))
-        n = narrative.draft(db, facts, flags)
+        n = narrative.draft(db, facts, flags, case_id=case.id)
         m.narrative, m.narrative_source, m.analysis_id = n.text, n.source, a["id"]
     db.commit()
     db.refresh(m)
@@ -200,7 +201,8 @@ def sign(db: Session, case_id: int, user: User, ip: str | None, recommendation: 
         "signed_at": signed_at.replace(tzinfo=None).isoformat(timespec="seconds"),
         "audit_head": head,
     }, pdf)
-    digest = hashlib.sha256(pdf.read_bytes()).hexdigest()
+    digest = hashlib.sha256(pdf.read_bytes()).hexdigest()  # of the plaintext PDF
+    storage.encrypt_in_place(pdf)
 
     m.status, m.recommendation, m.ca_reason = "signed", recommendation, reason.strip()
     m.approved_amount = amount if recommendation != "decline" else None

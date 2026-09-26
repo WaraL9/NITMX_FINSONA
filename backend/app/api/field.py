@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import storage
 from app.api.deps import can_view, client_ip, current_user, require_role
 from app.db import get_db
 from app.models import Case, Document, Evidence, Query, User
@@ -97,7 +98,7 @@ def evidence_file(evidence_id: int, db: Session = Depends(get_db), user: User = 
     _case_for(db, ev.case_id, user)
     if not Path(ev.storage_path).exists():
         raise HTTPException(410, "file missing from storage")
-    return FileResponse(ev.storage_path, media_type=ev.mime, filename=ev.filename, content_disposition_type="inline")
+    return storage.response(Path(ev.storage_path), ev.mime, ev.filename)
 
 
 # ---------------- RM field assistant ----------------

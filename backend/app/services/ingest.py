@@ -21,6 +21,7 @@ from pypdf.errors import PdfReadError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import storage
 from app.config import settings
 from app.core.money import to_money
 import pdfplumber
@@ -200,11 +201,11 @@ def ingest_document(
     folder: Path = settings.storage_dir / f"case_{case_id}"
     folder.mkdir(parents=True, exist_ok=True)
     original = folder / f"{digest}.pdf"
-    original.write_bytes(data)
+    storage.write(original, data)
     view = None
     if encrypted:
         view = folder / f"{digest}.view.pdf"
-        view.write_bytes(plain)
+        storage.write(view, plain)
 
     account, created = (None, False)
     if stmt is not None:

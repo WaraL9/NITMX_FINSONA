@@ -12,6 +12,7 @@ from app.db import get_db
 from app.services import audit
 from app.api.metrics import metric_filters
 from app.models import Account, Case, Document, Page, Transaction, User
+from app import storage
 from app.api.common import txn_out
 from app.schemas import ApiError, DocumentKind, DocumentOut, TransactionPage
 from app.services.ingest import IngestError, ingest_document
@@ -81,7 +82,7 @@ def document_file(document_id: int, db: Session = Depends(get_db)):
     path = Path(doc.view_path or doc.storage_path)
     if not path.exists():
         raise HTTPException(410, "file missing from storage")
-    return FileResponse(path, media_type=doc.mime, filename=doc.filename, content_disposition_type="inline")
+    return storage.response(path, doc.mime, doc.filename)
 
 
 @router.get("/api/cases/{case_id}/transactions", response_model=TransactionPage)
