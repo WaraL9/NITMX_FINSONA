@@ -39,6 +39,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Documents */
+        get: operations["list_documents_api_cases__case_id__documents_get"];
+        put?: never;
+        /** Upload Document */
+        post: operations["upload_document_api_cases__case_id__documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/documents/{document_id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Document File
+         * @description The document for viewing: the decrypted copy if the original was password-protected.
+         */
+        get: operations["document_file_api_documents__document_id__file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Transactions */
+        get: operations["list_transactions_api_cases__case_id__transactions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -77,6 +132,33 @@ export interface components {
              * @enum {string}
              */
             owner_type: "company" | "director" | "family" | "external";
+        };
+        /** ApiError */
+        ApiError: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+            /** Existing Document Id */
+            existing_document_id?: number | null;
+        };
+        /** Body_upload_document_api_cases__case_id__documents_post */
+        Body_upload_document_api_cases__case_id__documents_post: {
+            /**
+             * File
+             * Format: binary
+             */
+            file: string;
+            /**
+             * Kind
+             * @default statement
+             * @enum {string}
+             */
+            kind: "statement" | "pp30" | "etax_invoice" | "utility_bill" | "evidence";
+            /** Password */
+            password?: string | null;
+            /** Account Id */
+            account_id?: number | null;
         };
         /** CaseCreate */
         CaseCreate: {
@@ -175,6 +257,32 @@ export interface components {
              */
             created_at: string;
         };
+        /** DocumentOut */
+        DocumentOut: {
+            /** Id */
+            id: number;
+            /** Case Id */
+            case_id: number;
+            /** Account Id */
+            account_id: number | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "statement" | "pp30" | "etax_invoice" | "utility_bill" | "evidence";
+            /** Filename */
+            filename: string;
+            /** Sha256 */
+            sha256: string;
+            /** Page Count */
+            page_count: number;
+            /**
+             * Uploaded At
+             * Format: date-time
+             */
+            uploaded_at: string;
+            parse_report: components["schemas"]["ParseReport"] | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -195,6 +303,101 @@ export interface components {
             live_ocr: boolean;
             /** Live Llm */
             live_llm: boolean;
+        };
+        /** ParseReport */
+        ParseReport: {
+            /** Parser */
+            parser: string;
+            /** Parser Version */
+            parser_version: string;
+            /** Rows */
+            rows: number;
+            /** Pages */
+            pages: number;
+            /** Bank Code */
+            bank_code: string | null;
+            /** Account No */
+            account_no: string | null;
+            /** Account Name */
+            account_name: string | null;
+            /** Period Start */
+            period_start: string | null;
+            /** Period End */
+            period_end: string | null;
+            /** Opening Balance */
+            opening_balance: string | null;
+            /** Closing Balance */
+            closing_balance: string | null;
+            /** Total Debit */
+            total_debit: string;
+            /** Total Credit */
+            total_credit: string;
+            /** Continuity Ok */
+            continuity_ok: boolean;
+            /** Continuity Breaks */
+            continuity_breaks: number[];
+            /** Was Encrypted */
+            was_encrypted: boolean;
+            /** Account Created */
+            account_created: boolean;
+            /** Warnings */
+            warnings: string[];
+        };
+        /** TransactionOut */
+        TransactionOut: {
+            /** Id */
+            id: number;
+            /** Account Id */
+            account_id: number;
+            /** Document Id */
+            document_id: number | null;
+            /** Page No */
+            page_no: number | null;
+            /** Row Index */
+            row_index: number;
+            /**
+             * Posted At
+             * Format: date-time
+             */
+            posted_at: string;
+            /** Code */
+            code: string | null;
+            /** Channel */
+            channel: string | null;
+            /** Description */
+            description: string;
+            /** Debit */
+            debit: string;
+            /** Credit */
+            credit: string;
+            /** Balance */
+            balance: string | null;
+            /** Counterparty Name */
+            counterparty_name: string | null;
+            /** Counterparty Bank */
+            counterparty_bank: string | null;
+            /** Counterparty Account */
+            counterparty_account: string | null;
+            /**
+             * Bbox
+             * @description [x0, top, x1, bottom] in PDF points, top-left origin
+             */
+            bbox: number[] | null;
+            /** Confidence */
+            confidence: number;
+            /** Extractor Version */
+            extractor_version: string;
+        };
+        /** TransactionPage */
+        TransactionPage: {
+            /** Total */
+            total: number;
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+            /** Items */
+            items: components["schemas"]["TransactionOut"][];
         };
         /** ValidationError */
         ValidationError: {
@@ -285,6 +488,157 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CaseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_documents_api_cases__case_id__documents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_document_api_cases__case_id__documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_document_api_cases__case_id__documents_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    document_file_api_documents__document_id__file_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_transactions_api_cases__case_id__transactions_get: {
+        parameters: {
+            query?: {
+                account_id?: number | null;
+                document_id?: number | null;
+                /** @description search description / counterparty */
+                q?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionPage"];
                 };
             };
             /** @description Validation Error */

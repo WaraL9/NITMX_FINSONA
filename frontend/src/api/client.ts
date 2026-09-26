@@ -8,6 +8,10 @@ export type CaseSummary = components["schemas"]["CaseSummary"];
 export type CaseDetail = components["schemas"]["CaseDetail"];
 export type Account = components["schemas"]["AccountOut"];
 export type Health = components["schemas"]["Health"];
+export type DocumentOut = components["schemas"]["DocumentOut"];
+export type Transaction = components["schemas"]["TransactionOut"];
+export type TransactionPage = components["schemas"]["TransactionPage"];
+export type ApiErrorBody = components["schemas"]["ApiError"];
 
 /** Unwrap an openapi-fetch result or throw, for use inside react-query. */
 export function unwrap<T>(res: { data?: T; error?: unknown; response: Response }): T {
@@ -16,3 +20,32 @@ export function unwrap<T>(res: { data?: T; error?: unknown; response: Response }
   }
   return res.data;
 }
+
+export class UploadError extends Error {
+  constructor(
+    public status: number,
+    public body: ApiErrorBody,
+  ) {
+    super(body.message);
+  }
+}
+
+/** Multipart upload (kept outside openapi-fetch for simple FormData handling). */
+export async function uploadDocument(
+  caseId: number,
+  file: File,
+  opts: { password?: string; accountId?: number; kind?: DocumentOut["kind"] } = {},
+): Promise<DocumentOut> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("kind", opts.kind ?? "statement");
+  if (opts.password) form.append("password", opts.password);
+  if (opts.accountId !== undefined) form.append("account_id", String(opts.accountId));
+  const res = await fetch(`/api/cases/${caseId}/documents`, { method: "POST", body: form });
+  const body = await res.json().catch(() => ({ code: "network", message: res.statusText }));
+  if (!res.ok) throw new UploadError(res.status, body as ApiErrorBody);
+  return body as DocumentOut;
+}
+
+export const documentFileUrl = (documentId: number, page?: number | null) =>
+  `/api/documents/${documentId}/file${page ? `#page=${page}` : ""}`;

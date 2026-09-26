@@ -20,3 +20,4 @@ Thumbs.db
 # Real customer / team statements never go in git
 data/private/
 *.tsbuildinfo
+data/generated/

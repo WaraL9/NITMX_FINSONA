@@ -77,6 +77,10 @@ class Document(Base):
     storage_path: Mapped[str] = mapped_column(String(500))
     mime: Mapped[str] = mapped_column(String(100))
     page_count: Mapped[int] = mapped_column(Integer, default=0)
+    # Decrypted copy for the viewer when the original is password-protected (password is never stored).
+    view_path: Mapped[str | None] = mapped_column(String(500))
+    parser: Mapped[str | None] = mapped_column(String(40))
+    parse_report: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     uploaded_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
 
@@ -106,12 +110,14 @@ class Transaction(Base):
 
     posted_at: Mapped[datetime] = mapped_column(DateTime, index=True)
     description: Mapped[str] = mapped_column(Text, default="")
+    code: Mapped[str | None] = mapped_column(String(16))  # statement transaction code
     channel: Mapped[str | None] = mapped_column(String(32))
     debit: Mapped[Decimal] = mapped_column(Money, default=Decimal("0"))
     credit: Mapped[Decimal] = mapped_column(Money, default=Decimal("0"))
     balance: Mapped[Decimal | None] = mapped_column(Money)
     counterparty_name: Mapped[str | None] = mapped_column(String(200))
     counterparty_account: Mapped[str | None] = mapped_column(String(64))
+    counterparty_bank: Mapped[str | None] = mapped_column(String(16))
 
     # Pixel lineage (E10-01): bbox in PDF points, origin top-left.
     bbox_x0: Mapped[float | None] = mapped_column(Float)

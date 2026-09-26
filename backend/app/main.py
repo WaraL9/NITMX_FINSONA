@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import cases
+from app.api import cases, documents
 from app.config import settings
 from app.db import create_all
 from app.schemas import Health
@@ -26,6 +26,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(cases.router)
+app.include_router(documents.router)
 
 
 @app.get("/api/health", response_model=Health, tags=["system"])

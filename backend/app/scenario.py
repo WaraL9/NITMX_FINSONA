@@ -42,6 +42,7 @@ class ScenarioAccount(BaseModel):
     account_name: str
     account_type: str
     owner_type: str
+    pdf_password: str | None = None
 
 
 class Revenue(BaseModel):

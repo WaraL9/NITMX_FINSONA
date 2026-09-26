@@ -62,3 +62,75 @@ class Health(BaseModel):
     connector_mode: str
     live_ocr: bool
     live_llm: bool
+
+
+class ParseReport(BaseModel):
+    parser: str
+    parser_version: str
+    rows: int
+    pages: int
+    bank_code: str | None
+    account_no: str | None
+    account_name: str | None
+    period_start: date | None
+    period_end: date | None
+    opening_balance: str | None
+    closing_balance: str | None
+    total_debit: str
+    total_credit: str
+    continuity_ok: bool
+    continuity_breaks: list[int]
+    was_encrypted: bool
+    account_created: bool
+    warnings: list[str]
+
+
+DocumentKind = Literal["statement", "pp30", "etax_invoice", "utility_bill", "evidence"]
+
+
+class DocumentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    case_id: int
+    account_id: int | None
+    kind: DocumentKind
+    filename: str
+    sha256: str
+    page_count: int
+    uploaded_at: datetime
+    parse_report: ParseReport | None
+
+
+class TransactionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    account_id: int
+    document_id: int | None
+    page_no: int | None
+    row_index: int
+    posted_at: datetime
+    code: str | None
+    channel: str | None
+    description: str
+    debit: MoneyStr
+    credit: MoneyStr
+    balance: MoneyStr | None
+    counterparty_name: str | None
+    counterparty_bank: str | None
+    counterparty_account: str | None
+    bbox: list[float] | None = Field(description="[x0, top, x1, bottom] in PDF points, top-left origin")
+    confidence: float
+    extractor_version: str
+
+
+class TransactionPage(BaseModel):
+    total: int
+    offset: int
+    limit: int
+    items: list[TransactionOut]
+
+
+class ApiError(BaseModel):
+    code: str
+    message: str
+    existing_document_id: int | None = None

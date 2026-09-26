@@ -50,6 +50,9 @@ accounts:
     account_name: นายกิตติ ศรีวงศ์
     account_type: savings
     owner_type: director
+    # Personal statements are usually password-protected (DOB, DDMMYYYY in BE).
+    # Exercises the password upload path (E2-03). Synthetic only.
+    pdf_password: "15082528"
 
 # Revenue waterfall over the 6-month period.
 revenue:

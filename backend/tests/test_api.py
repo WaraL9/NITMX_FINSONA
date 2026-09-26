@@ -4,10 +4,9 @@ def test_health(client):
     assert r.json()["status"] == "ok"
 
 
-def test_seeded_case(client):
-    cases = client.get("/api/cases").json()
-    assert len(cases) == 1
-    case = client.get(f"/api/cases/{cases[0]['id']}").json()
+def test_seeded_case(client, seeded_case_id):
+    assert any(c["id"] == seeded_case_id for c in client.get("/api/cases").json())
+    case = client.get(f"/api/cases/{seeded_case_id}").json()
     assert case["company_name"] == "บริษัท กิตติ อินทีเรีย ดีไซน์ จำกัด"
     assert case["requested_amount"] == "5000000.00"  # money is a string on the wire
     assert case["annual_rate"] == "0.07"

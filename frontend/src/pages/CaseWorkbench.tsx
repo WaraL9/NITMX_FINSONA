@@ -3,13 +3,15 @@ import { Building2, Landmark } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { api, unwrap } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
+import { DocumentsPanel } from "@/components/DocumentsPanel";
+import { TransactionsPanel } from "@/components/TransactionsPanel";
 import { Card, CardHeader } from "@/components/ui/card";
 import { caseStatus, formatRate, ownerType } from "@/lib/labels";
 import { formatTHB } from "@/lib/money";
 
 /**
- * CA Workbench. I0 shows the case header (E8-02) and the account map.
- * The waterfall, tiers, watchlist, sizing and lineage panels arrive in I2–I3.
+ * CA Workbench: case header (E8-02), account map, documents (E2-01) and extracted
+ * transactions. Waterfall, tiers, watchlist, sizing and lineage arrive in I2–I3.
  */
 export default function CaseWorkbench() {
   const { caseId } = useParams();
@@ -75,9 +77,8 @@ export default function CaseWorkbench() {
         </div>
       </Card>
 
-      <Card className="border-dashed text-center text-sm text-muted">
-        กระแสเงินสด · กระทบยอด 3 เส้า · Watchlist · Safe-Limit · Pixel Lineage — กำลังพัฒนาใน Increment I2–I3
-      </Card>
+      <DocumentsPanel caseId={c.id} accounts={c.accounts} />
+      <TransactionsPanel caseId={c.id} accounts={c.accounts} />
     </div>
   );
 }

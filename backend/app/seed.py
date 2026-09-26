@@ -3,15 +3,17 @@
     python -m app.seed            # reset + seed the Kitti case
     python -m app.seed --keep     # seed without dropping existing data
 
-I0 seeds users and the case header + accounts. Transactions, invoices, tax filings and
-alt data are added by the synthetic generator in I1 (E1-02).
+Seeding builds the synthetic statement PDFs (E1-02) and uploads them through the real
+ingest pipeline, so the demo data exercises the same parser a real upload does.
 """
 
 import argparse
 
 from app.db import Base, SessionLocal, create_all, engine
-from app.models import Account, Case, User
+from app.models import Account, Case, Transaction, User
 from app.scenario import load_scenario
+from app.services.ingest import ingest_document
+from app.synth.build import build_case
 
 USERS = [
     ("คุณสมชาย (CA)", "CA"),
@@ -54,6 +56,8 @@ def seed(reset: bool = True) -> int:
         )
         db.add(case)
         db.commit()
+        for built in build_case("kitti"):
+            ingest_document(db, case.id, built.path.read_bytes(), built.path.name, password=built.password)
         return case.id
 
 
@@ -62,4 +66,6 @@ if __name__ == "__main__":
     p.add_argument("--keep", action="store_true", help="do not drop existing data")
     args = p.parse_args()
     case_id = seed(reset=not args.keep)
-    print(f"Seeded Kitti case id={case_id}")
+    with SessionLocal() as db:
+        n = db.query(Transaction).filter(Transaction.case_id == case_id).count()
+    print(f"Seeded Kitti case id={case_id} with {n} transactions")

@@ -111,6 +111,274 @@
         }
       }
     },
+    "/api/cases/{case_id}/documents": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Upload Document",
+        "operationId": "upload_document_api_cases__case_id__documents_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_document_api_cases__case_id__documents_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "List Documents",
+        "operationId": "list_documents_api_cases__case_id__documents_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentOut"
+                  },
+                  "title": "Response List Documents Api Cases  Case Id  Documents Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/documents/{document_id}/file": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Document File",
+        "description": "The document for viewing: the decrypted copy if the original was password-protected.",
+        "operationId": "document_file_api_documents__document_id__file_get",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/transactions": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "List Transactions",
+        "operationId": "list_transactions_api_cases__case_id__transactions_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Account Id"
+            }
+          },
+          {
+            "name": "document_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Document Id"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "search description / counterparty",
+              "title": "Q"
+            },
+            "description": "search description / counterparty"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "tags": [
@@ -178,6 +446,83 @@
           "owner_type"
         ],
         "title": "AccountOut"
+      },
+      "ApiError": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "existing_document_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Existing Document Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ApiError"
+      },
+      "Body_upload_document_api_cases__case_id__documents_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "statement",
+              "pp30",
+              "etax_invoice",
+              "utility_bill",
+              "evidence"
+            ],
+            "title": "Kind",
+            "default": "statement"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          },
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_document_api_cases__case_id__documents_post"
       },
       "CaseCreate": {
         "properties": {
@@ -450,6 +795,80 @@
         ],
         "title": "CaseSummary"
       },
+      "DocumentOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "case_id": {
+            "type": "integer",
+            "title": "Case Id"
+          },
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "statement",
+              "pp30",
+              "etax_invoice",
+              "utility_bill",
+              "evidence"
+            ],
+            "title": "Kind"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "page_count": {
+            "type": "integer",
+            "title": "Page Count"
+          },
+          "uploaded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Uploaded At"
+          },
+          "parse_report": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ParseReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "case_id",
+          "account_id",
+          "kind",
+          "filename",
+          "sha256",
+          "page_count",
+          "uploaded_at",
+          "parse_report"
+        ],
+        "title": "DocumentOut"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -496,6 +915,358 @@
           "live_llm"
         ],
         "title": "Health"
+      },
+      "ParseReport": {
+        "properties": {
+          "parser": {
+            "type": "string",
+            "title": "Parser"
+          },
+          "parser_version": {
+            "type": "string",
+            "title": "Parser Version"
+          },
+          "rows": {
+            "type": "integer",
+            "title": "Rows"
+          },
+          "pages": {
+            "type": "integer",
+            "title": "Pages"
+          },
+          "bank_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank Code"
+          },
+          "account_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account No"
+          },
+          "account_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Name"
+          },
+          "period_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Start"
+          },
+          "period_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period End"
+          },
+          "opening_balance": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opening Balance"
+          },
+          "closing_balance": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closing Balance"
+          },
+          "total_debit": {
+            "type": "string",
+            "title": "Total Debit"
+          },
+          "total_credit": {
+            "type": "string",
+            "title": "Total Credit"
+          },
+          "continuity_ok": {
+            "type": "boolean",
+            "title": "Continuity Ok"
+          },
+          "continuity_breaks": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Continuity Breaks"
+          },
+          "was_encrypted": {
+            "type": "boolean",
+            "title": "Was Encrypted"
+          },
+          "account_created": {
+            "type": "boolean",
+            "title": "Account Created"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "parser",
+          "parser_version",
+          "rows",
+          "pages",
+          "bank_code",
+          "account_no",
+          "account_name",
+          "period_start",
+          "period_end",
+          "opening_balance",
+          "closing_balance",
+          "total_debit",
+          "total_credit",
+          "continuity_ok",
+          "continuity_breaks",
+          "was_encrypted",
+          "account_created",
+          "warnings"
+        ],
+        "title": "ParseReport"
+      },
+      "TransactionOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "account_id": {
+            "type": "integer",
+            "title": "Account Id"
+          },
+          "document_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Id"
+          },
+          "page_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page No"
+          },
+          "row_index": {
+            "type": "integer",
+            "title": "Row Index"
+          },
+          "posted_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Posted At"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "channel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "debit": {
+            "type": "string",
+            "title": "Debit"
+          },
+          "credit": {
+            "type": "string",
+            "title": "Credit"
+          },
+          "balance": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Balance"
+          },
+          "counterparty_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counterparty Name"
+          },
+          "counterparty_bank": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counterparty Bank"
+          },
+          "counterparty_account": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counterparty Account"
+          },
+          "bbox": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bbox",
+            "description": "[x0, top, x1, bottom] in PDF points, top-left origin"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "extractor_version": {
+            "type": "string",
+            "title": "Extractor Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "account_id",
+          "document_id",
+          "page_no",
+          "row_index",
+          "posted_at",
+          "code",
+          "channel",
+          "description",
+          "debit",
+          "credit",
+          "balance",
+          "counterparty_name",
+          "counterparty_bank",
+          "counterparty_account",
+          "bbox",
+          "confidence",
+          "extractor_version"
+        ],
+        "title": "TransactionOut"
+      },
+      "TransactionPage": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionOut"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "offset",
+          "limit",
+          "items"
+        ],
+        "title": "TransactionPage"
       },
       "ValidationError": {
         "properties": {
