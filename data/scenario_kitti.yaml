@@ -1,0 +1,137 @@
+# Canonical demo case (docs/BACKLOG.md §3).
+# The synthetic generator (E1-02) builds statements FROM this file, and the scenario
+# validator (E1-06) asserts the engine reproduces `expected` to the baht.
+# All money in THB. All amounts are strings so YAML never turns them into floats.
+
+case:
+  company_name: บริษัท กิตติ อินทีเรีย ดีไซน์ จำกัด
+  company_name_en: Kitti Interior Design Co., Ltd.
+  industry: รับเหมาตกแต่งภายในและเฟอร์นิเจอร์
+  business_age_years: 7
+  purpose: เงินทุนหมุนเวียนจัดซื้อวัสดุ
+  source: sme_portal
+  period_start: 2025-12-01
+  period_end: 2026-05-31
+  months: 6
+
+loan_request:
+  amount: "5000000.00"
+  tenor_months: 12
+  annual_rate: "0.07"
+  type: amortizing_term
+
+policy:
+  min_dscr: "1.25"        # red below this
+  target_dscr: "1.35"     # safe-limit solver target
+  max_dsr: "0.70"
+
+accounts:
+  - key: BBL_CUR
+    bank_code: BBL
+    account_no_masked: "xxx-x-x4521-x"
+    account_name: บจก. กิตติ อินทีเรีย ดีไซน์
+    account_type: current
+    owner_type: company
+  - key: KBANK_SAV
+    bank_code: KBANK
+    account_no_masked: "xxx-x-x7788-x"
+    account_name: บจก. กิตติ อินทีเรีย ดีไซน์
+    account_type: savings
+    owner_type: company
+  - key: SCB_SAV
+    bank_code: SCB
+    account_no_masked: "xxx-x-x3310-x"
+    account_name: บจก. กิตติ อินทีเรีย ดีไซน์
+    account_type: savings
+    owner_type: company
+  - key: KBANK_DIR
+    bank_code: KBANK
+    account_no_masked: "xxx-x-x9021-x"
+    account_name: นายกิตติ ศรีวงศ์
+    account_type: savings
+    owner_type: director
+
+# Revenue waterfall over the 6-month period.
+revenue:
+  gross_raw_inflow: "32000000.00"   # all credits into company accounts
+  own_account_loops: "3800000.00"   # credit legs of detected loops, netted once
+  owner_family_inflow: "1200000.00" # director/family transfers in (capital injections)
+  unverified_inflow: "2000000.00"   # Watchlist items, excluded until CA decides
+  tiers:
+    T1_golden: "15000000.00"        # matched to PromptBiz / e-Tax invoices
+    T2_tax: "8000000.00"            # within ภ.พ.30 declared sales
+    T3_operational: "2000000.00"    # context-supported
+
+costs:
+  business_operating_6m: "21320416.00"  # COGS + OpEx paid from company accounts
+  household_6m: "900000.00"             # school fees, car loan: owner drawings, excluded
+
+existing_debt_service_monthly: "151426.00"
+
+# Loops whose CREDIT legs sum to own_account_loops (3,800,000).
+loops:
+  - id: LOOP_A
+    description: 2-hop BBL -> KBANK -> BBL within 24h
+    legs:
+      - {from: BBL_CUR, to: KBANK_SAV, amount: "500000.00", at: "2026-01-12T09:00"}
+      - {from: KBANK_SAV, to: BBL_CUR, amount: "495000.00", at: "2026-01-12T16:30"}
+  - id: LOOP_B
+    description: 3-hop BBL -> KBANK -> director -> BBL within 48h
+    legs:
+      - {from: BBL_CUR, to: KBANK_SAV, amount: "500000.00", at: "2026-03-02T09:00"}
+      - {from: KBANK_SAV, to: KBANK_DIR, amount: "495000.00", at: "2026-03-02T15:10"}
+      - {from: KBANK_DIR, to: BBL_CUR, amount: "490000.00", at: "2026-03-03T10:20"}
+  - id: LOOP_C
+    description: 2-hop SCB -> BBL -> SCB before month-end
+    legs:
+      - {from: SCB_SAV, to: BBL_CUR, amount: "400000.00", at: "2026-04-28T11:00"}
+      - {from: BBL_CUR, to: SCB_SAV, amount: "400000.00", at: "2026-04-29T10:00"}
+  - id: LOOP_D
+    description: 3-hop KBANK -> SCB -> BBL -> KBANK
+    legs:
+      - {from: KBANK_SAV, to: SCB_SAV, amount: "340000.00", at: "2026-05-20T09:30"}
+      - {from: SCB_SAV, to: BBL_CUR, amount: "340000.00", at: "2026-05-20T14:00"}
+      - {from: BBL_CUR, to: KBANK_SAV, amount: "335000.00", at: "2026-05-21T09:15"}
+# Credit legs landing in COMPANY accounts (what gets netted from revenue):
+#   A: 500,000 + 495,000           =   995,000
+#   B: 500,000 + 490,000           =   990,000  (the 495,000 leg lands in the director's account)
+#   C: 400,000 + 400,000           =   800,000
+#   D: 340,000 + 340,000 + 335,000 = 1,015,000
+#   total                          = 3,800,000
+
+watchlist:
+  - date: 2026-03-08
+    counterparty: บจก. เอ บิลด์
+    amount: "450000.00"
+    description: งวดที่ 1 งานตกแต่งคลินิก
+    system_note: ไม่มีใบแจ้งหนี้ PromptBiz แต่พบคำว่า "งวดที่ 1 งานตกแต่งคลินิก"
+    demo_role: accept_with_rm_evidence
+  - date: 2026-02-19
+    counterparty: นางสาวพิมพ์ชนก ใจดี
+    amount: "850000.00"
+    description: โอนเงิน มัดจำ
+    system_note: เงินโอนจากบุคคลธรรมดา ระบุ "มัดจำ" ไม่มีใบแจ้งหนี้หรือยอดใน ภ.พ.30
+    demo_role: ambiguous_deposit
+  - date: 2026-05-27
+    counterparty: ไม่ระบุ (เงินสดเข้าบัญชี)
+    amount: "700000.00"
+    description: CASH DEPOSIT
+    system_note: ฝากเงินสดก้อนใหญ่ช่วงก่อนยื่นขอสินเชื่อ ไม่มีเอกสารการค้ารองรับ
+    demo_role: keep_non_operating
+
+alt_data:
+  base: clean              # 12 months on-time utilities and rent
+  stress_toggle: late_electricity_twice
+
+# What the engine must output. Checked by E1-06.
+expected:
+  verified_operating_revenue: "25000000.00"
+  clean_operating_cash_flow_6m: "3679584.00"
+  clean_operating_cash_flow_monthly: "613264.00"
+  pmt_factor_12m_7pct: "0.086527"
+  dscr_at_request: "1.05"
+  dscr_at_safe_limit: "1.35"
+  safe_limit_at_target: "3500000.00"
+  max_at_min_dscr_approx: "3920000.00"
+  safe_limit_after_accepting_450k_approx: "4140000.00"
+  trade_line_suggestion: "1000000.00"

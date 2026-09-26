@@ -1,0 +1,21 @@
+{
+  "name": "finsona-ai",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Finsona AI: Enterprise Credit Underwriting Intelligence Platform",
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "concurrently -k -n api,web -c blue,green \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "node scripts/py.mjs -m uvicorn app.main:app --reload --port 8000",
+    "dev:web": "npm --prefix frontend run dev",
+    "seed": "node scripts/py.mjs -m app.seed",
+    "test": "npm run test:api && npm run test:web",
+    "test:api": "node scripts/py.mjs -m pytest -q",
+    "test:web": "npm --prefix frontend test",
+    "typecheck": "npm --prefix frontend run typecheck",
+    "gen:api": "node scripts/py.mjs -m app.export_openapi && npm --prefix frontend run gen:api"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}

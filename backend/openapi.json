@@ -1,0 +1,535 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Finsona AI",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/cases": {
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "List Cases",
+        "operationId": "list_cases_api_cases_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CaseSummary"
+                  },
+                  "type": "array",
+                  "title": "Response List Cases Api Cases Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Create Case",
+        "operationId": "create_case_api_cases_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaseCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}": {
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Get Case",
+        "operationId": "get_case_api_cases__case_id__get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Health",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccountOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "bank_code": {
+            "type": "string",
+            "title": "Bank Code"
+          },
+          "account_no_masked": {
+            "type": "string",
+            "title": "Account No Masked"
+          },
+          "account_name": {
+            "type": "string",
+            "title": "Account Name"
+          },
+          "account_type": {
+            "type": "string",
+            "title": "Account Type"
+          },
+          "owner_type": {
+            "type": "string",
+            "enum": [
+              "company",
+              "director",
+              "family",
+              "external"
+            ],
+            "title": "Owner Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "bank_code",
+          "account_no_masked",
+          "account_name",
+          "account_type",
+          "owner_type"
+        ],
+        "title": "AccountOut"
+      },
+      "CaseCreate": {
+        "properties": {
+          "company_name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Company Name"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry"
+          },
+          "business_age_years": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Business Age Years"
+          },
+          "requested_amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Requested Amount"
+          },
+          "purpose": {
+            "type": "string",
+            "title": "Purpose"
+          },
+          "tenor_months": {
+            "type": "integer",
+            "maximum": 360.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Tenor Months"
+          },
+          "annual_rate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMaximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Annual Rate"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "sme_portal",
+              "rm",
+              "branch"
+            ],
+            "title": "Source",
+            "default": "sme_portal"
+          }
+        },
+        "type": "object",
+        "required": [
+          "company_name",
+          "industry",
+          "business_age_years",
+          "requested_amount",
+          "purpose",
+          "tenor_months",
+          "annual_rate"
+        ],
+        "title": "CaseCreate"
+      },
+      "CaseDetail": {
+        "properties": {
+          "company_name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Company Name"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry"
+          },
+          "business_age_years": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Business Age Years"
+          },
+          "requested_amount": {
+            "type": "string",
+            "title": "Requested Amount"
+          },
+          "purpose": {
+            "type": "string",
+            "title": "Purpose"
+          },
+          "tenor_months": {
+            "type": "integer",
+            "maximum": 360.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Tenor Months"
+          },
+          "annual_rate": {
+            "type": "string",
+            "title": "Annual Rate"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "processing",
+              "in_review",
+              "decided"
+            ],
+            "title": "Status"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "sme_portal",
+              "rm",
+              "branch"
+            ],
+            "title": "Source"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "period_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Start"
+          },
+          "period_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period End"
+          },
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/AccountOut"
+            },
+            "type": "array",
+            "title": "Accounts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "company_name",
+          "industry",
+          "business_age_years",
+          "requested_amount",
+          "purpose",
+          "tenor_months",
+          "annual_rate",
+          "id",
+          "status",
+          "source",
+          "created_at",
+          "period_start",
+          "period_end",
+          "accounts"
+        ],
+        "title": "CaseDetail"
+      },
+      "CaseSummary": {
+        "properties": {
+          "company_name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Company Name"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry"
+          },
+          "business_age_years": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Business Age Years"
+          },
+          "requested_amount": {
+            "type": "string",
+            "title": "Requested Amount"
+          },
+          "purpose": {
+            "type": "string",
+            "title": "Purpose"
+          },
+          "tenor_months": {
+            "type": "integer",
+            "maximum": 360.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Tenor Months"
+          },
+          "annual_rate": {
+            "type": "string",
+            "title": "Annual Rate"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "processing",
+              "in_review",
+              "decided"
+            ],
+            "title": "Status"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "sme_portal",
+              "rm",
+              "branch"
+            ],
+            "title": "Source"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "company_name",
+          "industry",
+          "business_age_years",
+          "requested_amount",
+          "purpose",
+          "tenor_months",
+          "annual_rate",
+          "id",
+          "status",
+          "source",
+          "created_at"
+        ],
+        "title": "CaseSummary"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Health": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "connector_mode": {
+            "type": "string",
+            "title": "Connector Mode"
+          },
+          "live_ocr": {
+            "type": "boolean",
+            "title": "Live Ocr"
+          },
+          "live_llm": {
+            "type": "boolean",
+            "title": "Live Llm"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "version",
+          "connector_mode",
+          "live_ocr",
+          "live_llm"
+        ],
+        "title": "Health"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

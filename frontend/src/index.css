@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+/* Clean White design system (ITMX.md, "ข้อกำหนดการออกแบบต้นแบบส่วนหน้า" §1). */
+@theme {
+  --font-sans: "IBM Plex Sans Thai", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-canvas: #ffffff;
+  --color-surface: #f8fafc;
+  --color-surface-2: #f1f5f9;
+  --color-line: #e2e8f0;
+
+  --color-ink: #0f172a;
+  --color-body: #334155;
+  --color-muted: #64748b;
+
+  /* Verified: PromptBiz, tax-verified, passing */
+  --color-verified: #059669;
+  --color-verified-soft: #ecfdf5;
+  /* Human judgement needed: watchlist, lineage highlight */
+  --color-judge: #d97706;
+  --color-judge-soft: #fffbeb;
+  /* Primary action */
+  --color-navy: #1e3a8a;
+  --color-navy-hover: #1e40af;
+  /* Critical risk: DSCR below policy, utility arrears */
+  --color-risk: #dc2626;
+  --color-risk-soft: #fef2f2;
+  /* Tax-verified tier */
+  --color-tax: #2563eb;
+  --color-tax-soft: #eff6ff;
+}
+
+html,
+body {
+  background: var(--color-canvas);
+  color: var(--color-body);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular figures so columns of money line up. */
+.num {
+  font-variant-numeric: tabular-nums;
+}
