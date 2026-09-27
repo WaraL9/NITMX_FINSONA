@@ -10,7 +10,9 @@ For each uploaded bill, at every analysis:
   * payment_not_found   past due, no receipt and no bank payment. Not treated as unpaid (cash
                         at a counter is common) — left out of the rules and raised for a query
   * used                otherwise the bill joins the connector's history in altdata.evaluate
-A lease that ends before the loan would be repaid is raised as a signal.
+A lease that ends before the loan would be repaid caps the loan tenor at the lease's
+remaining whole months (ITMX §2.1: "ปรับลดระยะเวลาเงินกู้ให้สอดคล้องกับอายุสัญญาเช่า").
+The latest lease end on file counts, so a renewed lease lifts the cap.
 """
 
 from __future__ import annotations
@@ -42,6 +44,8 @@ class BillsResult:
     bills: list[EBill]  # what altdata.evaluate should see
     counts: dict[str, int] = field(default_factory=dict)
     signals: list[str] = field(default_factory=list)
+    lease_end: date | None = None
+    tenor_cap_months: int | None = None  # set only when the lease ends before the loan would
 
 
 def _be(d: date) -> str:
@@ -127,14 +131,23 @@ def reconcile(db: Session, case: Case, rows: list[Transaction], as_of: date) -> 
         counts["used"] += 1
         out.bills.append(EBill(r.kind, r.period, r.due_date, paid, r.amount))
 
-    maturity = _add_months(as_of, case.tenor_months)
-    for r in records:
-        if r.lease_end and r.lease_end < maturity:
-            out.signals.append(f"สัญญาเช่าสถานประกอบการสิ้นสุด {_be(r.lease_end)} ก่อนสินเชื่อครบกำหนด ({_be(maturity)}) "
-                               "— ควรขอสัญญาต่ออายุหรือจำกัดอายุสินเชื่อ")
-            break
+    leases = [r.lease_end for r in records if r.lease_end]
+    if leases:
+        out.lease_end = max(leases)
+        maturity = _add_months(as_of, case.tenor_months)
+        if out.lease_end < maturity:
+            out.tenor_cap_months = max(1, months_between(as_of, out.lease_end))
+            out.signals.append(
+                f"สัญญาเช่าสถานประกอบการสิ้นสุด {_be(out.lease_end)} ก่อนสินเชื่อครบกำหนด ({_be(maturity)}) "
+                f"— จำกัดอายุสินเชื่อไม่เกิน {out.tenor_cap_months} เดือนตามอายุสัญญาเช่าที่เหลือ "
+                "(ขอสัญญาต่ออายุเพื่อปลดเงื่อนไขนี้)")
     out.counts = counts
     return out
+
+
+def months_between(start: date, end: date) -> int:
+    """Whole months from start to end (a month counts only once its day is reached)."""
+    return (end.year - start.year) * 12 + end.month - start.month - (1 if end.day < start.day else 0)
 
 
 def _add_months(d: date, months: int) -> date:

@@ -788,4 +788,8 @@ export const EN: Record<string, string> = {
   "วิเคราะห์ไม่สำเร็จ": "Analysis failed",
   "วิเคราะห์เสร็จแล้ว": "Analysis complete",
   "กำลังวิเคราะห์ทั้งแฟ้ม…": "Analysing the whole case…",
+  // tenor cap (E6-06)
+  "สัญญาเช่าสิ้นสุด {0}": "Lease ends {0}",
+  "อายุสินเชื่อจำกัด {0} เดือนตามสัญญาเช่า": "Tenor capped at {0} months by the lease",
+  "สัญญาเช่าสิ้นสุดก่อนสินเชื่อครบกำหนด — ทุกการคำนวณวงเงินใช้อายุสินเชื่อ {0} เดือน (ขอสัญญาต่ออายุเพื่อปลดเงื่อนไข)": "The lease ends before the loan would be repaid — every sizing uses a {0}-month tenor (a renewed lease lifts this)",
 };

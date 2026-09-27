@@ -19,7 +19,7 @@ from app.models import AuditEntry, Case, CreditMemo, Document, Transaction, User
 from app.services import appendix, audit, ocr_review
 from app.engine.types import Policy
 from app.services import policy as policy_svc
-from app.services.analysis import latest_analysis
+from app.services.analysis import latest_analysis, sizing_tenor
 
 
 class MemoError(Exception):
@@ -31,8 +31,8 @@ class MemoError(Exception):
 def _size(case: Case, result: dict, amount: Decimal, pol: Policy) -> dict[str, Any]:
     haircut = Decimal(result.get("alt_data", {}).get("haircut", "0"))
     cfo = (Decimal(result["clean_cash_flow_monthly"]) * (1 - haircut)).quantize(Decimal("0.01"))
-    s = ratios.size(amount, cfo, Decimal(result["existing_debt_monthly"]), case.annual_rate, case.tenor_months,
-                    pol)
+    s = ratios.size(amount, cfo, Decimal(result["existing_debt_monthly"]), case.annual_rate,
+                    sizing_tenor(case, result), pol)
     st = ratios.structure(case.requested_amount, s.safe_limit, Decimal(result.get("t1_monthly", "0")), pol)
     return {
         "amount": f"{s.amount:.2f}", "dscr": f"{s.dscr:.4f}" if s.dscr is not None else "0",
@@ -111,7 +111,8 @@ def build_package(db: Session, case_id: int) -> dict[str, Any]:
     return {
         "case": {"id": case.id, "company_name": case.company_name, "industry": case.industry,
                  "business_age_years": case.business_age_years, "requested_amount": f"{case.requested_amount:.2f}",
-                 "purpose": case.purpose, "tenor_months": case.tenor_months, "annual_rate": str(case.annual_rate),
+                 "purpose": case.purpose, "tenor_months": case.tenor_months,
+                 "sizing_tenor_months": sizing_tenor(case, a), "annual_rate": str(case.annual_rate),
                  "status": case.status},
         "analysis": a,
         "sizing_request": s_req,

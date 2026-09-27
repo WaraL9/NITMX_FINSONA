@@ -21,7 +21,7 @@ from app.engine import ratios
 from app.engine.types import AnalysisResult, Policy
 from app.models import Case, Transaction
 from app.services import policy as policy_svc
-from app.services.analysis import AnalysisError, latest_analysis, load_inputs, run_engine
+from app.services.analysis import AnalysisError, latest_analysis, load_inputs, run_engine, sizing_tenor
 
 OPEN = ("pending", "queried")
 
@@ -32,13 +32,14 @@ def _2dp(v: Decimal) -> Decimal:
 
 
 def _scenario(key: str, title: str, note: str, r: AnalysisResult, decisions: dict[int, str], items: dict,
-              txns: dict[int, Transaction], case: Case, haircut: Decimal, pol: Policy, evaluate: str) -> dict:
+              txns: dict[int, Transaction], case: Case, haircut: Decimal, pol: Policy, evaluate: str,
+              tenor: int) -> dict:
     cfo = (_2dp(r.clean_cash_flow_monthly) * (1 - haircut)).quantize(Decimal("0.01"))
     existing = r.existing_debt_monthly
-    safe = ratios.size(case.requested_amount, cfo, existing, case.annual_rate, case.tenor_months, pol).safe_limit
+    safe = ratios.size(case.requested_amount, cfo, existing, case.annual_rate, tenor, pol).safe_limit
     st = ratios.structure(case.requested_amount, safe, _2dp(r.tiers["T1_golden"] / r.months), pol)
     amount = case.requested_amount if evaluate == "request" else st.term_loan
-    s = ratios.size(amount, cfo, existing, case.annual_rate, case.tenor_months, pol)
+    s = ratios.size(amount, cfo, existing, case.annual_rate, tenor, pol)
 
     def total(status: str) -> Decimal:
         return sum((txns[t].credit for t, d in decisions.items() if d == status and t in txns), Decimal("0"))
@@ -72,7 +73,7 @@ def compare(db: Session, case: Case) -> dict:
 
     runs = {"engine_only": run_engine(inp, engine_only), "decided": run_engine(inp, decided),
             "all_accepted": run_engine(inp, upside)}
-    common = dict(items=items, txns=txns, case=case, haircut=haircut, pol=pol)
+    common = dict(items=items, txns=txns, case=case, haircut=haircut, pol=pol, tenor=sizing_tenor(case, a.result))
     scenarios = [
         _scenario("request", "ตามคำขอ", "วงเงินที่ขอ บนกระแสเงินสดปัจจุบัน (รวมการตัดสินของ CA)",
                   runs["decided"], decided, evaluate="request", **common),

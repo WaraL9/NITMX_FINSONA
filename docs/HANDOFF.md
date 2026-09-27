@@ -1,6 +1,6 @@
 # Handoff — where Finsona AI stands
 
-_Last updated: 2026-09-28, after E0-07 (background analysis jobs) — the code backlog is complete._
+_Last updated: 2026-09-28, after the E6-06 lease tenor cap — the code backlog is complete._
 
 ## What it is
 Finsona AI turns an SME's messy bank statements into a verified cash-flow picture and a safe loan size a bank
@@ -29,7 +29,8 @@ Playwright e2e in `e2e/` (uses installed Chrome). Commands: see `README.md` (`np
 - **Bill samples** (E2-14, not seeded): `data/generated/<case>/bills/` — electricity e-bill PDF (paid via the
   statement), water bill **phone photo** (JPEG stored sideways + EXIF flag; recorded OCR reads the amount at 41%
   confidence → held for CA review), rent **receipt** PDF (printed paid date + lease end before loan maturity →
-  signal). In Kitti the utility connector already has these months, so uploads show “ตรงกับข้อมูลผู้ให้บริการ”
+  signal and a **tenor cap**: Kitti's 12-month loan is sized over 8 months, so the safe limit falls — a strong demo
+  moment, e2e-tested). In Kitti the utility connector already has these months, so uploads show “ตรงกับข้อมูลผู้ให้บริการ”
   and the haircut is unchanged; in a case without connector data they drive the late-payment rules.
 - **dStatement feed** (E3-04): `data/generated/<case>/dstatement.json` — every account's statement as the source
   bank holds it, served signed by the sandbox connector (consent purpose `dstatement_data`, granted in the seed).
@@ -87,7 +88,9 @@ Utility/rent bill ingest (E2-14: PDF text layer, scanned PDF or JPEG/PNG photo �
 from a receipt or the matching statement debit, connector copy wins (conflicts flagged), no-payment-evidence is
 asked about rather than counted unpaid, OCR-uncertain fields held until `POST /api/cases/{id}/bills/{rid}/review`;
 lease end before maturity → signal. Photos are served as an upright PDF; `?original=true` gives the uploaded bytes.)
-Ingest (auto-detect, passwords, SHA-256, encrypted at rest), e-Tax invoice ingest (E2-13: ETDA XML / PDF with
+Ingest (auto-detect, passwords, SHA-256, encrypted at rest), e-Tax invoice ingest (E6-06 lease rule now complete: the latest lease end on file caps the tenor at its remaining whole months via
+`analysis.sizing_tenor()`, used by sizing, drivers, comparison, RM app, memo and LOS.) e-Tax invoice ingest
+(E2-13: ETDA XML / PDF with
 embedded XML / PDF text fallback → `Invoice(source="etax_upload", document_id)` → T1 matching; seller must be the
 applicant; same invoice twice rejected; a PromptBiz copy of the same invoice wins so one sale never verifies two
 receipts; XAdES signature only *detected*, not verified), synthetic statement/ภ.พ.30 generator, parser with
@@ -102,13 +105,12 @@ case scoping, PDPA consents, hash-chained audit log + CSV, compliance/metrics/po
 portal, eval harness (`python -m app.eval.run`, 50 synthetic cases), instant demo reset, offline mode,
 Playwright e2e, single-process prod server (`npm start`) + Dockerfile.
 
-Test counts at handoff: 227 backend, 22 frontend, 8 e2e — all green.
+Test counts at handoff: 230 backend, 22 frontend, 9 e2e — all green.
 
 ## Next
 Every code item in `docs/BACKLOG.md` is done. Candidate follow-ups (not in the backlog):
 - Bilingual server text: send message codes + params from the backend so engine reasons, XAI drivers, alt-data
   signals and anomaly titles translate too (the UI chrome already does — E8-13).
-- Tenor cap from the lease-end signal (E2-14 raises it; sizing does not act on it yet).
 - XAdES signature verification for e-Tax XML (needs signxml/lxml + the Thai CA chain).
 - Rehearse the demo script end to end and record the backup video (below).
 
@@ -122,7 +124,7 @@ e-Tax: digital signatures are detected but not cryptographically verified (needs
 chain); an unsigned upload is flagged as SME-provided evidence and still counts as T1 once it matches a real
 receipt. Scanned (image-only) invoices are rejected — no OCR path for invoices yet. PDF/A-3 conformance of
 embedded-XML PDFs is not checked.
-Bills: the lease-end rule only raises a signal — sizing does not cap the tenor yet. OCR of *new* photos needs the
+Bills: OCR of *new* photos needs the
 live Azure provider (the sandbox only replays recorded responses for the generated samples).
 dStatement: the sandbox signs with a shared HMAC key; a live adapter would verify the source bank's certificate.
 Mismatches are flagged, not auto-corrected (the CA overrides/excludes the rows).

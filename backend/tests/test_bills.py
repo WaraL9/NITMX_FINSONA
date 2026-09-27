@@ -154,6 +154,27 @@ def test_rent_receipt_raises_lease_signal(c, bill_case, samples):
     assert _upload(c, bill_case, BILLS / s["file"]).status_code == 201
     a = c.post(f"/api/cases/{bill_case}/analysis").json()
     assert any("สัญญาเช่า" in sig and "ก่อนสินเชื่อครบกำหนด" in sig for sig in a["alt_data"]["signals"])
+    # E6-06: the loan cannot outlast the lease — 36 months requested, lease ends in 8 whole months.
+    assert a["alt_data"]["lease_end"] == s["lease_end"] and a["alt_data"]["tenor_cap_months"] == 8
+    capped = c.get(f"/api/cases/{bill_case}/sizing").json()
+    uncapped = c.get(f"/api/cases/{bill_case}/sizing", params={"tenor_months": 36}).json()
+    assert capped["tenor_months"] == 8 and uncapped["tenor_months"] == 36
+    assert Decimal(capped["new_payment"]) > Decimal(uncapped["new_payment"])  # same amount, shorter term
+    cmp = {x["key"]: x for x in c.get(f"/api/cases/{bill_case}/comparison").json()["scenarios"]}
+    assert cmp["decided"]["safe_limit"] == capped["safe_limit"]
+
+
+def test_months_between():
+    from app.services.bills import months_between
+    assert months_between(date(2026, 5, 31), date(2027, 2, 28)) == 8
+    assert months_between(date(2026, 5, 31), date(2026, 6, 30)) == 0
+    assert months_between(date(2026, 5, 1), date(2027, 5, 1)) == 12
+
+
+def test_canonical_case_has_no_lease_cap(client, seeded_case_id):
+    a = client.get(f"/api/cases/{seeded_case_id}/analysis").json()
+    assert a["alt_data"]["tenor_cap_months"] is None
+    assert client.get(f"/api/cases/{seeded_case_id}/sizing").json()["tenor_months"] == 12
 
 
 def test_late_bill_triggers_haircut(c, bill_case, truth):
@@ -219,3 +240,27 @@ def test_images_only_for_statements_bills_and_evidence(c, bill_case):
     r = c.post(f"/api/cases/{bill_case}/documents",
                files={"file": ("y.png", b"\x89PNG\r\n\x1a\nnot really", "image/png")}, data={"kind": "auto"})
     assert r.status_code == 422 and r.json()["code"] == "not_a_pdf"
+
+
+def test_rent_receipt_on_the_canonical_case_cuts_the_safe_limit(client, seeded_case_id, samples):
+    """Kitti asks for 12 months; its lease ends 8 whole months after the analysis period."""
+    from app.models import Document
+    from app.services.analysis import run_analysis
+
+    before = client.get(f"/api/cases/{seeded_case_id}/sizing").json()
+    r = _upload(client, seeded_case_id, BILLS / samples["rent"]["file"])
+    assert r.status_code == 201, r.text
+    try:
+        a = client.post(f"/api/cases/{seeded_case_id}/analysis").json()
+        after = client.get(f"/api/cases/{seeded_case_id}/sizing").json()
+        assert a["alt_data"]["tenor_cap_months"] == 8 and after["tenor_months"] == 8
+        assert a["waterfall"] == client.get(f"/api/cases/{seeded_case_id}/analysis").json()["waterfall"]
+        assert before["safe_limit"] == "3500000.00" and Decimal(after["safe_limit"]) < Decimal("3500000")
+        memo = client.get(f"/api/cases/{seeded_case_id}/memo").json()
+        assert memo["case"]["sizing_tenor_months"] == 8
+    finally:
+        with SessionLocal() as db:  # remove the upload (its bill record cascades) and restore the canonical state
+            db.delete(db.get(Document, r.json()["id"]))
+            db.commit()
+            run_analysis(db, seeded_case_id, sync_invoices=False)
+    assert client.get(f"/api/cases/{seeded_case_id}/sizing").json()["safe_limit"] == "3500000.00"

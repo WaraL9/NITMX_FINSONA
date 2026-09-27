@@ -12,7 +12,7 @@ from app.models import AnalysisJob, Case, Page, Transaction, User, WatchlistItem
 from app.schemas import (AltScenarioIn, AnalysisJobOut, AnalysisOut, ComparisonOut, PolicyOut, SizingOut,
                          StructureOut, WatchlistOut)
 from app.services import policy as policy_svc
-from app.services.analysis import AnalysisError, latest_analysis, run_analysis
+from app.services.analysis import AnalysisError, latest_analysis, run_analysis, sizing_tenor
 
 router = APIRouter(prefix="/api/cases/{case_id}", tags=["analysis"])
 
@@ -109,7 +109,7 @@ def sizing(
     cfo = (base_cfo * (1 - haircut)).quantize(Decimal("0.01"))
     rate_used = rate + Decimal(stress.rate_rise_bp) / 10000
     pol = policy_svc.current(db)
-    s = ratios.size(amt, cfo, Decimal(r["existing_debt_monthly"]), rate_used, tenor_months or case.tenor_months,
+    s = ratios.size(amt, cfo, Decimal(r["existing_debt_monthly"]), rate_used, tenor_months or sizing_tenor(case, r),
                     pol)
     st = ratios.structure(case.requested_amount, s.safe_limit, Decimal(r.get("t1_monthly", "0")), pol)
     return SizingOut(

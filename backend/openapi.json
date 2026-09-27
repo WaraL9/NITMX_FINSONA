@@ -4554,6 +4554,30 @@
             ],
             "title": "Uploads",
             "description": "E2-14 uploaded bills by status: uploaded, used, corroborated, conflict, payment_not_found, held_review"
+          },
+          "lease_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lease End"
+          },
+          "tenor_cap_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenor Cap Months",
+            "description": "E6-06: loan tenor capped to the lease's remaining months"
           }
         },
         "type": "object",
@@ -7669,6 +7693,11 @@
             "type": "integer",
             "title": "Tenor Months"
           },
+          "sizing_tenor_months": {
+            "type": "integer",
+            "title": "Sizing Tenor Months",
+            "description": "tenor the sizing used: requested, or capped by a lease ending sooner"
+          },
           "annual_rate": {
             "type": "string",
             "title": "Annual Rate"
@@ -7693,6 +7722,7 @@
           "requested_amount",
           "purpose",
           "tenor_months",
+          "sizing_tenor_months",
           "annual_rate",
           "status"
         ],

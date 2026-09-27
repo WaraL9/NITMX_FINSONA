@@ -18,7 +18,7 @@ from app.models import Case, CreditMemo, Document, Query, TaxFiling, WatchlistIt
 from app.services import consent
 from app.engine.types import Policy
 from app.services import policy as policy_svc
-from app.services.analysis import latest_analysis
+from app.services.analysis import latest_analysis, sizing_tenor
 
 ASSESSMENT_SLA = timedelta(hours=48)
 
@@ -53,8 +53,8 @@ class Lead:
 def _sizing(case: Case, result: dict, amount: Decimal, pol: Policy) -> ratios.Sizing:
     haircut = Decimal(result.get("alt_data", {}).get("haircut", "0"))
     cfo = Decimal(result["clean_cash_flow_monthly"]) * (1 - haircut)
-    return ratios.size(amount, cfo, Decimal(result["existing_debt_monthly"]), case.annual_rate, case.tenor_months,
-                       pol)
+    return ratios.size(amount, cfo, Decimal(result["existing_debt_monthly"]), case.annual_rate,
+                       sizing_tenor(case, result), pol)
 
 
 def score_case(db: Session, case: Case) -> Lead:

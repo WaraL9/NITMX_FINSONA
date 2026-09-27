@@ -97,6 +97,11 @@ export function AltDataPanel({ caseId, a }: { caseId: number; a: Analysis }) {
           </ul>
         </div>
       </div>
+      {alt.tenor_cap_months != null && (
+        <p className="mt-2 rounded-md border border-judge/40 bg-judge-soft px-3 py-2 text-xs text-body">
+          {tr("สัญญาเช่าสิ้นสุดก่อนสินเชื่อครบกำหนด — ทุกการคำนวณวงเงินใช้อายุสินเชื่อ {0} เดือน (ขอสัญญาต่ออายุเพื่อปลดเงื่อนไข)", [alt.tenor_cap_months])}
+        </p>
+      )}
       {alt.uploads && alt.uploads.uploaded > 0 && (
         <p data-testid="alt-uploads" className="mt-2 text-xs text-muted">
           {tr("บิลที่ผู้กู้อัปโหลด")} {alt.uploads.uploaded} {tr("ใบ · ใช้คำนวณ")} {alt.uploads.used}

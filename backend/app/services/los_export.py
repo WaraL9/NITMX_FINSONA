@@ -44,6 +44,7 @@ def build(db: Session, case_id: int) -> dict[str, Any]:
         "case": {"id": case.id, "company_name": case.company_name, "tax_id": case.tax_id, "industry": case.industry,
                  "business_age_years": case.business_age_years, "source": case.source},
         "request": {"amount": f"{case.requested_amount:.2f}", "tenor_months": case.tenor_months,
+                    "sizing_tenor_months": pkg["case"]["sizing_tenor_months"],
                     "annual_rate": str(case.annual_rate), "purpose": case.purpose},
         "decision": {
             "recommendation": m.recommendation,

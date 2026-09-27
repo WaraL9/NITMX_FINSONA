@@ -94,6 +94,11 @@ export function SizingSandbox({ caseId, a, requested }: { caseId: number; a: Ana
         action={
           <div className="flex items-center gap-2">
             {haircut > 0 && <Badge tone="risk">{tr("ข้อมูลทางเลือก: ปรับลดกระแสเงินสด")} {(haircut * 100).toFixed(0)}%</Badge>}
+            {a.alt_data?.tenor_cap_months != null && (
+              <Badge tone="judge" data-testid="tenor-cap" title={tr("สัญญาเช่าสิ้นสุด {0}", [a.alt_data.lease_end ?? ""])}>
+                {tr("อายุสินเชื่อจำกัด {0} เดือนตามสัญญาเช่า", [a.alt_data.tenor_cap_months])}
+              </Badge>
+            )}
             {s.stressed && <Badge tone="risk">{tr("กำลังทดสอบภาวะวิกฤต")}</Badge>}
             {isFetching && <Loader2 className="size-4 animate-spin text-muted" />}
           </div>

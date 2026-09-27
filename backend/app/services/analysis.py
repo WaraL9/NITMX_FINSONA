@@ -287,6 +287,12 @@ def run_analysis(db: Session, case_id: int, sync_invoices: bool = True, user_id:
     return analysis
 
 
+def sizing_tenor(case: Case, result: dict) -> int:
+    """The tenor every sizing uses: the requested one, capped by a lease ending sooner (E6-06)."""
+    cap = (result.get("alt_data") or {}).get("tenor_cap_months")
+    return min(case.tenor_months, cap) if cap else case.tenor_months
+
+
 def _evidence_hints(db: Session, case: Case) -> None:
     """E7-05: suggest what would verify each open Watchlist item. Advice only — no figure
     depends on it. Template hints are retried each run so they upgrade once an LLM answers."""
@@ -357,7 +363,8 @@ def _evidence(db: Session, case: Case, r: AnalysisResult, rows: list[Transaction
 
     _, drivers = explain(ExplainInputs(
         months=months, cfo_monthly=sizing_cfo, cfo_monthly_before_haircut=cfo_m,
-        existing_debt_monthly=r.existing_debt_monthly, annual_rate=case.annual_rate, tenor_months=case.tenor_months,
+        existing_debt_monthly=r.existing_debt_monthly, annual_rate=case.annual_rate,
+        tenor_months=min(case.tenor_months, uploaded.tenor_cap_months or case.tenor_months),
         requested=case.requested_amount, tiers=r.tiers, household=r.costs["household"],
         pending_unverified=r.waterfall["unverified_pending"], loops=r.waterfall["own_account_loops"],
         owner_inflow=r.waterfall["owner_family_inflow"], haircut=alt.haircut,
@@ -394,6 +401,8 @@ def _evidence(db: Session, case: Case, r: AnalysisResult, rows: list[Transaction
             "late_30": alt.late_30, "late_60_or_unpaid": alt.late_60_or_unpaid, "haircut": str(alt.haircut),
             "ews": alt.ews, "liveness_confirmed": alt.liveness_confirmed, "signals": alt.signals,
             "uploads": uploaded.counts,
+            "lease_end": uploaded.lease_end.isoformat() if uploaded.lease_end else None,
+            "tenor_cap_months": uploaded.tenor_cap_months,
         },
         "alt_connector": alt_sync,
         "cash_pattern": {

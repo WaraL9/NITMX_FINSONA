@@ -125,7 +125,10 @@ def render_memo(pkg: dict[str, Any], sign: dict[str, Any], out: Path) -> None:
     p.text(f"{case['company_name']} · {case['industry']} · อายุธุรกิจ {case['business_age_years']} ปี", 9.5)
     p.right(f"แฟ้ม #{case['id']} · {sign['signed_at'][:10]}", W - MX, 8.5, color=GREY)
     p.down(12)
-    p.text(f"คำขอ: {_money(case['requested_amount'])} บาท · {case['purpose']} · {case['tenor_months']} เดือน · "
+    tenor = f"{case['tenor_months']} เดือน"
+    if case.get("sizing_tenor_months", case["tenor_months"]) < case["tenor_months"]:
+        tenor += f" (คำนวณที่ {case['sizing_tenor_months']} เดือนตามอายุสัญญาเช่า)"
+    p.text(f"คำขอ: {_money(case['requested_amount'])} บาท · {case['purpose']} · {tenor} · "
            f"ดอกเบี้ย {Decimal(case['annual_rate']) * 100:.2f}% · ข้อมูล {a['period_start']} ถึง {a['period_end']}",
            8.5, color=GREY)
     p.down(12)

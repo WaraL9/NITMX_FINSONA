@@ -611,6 +611,8 @@ class AltDataOut(BaseModel):
     signals: list[str]
     uploads: dict[str, int] | None = Field(default=None, description="E2-14 uploaded bills by status: uploaded, used, "
                                            "corroborated, conflict, payment_not_found, held_review")
+    lease_end: date | None = None
+    tenor_cap_months: int | None = Field(default=None, description="E6-06: loan tenor capped to the lease's remaining months")
 
 
 class CashPatternOut(BaseModel):
@@ -681,6 +683,7 @@ class MemoCase(BaseModel):
     requested_amount: str
     purpose: str
     tenor_months: int
+    sizing_tenor_months: int = Field(description="tenor the sizing used: requested, or capped by a lease ending sooner")
     annual_rate: str
     status: CaseStatus
 

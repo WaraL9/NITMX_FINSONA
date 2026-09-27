@@ -1188,6 +1188,13 @@ export interface components {
             uploads?: {
                 [key: string]: number;
             } | null;
+            /** Lease End */
+            lease_end?: string | null;
+            /**
+             * Tenor Cap Months
+             * @description E6-06: loan tenor capped to the lease's remaining months
+             */
+            tenor_cap_months?: number | null;
         };
         /** AltScenarioIn */
         AltScenarioIn: {
@@ -2277,6 +2284,11 @@ export interface components {
             purpose: string;
             /** Tenor Months */
             tenor_months: number;
+            /**
+             * Sizing Tenor Months
+             * @description tenor the sizing used: requested, or capped by a lease ending sooner
+             */
+            sizing_tenor_months: number;
             /** Annual Rate */
             annual_rate: string;
             /**

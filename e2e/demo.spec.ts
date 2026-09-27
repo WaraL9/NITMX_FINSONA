@@ -222,3 +222,20 @@ test("Watchlist evidence hint: the suggested question goes to the RM in one clic
   await page.getByRole("button", { name: "Query RM" }).click();
   await expect(page.getByTestId("wl-item").filter({ hasText: "700,000" })).toContainText("ส่งคำถามให้ RM แล้ว");
 });
+
+test("Lease ending before the loan caps the tenor (E6-06)", async ({ page, request }) => {
+  await resetDemo(request);
+  const receipt = path.join(__dirname, "..", "data", "generated", "kitti", "bills", "receipt_rent_2026-05.pdf");
+  await page.goto("/login");
+  await page.getByRole("button", { name: "เจ้าหน้าที่วิเคราะห์สินเชื่อ (CA)" }).click();
+  await expect(page).toHaveURL("/");
+  await page.goto(`${CASE}?tab=documents`);
+  await page.locator('input[type="file"]').setInputFiles(receipt);
+  await expect(page.getByTestId("bill-row")).toBeVisible();
+  await page.getByTestId("run-analysis").click();
+  await expect(page.getByTestId("job-count")).toHaveText("8/8", { timeout: 30_000 });
+  await page.getByTestId("tab-overview").click();
+  await expect(page.getByTestId("tenor-cap")).toContainText("8");
+  await page.getByTestId("use-safe-limit").click();
+  await expect(page.getByTestId("sim-amount")).not.toHaveText("3,500,000"); // a shorter term carries less
+});
