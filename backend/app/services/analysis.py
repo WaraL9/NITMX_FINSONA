@@ -8,6 +8,7 @@ onto each transaction, upsert Watchlist items (keeping CA decisions), store an A
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -176,7 +177,8 @@ def load_inputs(db: Session, case: Case) -> EngineInputs:
                         overrides, _period(case, rows))
 
 
-def run_engine(inp: EngineInputs, decisions: dict[int, str]) -> AnalysisResult:
+def run_engine(inp: EngineInputs, decisions: dict[int, str],
+               progress: Callable[[str], None] | None = None) -> AnalysisResult:
     """The deterministic engine over loaded inputs; writes nothing."""
     return analyze(
         [EAccount(a.id, a.bank_code, a.account_no_masked, a.account_name, a.owner_type) for a in inp.accounts],
@@ -189,11 +191,16 @@ def run_engine(inp: EngineInputs, decisions: dict[int, str]) -> AnalysisResult:
         inp.period[1],
         decisions,
         inp.overrides,
+        progress,
     )
 
 
 def run_analysis(db: Session, case_id: int, sync_invoices: bool = True, user_id: int | None = None,
-                 ip: str | None = None, trigger: str = "manual") -> Analysis:
+                 ip: str | None = None, trigger: str = "manual",
+                 progress: Callable[[str], None] | None = None) -> Analysis:
+    """progress (E0-07): called with each stage key as it completes — sync, load, the engine's
+    loops/classify/tiers/aggregate, evidence, save."""
+    step = progress or (lambda _stage: None)
     case = db.get(Case, case_id)
     if case is None:
         raise AnalysisError(f"case {case_id} not found")
@@ -213,12 +220,14 @@ def run_analysis(db: Session, case_id: int, sync_invoices: bool = True, user_id:
         sync = previous.result.get("connector") if previous else None
         alt_sync = previous.result.get("alt_connector") if previous else None
 
+    step("sync")
     inp = load_inputs(db, case)
+    step("load")
     rows, held, invoices, etax_duplicates, existing_items, period = (
         inp.rows, inp.held, inp.invoices, inp.etax_duplicates, inp.existing_items, inp.period)
 
     started = time.perf_counter()
-    result = run_engine(inp, inp.decisions)
+    result = run_engine(inp, inp.decisions, progress)
     duration_ms = int((time.perf_counter() - started) * 1000)
 
     for t in rows:
@@ -257,6 +266,7 @@ def run_analysis(db: Session, case_id: int, sync_invoices: bool = True, user_id:
     payload["etax"] = {"uploaded": len(etax), "duplicates_of_promptbiz": etax_duplicates,
                        "matched": sum(1 for i in etax if i.matched_transaction_id is not None)}
     payload.update(_evidence(db, case, result, rows, period, alt_sync))
+    step("evidence")
     analysis = Analysis(case_id=case_id, engine_version=result.engine_version, duration_ms=duration_ms,
                         result=payload)
     db.add(analysis)
@@ -273,6 +283,7 @@ def run_analysis(db: Session, case_id: int, sync_invoices: bool = True, user_id:
         case.status = "in_review"
     db.commit()
     db.refresh(analysis)
+    step("save")
     return analysis
 
 

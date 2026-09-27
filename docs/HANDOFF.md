@@ -1,6 +1,6 @@
 # Handoff — where Finsona AI stands
 
-_Last updated: 2026-09-28, after E7-05 (Watchlist evidence hint)._
+_Last updated: 2026-09-28, after E0-07 (background analysis jobs) — the code backlog is complete._
 
 ## What it is
 Finsona AI turns an SME's messy bank statements into a verified cash-flow picture and a safe loan size a bank
@@ -52,7 +52,14 @@ Playwright e2e in `e2e/` (uses installed Chrome). Commands: see `README.md` (`np
 10. dStatement: Case 1 documents → “ดึงจากธนาคาร (dStatement)” → BBL → “ไฟล์ที่อัปโหลดตรงกับธนาคาร 581/581”.
     Case 2 → SCB (the scan) → “ไม่ตรง 3 จุด” → วิเคราะห์ใหม่ → high anomaly “ไม่ตรงกับข้อมูลธนาคาร” (the OCR misreads).
 
-## Done (increments I0–I7 + P2 batch + E2-13 + E2-14 + E3-04 + E8-12 + E8-13 + E7-05)
+## Done (increments I0–I7 + P2 batch + E2-13 + E2-14 + E3-04 + E8-12 + E8-13 + E7-05 + E0-07)
+Background analysis jobs (E0-07: `POST /api/cases/{id}/analysis/jobs` → 202, poll `GET …/analysis/jobs/{job_id}`;
+`services/jobs.py` runs `run_analysis` via FastAPI BackgroundTasks with a progress callback — stages sync, load, the
+engine's loops/classify/tiers/aggregate laps, evidence, save. Job row written when queued and when finished; live
+stage progress kept in memory because the analysis holds SQLite's write lock until it commits (single-process
+server; several workers would need a shared queue such as RQ). One open job per case; jobs cut off by a restart are
+failed on startup. The workbench “วิเคราะห์ใหม่” button runs a job and shows the live stage strip (E8-03). The
+synchronous `POST /analysis` and the quick re-runs after CA decisions are unchanged.)
 Watchlist evidence hint (E7-05: `ai/evidence_hint.py` — one batched gateway call per case for open items, told the
 business's industry; returns 1–3 documents + a question for the RM; no digits allowed — `{{amount}}` `{{date}}`
 `{{counterparty}}` `{{pp30}}` placeholders filled by the engine via `narrative.fill`, invalid items fall back to a
@@ -95,10 +102,15 @@ case scoping, PDPA consents, hash-chained audit log + CSV, compliance/metrics/po
 portal, eval harness (`python -m app.eval.run`, 50 synthetic cases), instant demo reset, offline mode,
 Playwright e2e, single-process prod server (`npm start`) + Dockerfile.
 
-Test counts at handoff: 221 backend, 22 frontend, 8 e2e — all green.
+Test counts at handoff: 227 backend, 22 frontend, 8 e2e — all green.
 
-## Next (remaining backlog, suggested order)
-1. E0-07 background jobs (the last backlog item).
+## Next
+Every code item in `docs/BACKLOG.md` is done. Candidate follow-ups (not in the backlog):
+- Bilingual server text: send message codes + params from the backend so engine reasons, XAI drivers, alt-data
+  signals and anomaly titles translate too (the UI chrome already does — E8-13).
+- Tenor cap from the lease-end signal (E2-14 raises it; sizing does not act on it yet).
+- XAdES signature verification for e-Tax XML (needs signxml/lxml + the Thai CA chain).
+- Rehearse the demo script end to end and record the backup video (below).
 
 Blocked on the team (not code): real-bank statement parsers need real sample statements (T-01); LINE integration
 needs a LINE Official Account; backup demo video needs `npx playwright install ffmpeg` then `npm run e2e:record`.

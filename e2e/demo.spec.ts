@@ -145,6 +145,8 @@ test("e-Tax invoice: an uploaded ETDA XML verifies a receipt as Tier 1", async (
   const row = page.getByTestId("etax-row");
   await expect(row).toContainText("รอวิเคราะห์ใหม่");
   await page.getByTestId("run-analysis").click();
+  // E0-07: the analysis runs as a job; every stage reports in the live strip.
+  await expect(page.getByTestId("job-count")).toHaveText("8/8", { timeout: 30_000 });
   await expect(row).toContainText("→ ระดับ 1", { timeout: 30_000 });
   await expect(row).toContainText("XML (ETDA)");
 });

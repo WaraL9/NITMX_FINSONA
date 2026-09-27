@@ -339,6 +339,24 @@ class ETaxSummaryOut(BaseModel):
     duplicates_of_promptbiz: list[str] = Field(description="invoice numbers also on PromptBiz — only the network copy is used")
 
 
+class JobStageOut(BaseModel):
+    key: Literal["sync", "load", "loops", "classify", "tiers", "aggregate", "evidence", "save"]
+    status: Literal["pending", "running", "done", "failed"]
+    ms: float | None = None
+
+
+class AnalysisJobOut(BaseModel):
+    """E0-07: an analysis running in the background; poll until succeeded/failed."""
+    id: int
+    case_id: int
+    status: Literal["queued", "running", "succeeded", "failed"]
+    stages: list[JobStageOut]
+    analysis_id: int | None
+    error: str | None
+    created_at: datetime
+    finished_at: datetime | None
+
+
 class PolicyOut(BaseModel):
     min_dscr: DecimalStr
     target_dscr: DecimalStr

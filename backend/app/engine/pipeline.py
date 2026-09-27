@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import time
 from collections import Counter, defaultdict
+from collections.abc import Callable
 from datetime import date
 from decimal import Decimal
 
@@ -48,8 +49,10 @@ def analyze(
     period_end: date,
     decisions: dict[int, Decision] | None = None,
     overrides: dict[int, tuple[str, str]] | None = None,
+    progress: Callable[[str], None] | None = None,
 ) -> AnalysisResult:
-    """overrides: txn id -> (value, CA reason); see types.CREDIT_OVERRIDES / DEBIT_OVERRIDES."""
+    """overrides: txn id -> (value, CA reason); see types.CREDIT_OVERRIDES / DEBIT_OVERRIDES.
+    progress: called with each stage name as it completes (E0-07 job progress); no effect on results."""
     decisions = decisions or {}
     overrides = overrides or {}
     timings: dict[str, float] = {}
@@ -60,6 +63,8 @@ def analyze(
         now = time.perf_counter()
         timings[stage] = round((now - clock) * 1000, 2)
         clock = now
+        if progress:
+            progress(stage)
 
     company = {a.id for a in accounts if a.owner_type == "company"}
     owners = {a.id for a in accounts if a.owner_type in ("director", "family")}

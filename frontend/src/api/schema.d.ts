@@ -392,6 +392,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/analysis/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Job
+         * @description E0-07: start a full analysis in the background and return at once; poll the job for
+         *     per-stage progress. If one is already running for this case, that job is returned (200).
+         */
+        post: operations["start_job_api_cases__case_id__analysis_jobs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/analysis/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Job Status */
+        get: operations["job_status_api_cases__case_id__analysis_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases/{case_id}/sizing": {
         parameters: {
             query?: never;
@@ -1158,6 +1196,34 @@ export interface components {
              * @enum {string}
              */
             scenario: "clean" | "late_electricity_twice";
+        };
+        /**
+         * AnalysisJobOut
+         * @description E0-07: an analysis running in the background; poll until succeeded/failed.
+         */
+        AnalysisJobOut: {
+            /** Id */
+            id: number;
+            /** Case Id */
+            case_id: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "succeeded" | "failed";
+            /** Stages */
+            stages: components["schemas"]["JobStageOut"][];
+            /** Analysis Id */
+            analysis_id: number | null;
+            /** Error */
+            error: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Finished At */
+            finished_at: string | null;
         };
         /** AnalysisOut */
         AnalysisOut: {
@@ -1994,6 +2060,21 @@ export interface components {
             paid_at?: string | null;
             /** Paid Amount */
             paid_amount?: string | null;
+        };
+        /** JobStageOut */
+        JobStageOut: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "sync" | "load" | "loops" | "classify" | "tiers" | "aggregate" | "evidence" | "save";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "running" | "done" | "failed";
+            /** Ms */
+            ms?: number | null;
         };
         /** LeadDetailOut */
         LeadDetailOut: {
@@ -3889,6 +3970,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AnalysisOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_job_api_cases__case_id__analysis_jobs_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalysisJobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    job_status_api_cases__case_id__analysis_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                case_id: number;
+                job_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalysisJobOut"];
                 };
             };
             /** @description Validation Error */

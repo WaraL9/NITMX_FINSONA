@@ -1701,6 +1701,132 @@
         }
       }
     },
+    "/api/cases/{case_id}/analysis/jobs": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Start Job",
+        "description": "E0-07: start a full analysis in the background and return at once; poll the job for\nper-stage progress. If one is already running for this case, that job is returned (200).",
+        "operationId": "start_job_api_cases__case_id__analysis_jobs_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisJobOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/analysis/jobs/{job_id}": {
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Job Status",
+        "operationId": "job_status_api_cases__case_id__analysis_jobs__job_id__get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisJobOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/cases/{case_id}/sizing": {
       "get": {
         "tags": [
@@ -4461,6 +4587,87 @@
         ],
         "title": "AltScenarioIn"
       },
+      "AnalysisJobOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "case_id": {
+            "type": "integer",
+            "title": "Case Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/JobStageOut"
+            },
+            "type": "array",
+            "title": "Stages"
+          },
+          "analysis_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analysis Id"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "case_id",
+          "status",
+          "stages",
+          "analysis_id",
+          "error",
+          "created_at",
+          "finished_at"
+        ],
+        "title": "AnalysisJobOut",
+        "description": "E0-07: an analysis running in the background; poll until succeeded/failed."
+      },
       "AnalysisOut": {
         "properties": {
           "id": {
@@ -6839,6 +7046,51 @@
         ],
         "title": "InvoiceLinkOut",
         "description": "Where an uploaded e-Tax invoice ended up after the last analysis."
+      },
+      "JobStageOut": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "sync",
+              "load",
+              "loops",
+              "classify",
+              "tiers",
+              "aggregate",
+              "evidence",
+              "save"
+            ],
+            "title": "Key"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "done",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "status"
+        ],
+        "title": "JobStageOut"
       },
       "LeadDetailOut": {
         "properties": {

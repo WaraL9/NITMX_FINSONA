@@ -1,6 +1,6 @@
 from decimal import Decimal, InvalidOperation
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -8,8 +8,9 @@ from app.api.common import txn_out
 from app.api.deps import client_ip, require_role
 from app.db import get_db
 from app.engine import ratios
-from app.models import Case, Page, Transaction, User, WatchlistItem
-from app.schemas import AltScenarioIn, AnalysisOut, ComparisonOut, PolicyOut, SizingOut, StructureOut, WatchlistOut
+from app.models import AnalysisJob, Case, Page, Transaction, User, WatchlistItem
+from app.schemas import (AltScenarioIn, AnalysisJobOut, AnalysisOut, ComparisonOut, PolicyOut, SizingOut,
+                         StructureOut, WatchlistOut)
 from app.services import policy as policy_svc
 from app.services.analysis import AnalysisError, latest_analysis, run_analysis
 
@@ -34,6 +35,32 @@ def run(case_id: int, request: Request, db: Session = Depends(get_db), user: Use
         return _out(run_analysis(db, case_id, user_id=user.id, ip=client_ip(request)))
     except AnalysisError as e:
         raise HTTPException(422, str(e)) from e
+
+
+@router.post("/analysis/jobs", response_model=AnalysisJobOut, status_code=202)
+def start_job(case_id: int, request: Request, response: Response, background: BackgroundTasks,
+              db: Session = Depends(get_db), user: User = Depends(require_role("CA"))):
+    """E0-07: start a full analysis in the background and return at once; poll the job for
+    per-stage progress. If one is already running for this case, that job is returned (200)."""
+    from app.services import jobs
+
+    _case(db, case_id)
+    job, created = jobs.start(db, case_id, user.id)
+    if created:
+        background.add_task(jobs.run, job.id, user.id, client_ip(request))
+    else:
+        response.status_code = 200
+    return jobs.snapshot(job)
+
+
+@router.get("/analysis/jobs/{job_id}", response_model=AnalysisJobOut)
+def job_status(case_id: int, job_id: int, db: Session = Depends(get_db)):
+    from app.services import jobs
+
+    job = db.get(AnalysisJob, job_id)
+    if job is None or job.case_id != case_id:
+        raise HTTPException(404, "job not found")
+    return jobs.snapshot(job)
 
 
 @router.get("/analysis", response_model=AnalysisOut)

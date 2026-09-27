@@ -19,6 +19,11 @@ VERSION = "0.1.0"
 async def lifespan(_: FastAPI):
     settings.storage_dir.mkdir(parents=True, exist_ok=True)
     create_all()
+    from app.db import SessionLocal
+    from app.services import jobs
+
+    with SessionLocal() as db:  # E0-07: jobs cut off by a restart can never finish
+        jobs.recover(db)
     yield
 
 

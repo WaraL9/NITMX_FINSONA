@@ -778,4 +778,14 @@ export const EN: Record<string, string> = {
   "กำลัง: {0}": "Now: {0}",
   "ธนาคารขอข้อมูล": "The bank needs information",
   "ยังไม่มีคำขอ — กด “ขอสินเชื่อใหม่”": "No applications yet — press “New loan application”",
+  // components/workbench/AnalysisJob.tsx
+  "ดึงข้อมูลภายนอก": "External data",
+  "โหลดธุรกรรม": "Load transactions",
+  "จัดหมวดรายการ": "Classify",
+  "คำนวณกระแสเงินสด": "Cash flow",
+  "ข้อมูลทางเลือก + คำแนะนำ": "Alt data + hints",
+  "บันทึกผล": "Save",
+  "วิเคราะห์ไม่สำเร็จ": "Analysis failed",
+  "วิเคราะห์เสร็จแล้ว": "Analysis complete",
+  "กำลังวิเคราะห์ทั้งแฟ้ม…": "Analysing the whole case…",
 };

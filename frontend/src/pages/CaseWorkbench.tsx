@@ -1,7 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Building2, FileSignature, FileText, History, LayoutDashboard, ListChecks, Loader2, RefreshCw, Scale, ScanLine, TriangleAlert } from "lucide-react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { api, errorMessage, unwrap, type Analysis, type CaseDetail } from "@/api/client";
+import { api, unwrap, type Analysis, type CaseDetail } from "@/api/client";
+import { JobProgress, useAnalysisJob } from "@/components/workbench/AnalysisJob";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
 import { ScenarioComparison } from "@/components/workbench/ScenarioComparison";
 import { TransactionsPanel } from "@/components/TransactionsPanel";
@@ -88,7 +89,6 @@ export default function CaseWorkbench() {
       },
       { replace: true },
     );
-  const qc = useQueryClient();
 
   const { data: c, isLoading, isError, error } = useQuery({
     queryKey: ["case", id],
@@ -110,19 +110,8 @@ export default function CaseWorkbench() {
   });
   const stale = !!a && !!docs && docs.some((d) => new Date(d.uploaded_at).getTime() > new Date(a.created_at).getTime());
 
-  const run = useMutation({
-    mutationFn: async () => {
-      const res = await api.POST("/api/cases/{case_id}/analysis", { params: { path: { case_id: id } } });
-      if (res.error) throw new Error(errorMessage(res.error));
-      return res.data!;
-    },
-    onSuccess: (data) => {
-      qc.setQueryData(["analysis", id], data);
-      for (const k of ["transactions", "case", "documents", "watchlist", "sizing", "sizing-safe", "audit", "memo"]) {
-        qc.invalidateQueries({ queryKey: [k, id] });
-      }
-    },
-  });
+  // E0-07: the full analysis runs as a background job; its stages show live below the header.
+  const run = useAnalysisJob(id);
 
   // Tab badge = items still awaiting a CA decision (same query the Watchlist panel uses).
   const { data: watchlist } = useQuery({
@@ -150,8 +139,8 @@ export default function CaseWorkbench() {
 
   return (
     <div className="space-y-5">
-      <CaseHeader c={c} a={a} onRun={() => run.mutate()} running={run.isPending} stale={stale} />
-      {run.isError && <p className="text-sm text-risk">{run.error.message}</p>}
+      <CaseHeader c={c} a={a} onRun={run.start} running={run.running} stale={stale && !run.running} />
+      {run.job ? <JobProgress job={run.job} /> : run.error && <p className="text-sm text-risk">{run.error}</p>}
       {stale && (
         <p className="flex items-center gap-2 text-sm text-judge">
           <TriangleAlert className="size-4" /> {tr("มีเอกสารใหม่หลังการวิเคราะห์ครั้งล่าสุด — กด “วิเคราะห์ใหม่”")}
