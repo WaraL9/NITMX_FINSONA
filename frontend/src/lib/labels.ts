@@ -32,7 +32,7 @@ export function formatRate(rate: string): string {
 
 type TierTone = "verified" | "tax" | "navy" | "judge";
 export const tierInfo: Record<string, { label: string; short: string; tone: TierTone }> = {
-  T1_golden: { label: "ระดับ 1 · Golden (PromptBiz)", short: "T1 Golden", tone: "verified" },
+  T1_golden: { label: "ระดับ 1 · Golden (PromptBiz / e-Tax)", short: "T1 Golden", tone: "verified" },
   T2_tax: { label: "ระดับ 2 · Tax-verified (ภ.พ.30)", short: "T2 ภาษี", tone: "tax" },
   T3_operational: { label: "ระดับ 3 · Operational", short: "T3 บริบท", tone: "navy" },
   T4_unverified: { label: "ระดับ 4 · Unverified (Watchlist)", short: "T4 รอตรวจ", tone: "judge" },

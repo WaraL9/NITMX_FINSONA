@@ -111,6 +111,35 @@ class PP30ParseReport(BaseModel):
     warnings: list[str]
 
 
+class ETaxParseReport(BaseModel):
+    """E2-13: what was read from an e-Tax invoice (XML, PDF with embedded XML, or PDF text)."""
+    parser: str
+    parser_version: str
+    source: Literal["xml", "pdf_embedded_xml", "pdf_text"]
+    invoice_no: str
+    type_code: str
+    type_name: str
+    issue_date: date
+    seller_name: str
+    seller_tax_id: str | None
+    buyer_name: str
+    buyer_tax_id: str | None
+    currency: str
+    amounts: dict[str, str] = Field(description="subtotal (excl. VAT), vat, total — decimal strings")
+    bboxes: dict[str, list[float]]
+    signature: Literal["present_unverified", "absent"]
+    warnings: list[str]
+
+
+class InvoiceLinkOut(BaseModel):
+    """Where an uploaded e-Tax invoice ended up after the last analysis."""
+    invoice_no: str
+    status: Literal["pending_analysis", "matched", "unmatched", "duplicate_of_promptbiz"]
+    transaction_id: int | None = None
+    paid_at: datetime | None = None
+    paid_amount: MoneyStr | None = None
+
+
 class DocumentOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -121,7 +150,8 @@ class DocumentOut(BaseModel):
     sha256: str
     page_count: int
     uploaded_at: datetime
-    parse_report: ParseReport | PP30ParseReport | None
+    parse_report: ParseReport | PP30ParseReport | ETaxParseReport | None
+    invoice: InvoiceLinkOut | None = None
 
 
 class TransactionOut(BaseModel):
@@ -225,6 +255,7 @@ class AnalysisOut(BaseModel):
     loops: list[LoopOut]
     watchlist_count: int
     connector: dict | None
+    etax: "ETaxSummaryOut | None" = None
     timings_ms: dict[str, float] = {}
     ocr_held: dict[str, Any] | None = Field(default=None, description="OCR rows held out of the math pending review")
     concentration: "ConcentrationOut | None" = None
@@ -237,6 +268,12 @@ class AnalysisOut(BaseModel):
     alt_connector: dict | None = None
     cash_pattern: "CashPatternOut | None" = None
     drivers: list["DriverOut"] = []
+
+
+class ETaxSummaryOut(BaseModel):
+    uploaded: int
+    matched: int
+    duplicates_of_promptbiz: list[str] = Field(description="invoice numbers also on PromptBiz — only the network copy is used")
 
 
 class PolicyOut(BaseModel):

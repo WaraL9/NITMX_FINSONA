@@ -46,11 +46,11 @@ export class UploadError extends Error {
 export async function uploadDocument(
   caseId: number,
   file: File,
-  opts: { password?: string; accountId?: number; kind?: DocumentOut["kind"] } = {},
+  opts: { password?: string; accountId?: number; kind?: DocumentOut["kind"] | "auto" } = {},
 ): Promise<DocumentOut> {
   const form = new FormData();
   form.append("file", file);
-  form.append("kind", opts.kind ?? "statement");
+  form.append("kind", opts.kind ?? "auto");
   if (opts.password) form.append("password", opts.password);
   if (opts.accountId !== undefined) form.append("account_id", String(opts.accountId));
   const res = await fetch(`/api/cases/${caseId}/documents`, {
@@ -72,8 +72,13 @@ export type WatchlistEntry = components["schemas"]["WatchlistOut"];
 export type StatementReport = components["schemas"]["ParseReport"];
 export type PP30Report = components["schemas"]["PP30ParseReport"];
 
-export const isPP30Report = (r: StatementReport | PP30Report | null | undefined): r is PP30Report =>
-  !!r && "period" in r && "amounts" in r;
+export type ETaxReport = components["schemas"]["ETaxParseReport"];
+export type InvoiceLink = components["schemas"]["InvoiceLinkOut"];
+type AnyReport = StatementReport | PP30Report | ETaxReport | null | undefined;
+
+export const isPP30Report = (r: AnyReport): r is PP30Report => !!r && "period" in r && "amounts" in r;
+export const isETaxReport = (r: AnyReport): r is ETaxReport => !!r && "invoice_no" in r;
+export const isStatementReport = (r: AnyReport): r is StatementReport => !!r && "rows" in r;
 
 export type User = components["schemas"]["UserOut"];
 export type AuditEntry = components["schemas"]["AuditEntryOut"];

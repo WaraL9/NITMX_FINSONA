@@ -59,7 +59,7 @@ function CaseHeader({ c, a, onRun, running, stale }: { c: CaseDetail; a: Analysi
         </div>
         <div className="mt-2 flex items-center justify-end gap-2">
           <Badge tone={caseStatus[c.status].tone}>{caseStatus[c.status].label}</Badge>
-          <Button size="sm" variant={stale || !a ? "primary" : "secondary"} onClick={onRun} disabled={running}>
+          <Button size="sm" variant={stale || !a ? "primary" : "secondary"} onClick={onRun} disabled={running} data-testid="run-analysis">
             {running ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
             {a ? "วิเคราะห์ใหม่" : "เริ่มวิเคราะห์"}
           </Button>
@@ -116,7 +116,7 @@ export default function CaseWorkbench() {
     },
     onSuccess: (data) => {
       qc.setQueryData(["analysis", id], data);
-      for (const k of ["transactions", "case", "watchlist", "sizing", "sizing-safe", "audit", "memo"]) {
+      for (const k of ["transactions", "case", "documents", "watchlist", "sizing", "sizing-safe", "audit", "memo"]) {
         qc.invalidateQueries({ queryKey: [k, id] });
       }
     },

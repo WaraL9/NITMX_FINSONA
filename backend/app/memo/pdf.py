@@ -164,7 +164,7 @@ def render_memo(pkg: dict[str, Any], sign: dict[str, Any], out: Path) -> None:
     t = a["tiers"]
     verified = Decimal(w["verified_operating_revenue"]) or Decimal(1)
     p.section("2. ระดับความน่าเชื่อถือของรายได้ (กระทบยอด 3 เส้า)")
-    tiers = [("ระดับ 1 Golden (PromptBiz e-Invoice)", t["T1_golden"]), ("ระดับ 2 ภ.พ.30", t["T2_tax"]),
+    tiers = [("ระดับ 1 Golden (PromptBiz / e-Tax)", t["T1_golden"]), ("ระดับ 2 ภ.พ.30", t["T2_tax"]),
              ("ระดับ 3 เชิงบริบท/CA รับรอง", t["T3_operational"]), ("ระดับ 4 ไม่นับรวม", t["T4_unverified"])]
     for i in range(0, 4, 2):
         for j, (label, v) in enumerate(tiers[i:i + 2]):
@@ -298,7 +298,14 @@ def _appendix(c: Canvas, pkg: dict[str, Any], sign: dict[str, Any]) -> None:
     xs = [MX, MX + 205, MX + 250, MX + 290, MX + 395]
     p.cols(["ไฟล์", "หน้า", "รายการ", "วิธีอ่าน", "SHA-256"], xs, 7.5, BOLD, GREY)
     for d in ap["documents"]:
-        how = "OCR" + (f" {d['ocr_confidence'] * 100:.0f}%" if d.get("ocr_confidence") else "") if d["parser"].startswith("ocr")             else ("ภ.พ.30" if d["kind"] == "pp30" else "PDF text")
+        if d["parser"].startswith("ocr"):
+            how = "OCR" + (f" {d['ocr_confidence'] * 100:.0f}%" if d.get("ocr_confidence") else "")
+        elif d["kind"] == "pp30":
+            how = "ภ.พ.30"
+        elif d["kind"] == "etax_invoice":
+            how = "e-Tax XML" if d["parser"] == "etda-etax-xml" else "e-Tax PDF text"
+        else:
+            how = "PDF text"
         if d.get("continuity_ok") is False:
             how += " · ยอดไม่ต่อเนื่อง"
         p.cols([d["filename"][:44], str(d["pages"]), "" if d["rows"] is None else f"{d['rows']:,}", how, d["sha256"][:28] + "…"],
@@ -319,6 +326,9 @@ def _appendix(c: Canvas, pkg: dict[str, Any], sign: dict[str, Any]) -> None:
     p.section("ค. ข้อมูลภายนอกที่ใช้")
     p.lines(f"PromptBiz e-Invoice: {ex['invoices']} ใบ รวม {_money(ex['invoice_total'])} บาท · จับคู่กับรายการรับเงิน "
             f"{ex['receipts_matched']} รายการ" + (f" · แหล่ง {ex['connector']}" if ex.get("connector") else ""))
+    if ex.get("etax_invoices"):
+        p.lines(f"ใบกำกับภาษีอิเล็กทรอนิกส์ (e-Tax) ที่ผู้กู้อัปโหลด: {ex['etax_invoices']} ใบ รวม "
+                f"{_money(ex['etax_total'])} บาท (ไฟล์และ SHA-256 อยู่ในรายการเอกสารด้านบน)")
     if ex["tax_filings"]:
         p.lines("ภ.พ.30 ยอดขาย: " + " · ".join(f"{f['period']} {_money(f['sales'])}" for f in ex["tax_filings"]))
     p.lines(f"ค่าสาธารณูปโภค (ข้อมูลทางเลือก): {ex['utility_bills']} บิล")

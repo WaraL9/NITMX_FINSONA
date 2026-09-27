@@ -170,6 +170,8 @@ class Invoice(Base):
     paid_at: Mapped[datetime | None] = mapped_column(DateTime)
     settlement_ref: Mapped[str | None] = mapped_column(String(64))
     matched_transaction_id: Mapped[int | None] = mapped_column(ForeignKey("transactions.id", ondelete="SET NULL"))
+    # Uploaded e-Tax invoices (E2-13) keep the file they were read from; connector invoices have none.
+    document_id: Mapped[int | None] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"), index=True)
 
 
 class TaxFiling(Base):

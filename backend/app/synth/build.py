@@ -20,6 +20,8 @@ from app.synth.generator import generate
 from app.synth.statement_pdf import render_statement
 from app.synth.alt_data import make_alt_data
 from app.synth.scan import scan_statement
+from app.synth.etax_docs import make_etax_invoices, write_etax_files
+from app.synth.generator import REVENUE_T2
 from app.synth.tax_docs import make_invoices, make_pp30, render_pp30
 
 
@@ -85,6 +87,19 @@ def build_case(name: str = "kitti", out_dir: Path | None = None, seed: int = 42,
             "vat_payable": f"{f.vat_payable:.2f}", "bands": bands,
         }
         built.append(BuiltDoc(f.period, "pp30", pdf))
+
+    # e-Tax invoice samples (E2-13) for the SME to upload; not ingested by the seed, so the
+    # canonical figures are unchanged until someone uploads one.
+    t2 = {k: sum(t.category == REVENUE_T2 for t in a.rows) for k, a in gen.accounts.items()}
+    truth["etax"] = []
+    if any(t2.values()):
+        for inv in make_etax_invoices(gen, max(t2, key=t2.get)):
+            files = write_etax_files(inv, out_dir / "etax")
+            truth["etax"].append({"invoice_no": inv.invoice_no, "issue_date": inv.issue_date.isoformat(),
+                                  "buyer_name": inv.buyer_name, "subtotal": f"{inv.subtotal:.2f}",
+                                  "vat": f"{inv.vat:.2f}", "total": f"{inv.total:.2f}",
+                                  "account": inv.account_key, "paid_at": inv.paid_at,
+                                  "paid_amount": f"{inv.paid_amount:.2f}", **files})
 
     (out_dir / "truth.json").write_text(json.dumps(truth, ensure_ascii=False, indent=1), encoding="utf-8")
     return built

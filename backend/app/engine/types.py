@@ -53,6 +53,7 @@ class EInvoice:
     buyer_name: str
     total: Decimal
     subtotal: Decimal
+    source: str = "promptbiz"  # promptbiz_* (network) | etax_upload (SME-provided e-Tax invoice)
 
 
 @dataclass(frozen=True)

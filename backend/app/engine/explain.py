@@ -62,7 +62,8 @@ def explain(x: ExplainInputs) -> tuple[Decimal, list[Driver]]:
     drivers: list[Driver] = []
 
     tier_titles = {
-        "T1_golden": ("รายได้ยืนยันด้วยใบแจ้งหนี้ PromptBiz", "ยอดรับชำระตรงกับ e-Invoice บนโครงข่าย PromptBiz"),
+        "T1_golden": ("รายได้ยืนยันด้วยใบแจ้งหนี้ PromptBiz / e-Tax",
+                      "ยอดรับชำระตรงกับ e-Invoice บนโครงข่าย PromptBiz หรือใบกำกับภาษีอิเล็กทรอนิกส์"),
         "T2_tax": ("รายได้สอดคล้องกับ ภ.พ.30", "อยู่ในยอดขายที่ยื่นกรมสรรพากร"),
         "T3_operational": ("รายได้เชิงบริบท (พร้อมเพย์/ลูกค้าประจำ/CA รับรอง)", "มีหลักฐานการค้าต่อเนื่อง"),
     }

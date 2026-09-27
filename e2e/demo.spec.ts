@@ -1,3 +1,4 @@
+import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
 /** The five pitch moments from docs/BACKLOG.md §3, on the canonical Kitti case. */
@@ -7,13 +8,15 @@ const CASE = "/cases/1";
 // Slow enough to watch in the recording, fast in CI.
 const beat = (page: Page) => page.waitForTimeout(process.env.E2E_SLOW ? 1200 : 150);
 
-test.beforeAll(async ({ request }) => {
+async function resetDemo(request: import("@playwright/test").APIRequestContext) {
   const login = await request.post("/api/auth/login", { data: { username: "ca", password: PASSWORD } });
   expect(login.ok()).toBeTruthy();
   const { token } = await login.json();
   const reset = await request.post("/api/demo/reset", { headers: { Authorization: `Bearer ${token}` } });
   expect(reset.ok()).toBeTruthy();
-});
+}
+
+test.beforeAll(async ({ request }) => resetDemo(request));
 
 test("demo run: pipeline → loops → lineage → sizing → judgement → memo → LOS", async ({ page, request }) => {
   const errors: string[] = [];
@@ -121,4 +124,20 @@ test("OCR review: a scanned statement's uncertain rows are checked against the i
   await expect(page.getByTestId("tab-ocr")).toContainText(String(before - 2));
   await page.getByTestId("tab-audit").click();
   await expect(page.getByText("ตรวจทาน OCR").first()).toBeVisible();
+});
+
+test("e-Tax invoice: an uploaded ETDA XML verifies a receipt as Tier 1", async ({ page, request }) => {
+  await resetDemo(request); // the demo run above signed case 1
+  const xml = path.join(__dirname, "..", "data", "generated", "kitti", "etax", "etax_ETX-2512-0001.xml");
+  await page.goto("/login");
+  await page.getByRole("button", { name: "เจ้าหน้าที่วิเคราะห์สินเชื่อ (CA)" }).click();
+  await expect(page).toHaveURL("/");
+  await page.goto(`${CASE}?tab=documents`);
+  await page.locator('input[type="file"]').setInputFiles(xml);
+  await expect(page.getByText("ใบกำกับภาษีเลขที่ ETX-2512-0001")).toBeVisible();
+  const row = page.getByTestId("etax-row");
+  await expect(row).toContainText("รอวิเคราะห์ใหม่");
+  await page.getByTestId("run-analysis").click();
+  await expect(row).toContainText("→ ระดับ 1", { timeout: 30_000 });
+  await expect(row).toContainText("XML (ETDA)");
 });

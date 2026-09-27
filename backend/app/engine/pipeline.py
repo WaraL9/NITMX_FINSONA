@@ -120,7 +120,8 @@ def analyze(
     for tid, (inv, how) in matched.items():
         o = outcomes[tid]
         o.tier, o.invoice_id = "T1_golden", inv.id
-        o.reason = f"ตรงกับใบแจ้งหนี้ PromptBiz {inv.invoice_no} ({how})"
+        where = "ใบกำกับภาษีอิเล็กทรอนิกส์ (e-Tax) ที่อัปโหลด" if inv.source == "etax_upload" else "ใบแจ้งหนี้ PromptBiz"
+        o.reason = f"ตรงกับ{where} {inv.invoice_no} ({how})"
         t1_by_month[by_id[tid].posted_at.strftime("%Y-%m")] += by_id[tid].credit
 
     rest = [t for t in customer if t.id not in matched]

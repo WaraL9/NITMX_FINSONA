@@ -31,7 +31,9 @@ def build(db: Session, case: Case, analysis: dict[str, Any]) -> dict[str, Any]:
             "period": r.get("period") or (f"{r['period_start']} – {r['period_end']}" if r.get("period_start") else None),
         })
     inv_total, inv_n = db.execute(select(func.coalesce(func.sum(Invoice.amount), 0), func.count())
-                                  .where(Invoice.case_id == case.id)).one()
+                                  .where(Invoice.case_id == case.id, Invoice.source != "etax_upload")).one()
+    etax_total, etax_n = db.execute(select(func.coalesce(func.sum(Invoice.amount), 0), func.count())
+                                    .where(Invoice.case_id == case.id, Invoice.source == "etax_upload")).one()
     matched = db.scalar(select(func.count()).select_from(Transaction)
                         .where(Transaction.case_id == case.id, Transaction.invoice_id.is_not(None))) or 0
     filings = [{"period": f.period, "sales": f"{f.sales:.2f}"}
@@ -57,6 +59,7 @@ def build(db: Session, case: Case, analysis: dict[str, Any]) -> dict[str, Any]:
         "documents": docs,
         "coverage": coverage.compute(db, case),
         "external": {"invoices": inv_n, "invoice_total": f"{Decimal(inv_total):.2f}", "receipts_matched": matched,
+                     "etax_invoices": etax_n, "etax_total": f"{Decimal(etax_total):.2f}",
                      "tax_filings": filings, "utility_bills": bills,
                      "connector": (analysis.get("connector") or {}).get("source")},
         "judgements": judgements,

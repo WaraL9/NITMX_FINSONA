@@ -26,12 +26,14 @@ from app.config import settings
 from app.core.money import to_money
 import pdfplumber
 
-from app.models import Account, Case, Document, Page, TaxFiling, Transaction
+from app.models import Account, Case, Document, Invoice, Page, TaxFiling, Transaction
 from app.ocr.base import OcrResult, OcrUnavailable
 from app.ocr.base import get_provider as get_ocr_provider
 from app.services import ocr_review
 from app.parsers.base import (NoTextLayer, ParsedStatement, ParseError, UnsupportedFormat, parse_statement,
                                parse_statement_words)
+from app.parsers.etax import (ParsedETax, detect_etax_pdf, embedded_xml, looks_like_xml, parse_etax_pdf,
+                              parse_etax_xml)
 from app.parsers.pp30 import ParsedPP30, detect_pp30, parse_pp30
 
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
@@ -80,6 +82,15 @@ class ParseFailed(IngestError):
     code = "parse_failed"
 
 
+class DuplicateInvoice(IngestError):
+    code = "duplicate_invoice"
+    status = 409
+
+
+class SellerMismatch(IngestError):
+    code = "seller_mismatch"
+
+
 class BadRequest(IngestError):
     code = "bad_request"
     status = 400
@@ -91,16 +102,21 @@ class IngestResult:
     statement: ParsedStatement | None
     account_created: bool
     pp30: ParsedPP30 | None = None
+    etax: ParsedETax | None = None
 
 
 def detect_kind(plain: bytes) -> str:
     """Guess the document type from page 1 (statements are the default)."""
     try:
+        if embedded_xml(PdfReader(io.BytesIO(plain))):
+            return "etax_invoice"  # PDF/A-3 e-Tax invoice with its XML attached
         with pdfplumber.open(io.BytesIO(plain)) as pdf:
             first = (pdf.pages[0].extract_text() or "") if pdf.pages else ""
     except Exception:
         return "statement"
-    return "pp30" if detect_pp30(first) else "statement"
+    if detect_pp30(first):
+        return "pp30"
+    return "etax_invoice" if detect_etax_pdf(first) else "statement"
 
 
 def sha256_hex(data: bytes) -> str:
@@ -188,13 +204,28 @@ def ingest_document(
     if existing:
         raise DuplicateDocument("this exact file is already in the case", existing_document_id=existing.id)
 
-    plain, encrypted = _decrypt(data, password)
+    is_xml = looks_like_xml(data)
+    if is_xml:
+        if kind not in ("auto", "etax_invoice"):
+            raise NotAPdf("XML is only accepted for e-Tax invoices")
+        plain, encrypted, kind = data, False, "etax_invoice"
+    else:
+        plain, encrypted = _decrypt(data, password)
     if kind == "auto":
         kind = detect_kind(plain)
 
     stmt: ParsedStatement | None = None
     pp30: ParsedPP30 | None = None
+    etax: ParsedETax | None = None
     ocr: OcrResult | None = None
+    if kind == "etax_invoice":
+        try:
+            etax = parse_etax_xml(plain) if is_xml else parse_etax_pdf(plain)
+        except UnsupportedFormat as e:
+            raise UnsupportedDocument(str(e)) from e
+        except ParseError as e:
+            raise ParseFailed(str(e)) from e
+        _check_etax(db, case, etax)
     if kind == "pp30":
         try:
             pp30 = parse_pp30(io.BytesIO(plain))
@@ -241,7 +272,7 @@ def ingest_document(
 
     folder: Path = settings.storage_dir / f"case_{case_id}"
     folder.mkdir(parents=True, exist_ok=True)
-    original = folder / f"{digest}.pdf"
+    original = folder / f"{digest}.{'xml' if is_xml else 'pdf'}"
     storage.write(original, data)
     view = None
     if encrypted:
@@ -252,12 +283,12 @@ def ingest_document(
         case_id=case_id,
         account_id=account.id if account else account_id,
         kind=kind,
-        filename=Path(filename).name[:255] or "upload.pdf",
+        filename=Path(filename).name[:255] or ("upload.xml" if is_xml else "upload.pdf"),
         sha256=digest,
         storage_path=str(original),
         view_path=str(view) if view else None,
-        mime="application/pdf",
-        page_count=len(PdfReader(io.BytesIO(plain)).pages),
+        mime="application/xml" if is_xml else "application/pdf",
+        page_count=0 if is_xml else len(PdfReader(io.BytesIO(plain)).pages),
         uploaded_by=user_id,
     )
     db.add(doc)
@@ -330,9 +361,57 @@ def ingest_document(
             ocr_review.flag_document(db, doc)
     if pp30 is not None:
         _store_pp30(db, case, doc, pp30)
+    if etax is not None:
+        _store_etax(db, case, doc, etax)
     db.commit()
     db.refresh(doc)
-    return IngestResult(doc, stmt, created, pp30)
+    return IngestResult(doc, stmt, created, pp30, etax)
+
+
+def _check_etax(db: Session, case: Case, inv: ParsedETax) -> None:
+    """An invoice proves this applicant's revenue only if the applicant issued it, once."""
+    if case.tax_id and inv.seller_tax_id != case.tax_id:
+        raise SellerMismatch(
+            f"ใบกำกับภาษีนี้ออกโดยผู้ขายเลขประจำตัวผู้เสียภาษี {inv.seller_tax_id or 'ไม่ระบุ'} "
+            f"ไม่ใช่ผู้ขอสินเชื่อ ({case.tax_id}) — ใช้ยืนยันรายได้ของกิจการนี้ไม่ได้",
+            seller_tax_id=inv.seller_tax_id)
+    existing = db.scalar(select(Invoice).where(Invoice.case_id == case.id, Invoice.source == "etax_upload",
+                                               Invoice.invoice_no == inv.invoice_no))
+    if existing:
+        raise DuplicateInvoice(f"ใบกำกับภาษีเลขที่ {inv.invoice_no} อยู่ในแฟ้มแล้ว (ไฟล์ XML/PDF ของใบเดียวกัน)",
+                               existing_document_id=existing.document_id)
+
+
+def _store_etax(db: Session, case: Case, doc: Document, inv: ParsedETax) -> None:
+    if inv.page_width is not None:
+        db.add(Page(document_id=doc.id, page_no=1, width=inv.page_width, height=inv.page_height))
+    warnings = list(inv.warnings)
+    if not case.tax_id:
+        warnings.append("แฟ้มยังไม่มีเลขประจำตัวผู้เสียภาษี — ยังยืนยันไม่ได้ว่าผู้ขอสินเชื่อเป็นผู้ออกใบกำกับ")
+    db.add(Invoice(
+        case_id=case.id, source="etax_upload", document_id=doc.id, invoice_no=inv.invoice_no,
+        issue_date=inv.issue_date, seller_tax_id=inv.seller_tax_id, buyer_name=inv.buyer_name,
+        buyer_tax_id=inv.buyer_tax_id, subtotal=inv.subtotal, vat=inv.vat, amount=inv.total,
+    ))
+    doc.parser = inv.parser
+    doc.parse_report = {
+        "parser": inv.parser,
+        "parser_version": inv.parser_version,
+        "source": inv.source,
+        "invoice_no": inv.invoice_no,
+        "type_code": inv.type_code,
+        "type_name": inv.type_name,
+        "issue_date": inv.issue_date.isoformat(),
+        "seller_name": inv.seller_name,
+        "seller_tax_id": inv.seller_tax_id,
+        "buyer_name": inv.buyer_name,
+        "buyer_tax_id": inv.buyer_tax_id,
+        "currency": inv.currency,
+        "amounts": {"subtotal": f"{inv.subtotal:.2f}", "vat": f"{inv.vat:.2f}", "total": f"{inv.total:.2f}"},
+        "bboxes": {k: [b.x0, b.top, b.x1, b.bottom] for k, b in inv.bboxes.items()},
+        "signature": inv.signature,
+        "warnings": warnings,
+    }
 
 
 def _store_pp30(db: Session, case: Case, doc: Document, f: ParsedPP30) -> None:

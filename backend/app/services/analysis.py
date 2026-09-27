@@ -163,6 +163,11 @@ def run_analysis(db: Session, case_id: int, sync_invoices: bool = True, user_id:
     held_ids = {t.id for t in held}
     rows = [t for t in all_rows if t.id not in held_ids]
     invoices = list(db.scalars(select(Invoice).where(Invoice.case_id == case_id)))
+    # E2-13: an uploaded e-Tax invoice that PromptBiz also reports is the same sale. Keep the
+    # network copy only, so one sale can never verify two receipts.
+    on_network = {i.invoice_no for i in invoices if i.source.startswith("promptbiz_")}
+    etax_duplicates = sorted(i.invoice_no for i in invoices if i.source == "etax_upload" and i.invoice_no in on_network)
+    usable = [i for i in invoices if not (i.source == "etax_upload" and i.invoice_no in on_network)]
     filings = list(db.scalars(select(TaxFiling).where(TaxFiling.case_id == case_id)))
     existing_items = {w.transaction_id: w for w in db.scalars(select(WatchlistItem).where(WatchlistItem.case_id == case_id))}
     decisions = {tid: w.status for tid, w in existing_items.items() if w.status in ("accepted", "excluded")}
@@ -175,7 +180,7 @@ def run_analysis(db: Session, case_id: int, sync_invoices: bool = True, user_id:
         [EAccount(a.id, a.bank_code, a.account_no_masked, a.account_name, a.owner_type) for a in accounts],
         [ETxn(t.id, t.account_id, t.posted_at, t.code or "", t.description, t.debit, t.credit,
               t.counterparty_name, t.counterparty_account, t.counterparty_bank) for t in rows],
-        [EInvoice(i.id, i.invoice_no, i.issue_date, i.buyer_name, i.amount, i.subtotal) for i in invoices],
+        [EInvoice(i.id, i.invoice_no, i.issue_date, i.buyer_name, i.amount, i.subtotal, i.source) for i in usable],
         [EFiling(f.period, f.sales, f.output_vat) for f in filings],
         period[0],
         period[1],
@@ -214,6 +219,9 @@ def run_analysis(db: Session, case_id: int, sync_invoices: bool = True, user_id:
     payload = serialize(result, sync, period)
     payload["ocr_held"] = {"rows": len(held), "credit": f"{sum((t.credit for t in held), Decimal('0')):.2f}",
                            "debit": f"{sum((t.debit for t in held), Decimal('0')):.2f}"}
+    etax = [i for i in invoices if i.source == "etax_upload"]
+    payload["etax"] = {"uploaded": len(etax), "duplicates_of_promptbiz": etax_duplicates,
+                       "matched": sum(1 for i in etax if i.matched_transaction_id is not None)}
     payload.update(_evidence(db, case, result, rows, period, alt_sync))
     analysis = Analysis(case_id=case_id, engine_version=result.engine_version, duration_ms=duration_ms,
                         result=payload)

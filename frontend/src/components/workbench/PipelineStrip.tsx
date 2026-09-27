@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Check, FileText, GitBranch, Layers, Scale, ScanText } from "lucide-react";
-import { api, isPP30Report, unwrap, type Analysis } from "@/api/client";
+import { api, isStatementReport, unwrap, type Analysis } from "@/api/client";
 import { cn } from "@/lib/utils";
 
 /**
@@ -14,17 +14,17 @@ export function PipelineStrip({ caseId, a }: { caseId: number; a: Analysis }) {
     queryFn: async () =>
       unwrap(await api.GET("/api/cases/{case_id}/documents", { params: { path: { case_id: caseId } } })),
   });
-  const statements = docs?.filter((d) => !isPP30Report(d.parse_report)) ?? [];
   const pages = docs?.reduce((s, d) => s + d.page_count, 0) ?? 0;
-  const rows = statements.reduce((s, d) => s + (d.parse_report && !isPP30Report(d.parse_report) ? d.parse_report.rows : 0), 0);
+  const rows = docs?.reduce((s, d) => s + (isStatementReport(d.parse_report) ? d.parse_report.rows : 0), 0) ?? 0;
   const t = a.timings_ms ?? {};
   const fetched = a.connector && "fetched" in a.connector ? String(a.connector.fetched) : "0";
+  const etax = a.etax?.uploaded ? ` · e-Tax ${a.etax.uploaded} ใบ` : "";
 
   const steps = [
     { icon: FileText, title: "รับเอกสาร", detail: `${docs?.length ?? 0} ไฟล์ · ${pages} หน้า`, ms: null },
     { icon: ScanText, title: "สกัดข้อมูล", detail: `${rows.toLocaleString()} รายการ + พิกัด`, ms: null },
     { icon: GitBranch, title: "ตัดเงินโอนวน", detail: `พบ ${a.loops.length} วงจร`, ms: t.loops },
-    { icon: Layers, title: "จัดหมวด + กระทบยอด 3 เส้า", detail: `PromptBiz ${fetched} ใบ · ภ.พ.30`, ms: (t.classify ?? 0) + (t.tiers ?? 0) },
+    { icon: Layers, title: "จัดหมวด + กระทบยอด 3 เส้า", detail: `PromptBiz ${fetched} ใบ${etax} · ภ.พ.30`, ms: (t.classify ?? 0) + (t.tiers ?? 0) },
     { icon: Scale, title: "คำนวณวงเงิน", detail: `DSCR · Safe-Limit`, ms: t.aggregate },
   ];
 

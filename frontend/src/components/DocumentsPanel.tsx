@@ -1,15 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarCheck, CalendarX, CheckCircle2, FileLock2, FileText, Loader2, Receipt, ScanLine, TriangleAlert, Upload } from "lucide-react";
+import { CalendarCheck, CalendarX, CheckCircle2, Clock, FileCode2, FileLock2, FileText, Loader2, Receipt, ScanLine, TriangleAlert, Upload } from "lucide-react";
 import { useRef, useState, type DragEvent } from "react";
 import {
   api,
   documentFileUrl,
+  isETaxReport,
   isPP30Report,
+  isStatementReport,
   unwrap,
   uploadDocument,
   UploadError,
   type Account,
   type DocumentOut,
+  type ETaxReport,
   type PP30Report,
 } from "@/api/client";
 import { Badge, SourceBadge } from "@/components/ui/badge";
@@ -24,9 +27,9 @@ import { cn } from "@/lib/utils";
 const ERROR_TEXT: Record<string, string> = {
   password_incorrect: "รหัสผ่านไม่ถูกต้อง ลองอีกครั้ง",
   duplicate_document: "ไฟล์นี้อยู่ในแฟ้มแล้ว (ลายนิ้วมือ SHA-256 ตรงกับเอกสารเดิม)",
-  not_a_pdf: "ไฟล์นี้ไม่ใช่ PDF ที่อ่านได้",
-  unsupported_format: "ยังไม่รองรับรูปแบบสเตทเมนต์นี้ — เอกสารสแกน/รูปแบบธนาคารอื่นจะใช้ OCR ใน Increment ถัดไป",
-  parse_failed: "อ่านสเตทเมนต์ไม่สำเร็จ",
+  not_a_pdf: "ไฟล์นี้ไม่ใช่ PDF ที่อ่านได้ (ไฟล์ XML รับเฉพาะใบกำกับภาษีอิเล็กทรอนิกส์)",
+  unsupported_format: "ยังไม่รองรับรูปแบบเอกสารนี้",
+  parse_failed: "อ่านเอกสารไม่สำเร็จ",
   bad_request: "คำขอไม่ถูกต้อง",
 };
 
@@ -126,10 +129,74 @@ function PP30Row({ doc, r }: { doc: DocumentOut; r: PP30Report }) {
   );
 }
 
+const ETAX_SOURCE: Record<ETaxReport["source"], string> = {
+  xml: "XML (ETDA)",
+  pdf_embedded_xml: "PDF + XML แนบ",
+  pdf_text: "PDF (อ่านจากข้อความ)",
+};
+
+/** E2-13: an uploaded e-Tax invoice and the receipt it verified. */
+function ETaxRow({ doc, r }: { doc: DocumentOut; r: ETaxReport }) {
+  const link = doc.invoice;
+  return (
+    <TR data-testid="etax-row">
+      <TD>
+        <a href="#" onClick={(e) => { e.preventDefault(); void openProtected(documentFileUrl(doc.id)); }}
+          className="flex items-center gap-2 font-medium text-ink hover:text-navy">
+          <FileCode2 className="size-4 shrink-0 text-verified" />
+          <span className="truncate">{doc.filename}</span>
+        </a>
+        <div className="mt-0.5 font-mono text-[11px] text-muted" title={doc.sha256}>
+          SHA-256 {doc.sha256.slice(0, 12)}…
+        </div>
+      </TD>
+      <TD>
+        <Badge tone="verified">e-Tax {r.invoice_no}</Badge>
+        <div className="mt-1 text-xs text-body" title={r.buyer_tax_id ?? undefined}>
+          {r.type_name} · {thDate(r.issue_date)} · ผู้ซื้อ {r.buyer_name}
+        </div>
+      </TD>
+      <TD numeric>{doc.page_count || "—"}</TD>
+      <TD numeric className="text-muted">—</TD>
+      <TD numeric title="ยอดรวมทั้งสิ้น (รวม VAT)">{formatTHB(r.amounts.total, 0)}</TD>
+      <TD numeric className="text-muted">—</TD>
+      <TD>
+        <div className="flex flex-wrap gap-1">
+          {link?.status === "matched" && link.paid_at && link.paid_amount && (
+            <Badge tone="verified" title={`รายการรับเงิน #${link.transaction_id}`}>
+              <CheckCircle2 className="size-3" /> ยืนยันเงินเข้า {thDate(link.paid_at)} {formatTHB(link.paid_amount, 0)} → ระดับ 1
+            </Badge>
+          )}
+          {link?.status === "unmatched" && (
+            <Badge tone="judge" title="ไม่มีรายการรับเงินจากผู้ซื้อรายนี้ที่ยอดและวันที่สอดคล้อง (0–120 วันหลังออกใบกำกับ)">
+              <TriangleAlert className="size-3" /> ยังไม่พบเงินเข้าที่ตรงกัน
+            </Badge>
+          )}
+          {link?.status === "duplicate_of_promptbiz" && (
+            <Badge tone="neutral">ซ้ำกับ PromptBiz — ใช้ข้อมูลจากโครงข่าย</Badge>
+          )}
+          {link?.status === "pending_analysis" && (
+            <Badge tone="neutral">
+              <Clock className="size-3" /> รอวิเคราะห์ใหม่
+            </Badge>
+          )}
+          <Badge tone={r.source === "pdf_text" ? "judge" : "navy"}>{ETAX_SOURCE[r.source]}</Badge>
+          {r.warnings.length > 0 && (
+            <Badge tone="judge" title={r.warnings.join("\n")}>
+              <TriangleAlert className="size-3" /> {r.warnings.length} ข้อสังเกต
+            </Badge>
+          )}
+        </div>
+      </TD>
+    </TR>
+  );
+}
+
 function DocumentRow({ doc, account }: { doc: DocumentOut; account?: Account }) {
   const report = doc.parse_report;
   if (isPP30Report(report)) return <PP30Row doc={doc} r={report} />;
-  const r = report;
+  if (isETaxReport(report)) return <ETaxRow doc={doc} r={report} />;
+  const r = isStatementReport(report) ? report : null;
   return (
     <TR>
       <TD>
@@ -217,7 +284,9 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
         tone: "verified",
         text: isPP30Report(doc.parse_report)
           ? `อัปโหลด ${doc.filename} แล้ว — ภ.พ.30 เดือน ${doc.parse_report.period}`
-          : `อัปโหลด ${doc.filename} แล้ว — อ่านได้ ${doc.parse_report?.rows ?? 0} รายการจาก ${doc.page_count} หน้า`,
+          : isETaxReport(doc.parse_report)
+            ? `อัปโหลด ${doc.filename} แล้ว — ใบกำกับภาษีเลขที่ ${doc.parse_report.invoice_no} ยอด ${formatTHB(doc.parse_report.amounts.total, 2)} บาท (กดวิเคราะห์ใหม่เพื่อจับคู่กับเงินเข้า)`
+            : `อัปโหลด ${doc.filename} แล้ว — อ่านได้ ${isStatementReport(doc.parse_report) ? doc.parse_report.rows : 0} รายการจาก ${doc.page_count} หน้า`,
       });
       qc.invalidateQueries({ queryKey: ["documents", caseId] });
       qc.invalidateQueries({ queryKey: ["case", caseId] });
@@ -236,7 +305,9 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
       }
       const code = err instanceof UploadError ? err.body.code : "network";
       setLocked(null);
-      setMessage({ tone: "risk", text: `${file.name}: ${ERROR_TEXT[code] ?? err.message}` });
+      // e-Tax rejections carry a specific Thai explanation from the server.
+      const serverText = err instanceof UploadError && ["seller_mismatch", "duplicate_invoice"].includes(code) ? err.body.message : null;
+      setMessage({ tone: "risk", text: `${file.name}: ${serverText ?? ERROR_TEXT[code] ?? err.message}` });
     },
   });
 
@@ -258,7 +329,7 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
 
   const byId = new Map(accounts.map((a) => [a.id, a]));
   const totalRows =
-    docs?.reduce((s, d) => s + (d.parse_report && !isPP30Report(d.parse_report) ? d.parse_report.rows : 0), 0) ?? 0;
+    docs?.reduce((s, d) => s + (isStatementReport(d.parse_report) ? d.parse_report.rows : 0), 0) ?? 0;
 
   return (
     <Card>
@@ -284,8 +355,8 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
         <div className="flex items-center gap-3 text-sm">
           <Upload className="size-5 text-muted" />
           <div>
-            <div className="text-ink">ลากไฟล์สเตทเมนต์ หรือ ภ.พ.30 (PDF) มาวางที่นี่</div>
-            <div className="text-xs text-muted">รองรับหลายไฟล์ · ไฟล์มีรหัสผ่านได้ · ตรวจลายนิ้วมือ SHA-256 ทุกไฟล์</div>
+            <div className="text-ink">ลากไฟล์สเตทเมนต์ ภ.พ.30 หรือใบกำกับภาษีอิเล็กทรอนิกส์ (PDF / XML) มาวางที่นี่</div>
+            <div className="text-xs text-muted">ระบบแยกประเภทเอกสารให้อัตโนมัติ · รองรับหลายไฟล์ · ไฟล์มีรหัสผ่านได้ · ตรวจลายนิ้วมือ SHA-256 ทุกไฟล์</div>
           </div>
         </div>
         <Button variant="secondary" onClick={() => input.current?.click()} disabled={upload.isPending}>
@@ -295,7 +366,7 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
         <input
           ref={input}
           type="file"
-          accept="application/pdf"
+          accept="application/pdf,.xml,application/xml,text/xml"
           multiple
           hidden
           onChange={(e) => {

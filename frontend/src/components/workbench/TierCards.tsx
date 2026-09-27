@@ -21,11 +21,12 @@ export function TierCards({ caseId, a, onOpenWatchlist }: { caseId: number; a: A
           </div>
           <SourceBadge mode={mode} source="PromptBiz" />
         </div>
-        <Figure caseId={caseId} metric="T1_golden" label="ระดับ 1 · Golden (ตรงกับใบแจ้งหนี้ PromptBiz)" value={a.tiers.T1_golden}
+        <Figure caseId={caseId} metric="T1_golden" label="ระดับ 1 · Golden (ตรงกับใบแจ้งหนี้ PromptBiz / e-Tax)" value={a.tiers.T1_golden}
           format="millions" className="mt-3 block text-3xl font-semibold text-verified" />
         <div className="mt-1 text-xs text-muted">{pct(a.tiers.T1_golden)}</div>
         <p className="mt-3 text-xs text-body">
-          ยอดเงินเข้าที่จับคู่ได้กับใบแจ้งหนี้ e-Invoice และประวัติชำระบนโครงข่าย PromptBiz ({fetched} ใบ) — ใช้คำนวณวงเงินได้เต็ม 100%
+          ยอดเงินเข้าที่จับคู่ได้กับใบแจ้งหนี้ e-Invoice และประวัติชำระบนโครงข่าย PromptBiz ({fetched} ใบ)
+          {a.etax?.uploaded ? ` และใบกำกับภาษีอิเล็กทรอนิกส์ที่อัปโหลด (${a.etax.matched}/${a.etax.uploaded} ใบจับคู่ได้)` : ""} — ใช้คำนวณวงเงินได้เต็ม 100%
         </p>
       </Card>
 

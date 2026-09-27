@@ -11,10 +11,10 @@ from app.api.deps import client_ip, require_role
 from app.db import get_db
 from app.services import audit, coverage
 from app.api.metrics import metric_filters
-from app.models import Account, Case, Document, Page, Transaction, User
+from app.models import Account, Analysis, Case, Document, Invoice, Page, Transaction, User
 from app import storage
 from app.api.common import txn_out
-from app.schemas import ApiError, CoverageOut, DocumentKind, DocumentOut, TransactionPage
+from app.schemas import ApiError, CoverageOut, DocumentKind, DocumentOut, InvoiceLinkOut, TransactionPage
 from app.services.ingest import IngestError, ingest_document
 
 router = APIRouter(tags=["documents"])
@@ -76,7 +76,31 @@ def case_coverage(case_id: int, db: Session = Depends(get_db)):
 @router.get("/api/cases/{case_id}/documents", response_model=list[DocumentOut])
 def list_documents(case_id: int, db: Session = Depends(get_db)):
     _require_case(db, case_id)
-    return list(db.scalars(select(Document).where(Document.case_id == case_id).order_by(Document.uploaded_at)))
+    docs = list(db.scalars(select(Document).where(Document.case_id == case_id).order_by(Document.uploaded_at)))
+    links = _invoice_links(db, case_id)
+    return [DocumentOut.model_validate(d).model_copy(update={"invoice": links.get(d.id)}) for d in docs]
+
+
+def _invoice_links(db: Session, case_id: int) -> dict[int, InvoiceLinkOut]:
+    """E2-13: for each uploaded e-Tax invoice, the receipt it verified (as of the last analysis)."""
+    rows = db.execute(select(Invoice, Transaction, Document.uploaded_at)
+                      .outerjoin(Transaction, Transaction.id == Invoice.matched_transaction_id)
+                      .outerjoin(Document, Document.id == Invoice.document_id)
+                      .where(Invoice.case_id == case_id)).all()
+    analysed_at = db.scalar(select(func.max(Analysis.created_at)).where(Analysis.case_id == case_id))
+    on_network = {i.invoice_no for i, _, _ in rows if i.source.startswith("promptbiz_")}
+    out = {}
+    for inv, txn, uploaded_at in rows:
+        if inv.document_id is None:
+            continue
+        if analysed_at is None or analysed_at < uploaded_at:
+            status = "pending_analysis"
+        else:
+            status = "duplicate_of_promptbiz" if inv.invoice_no in on_network else "matched" if txn else "unmatched"
+        out[inv.document_id] = InvoiceLinkOut(
+            invoice_no=inv.invoice_no, status=status, transaction_id=txn.id if txn else None,
+            paid_at=txn.posted_at if txn else None, paid_amount=txn.credit if txn else None)
+    return out
 
 
 @router.get("/api/documents/{document_id}/file", response_class=FileResponse)

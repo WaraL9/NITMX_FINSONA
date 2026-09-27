@@ -1117,6 +1117,7 @@ export interface components {
             connector: {
                 [key: string]: unknown;
             } | null;
+            etax?: components["schemas"]["ETaxSummaryOut"] | null;
             /**
              * Timings Ms
              * @default {}
@@ -1559,7 +1560,8 @@ export interface components {
              */
             uploaded_at: string;
             /** Parse Report */
-            parse_report: components["schemas"]["ParseReport"] | components["schemas"]["PP30ParseReport"] | null;
+            parse_report: components["schemas"]["ParseReport"] | components["schemas"]["PP30ParseReport"] | components["schemas"]["ETaxParseReport"] | null;
+            invoice?: components["schemas"]["InvoiceLinkOut"] | null;
         };
         /** DocumentVerifyOut */
         DocumentVerifyOut: {
@@ -1591,6 +1593,72 @@ export interface components {
             impact: string;
             /** Metric */
             metric: string | null;
+        };
+        /**
+         * ETaxParseReport
+         * @description E2-13: what was read from an e-Tax invoice (XML, PDF with embedded XML, or PDF text).
+         */
+        ETaxParseReport: {
+            /** Parser */
+            parser: string;
+            /** Parser Version */
+            parser_version: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "xml" | "pdf_embedded_xml" | "pdf_text";
+            /** Invoice No */
+            invoice_no: string;
+            /** Type Code */
+            type_code: string;
+            /** Type Name */
+            type_name: string;
+            /**
+             * Issue Date
+             * Format: date
+             */
+            issue_date: string;
+            /** Seller Name */
+            seller_name: string;
+            /** Seller Tax Id */
+            seller_tax_id: string | null;
+            /** Buyer Name */
+            buyer_name: string;
+            /** Buyer Tax Id */
+            buyer_tax_id: string | null;
+            /** Currency */
+            currency: string;
+            /**
+             * Amounts
+             * @description subtotal (excl. VAT), vat, total — decimal strings
+             */
+            amounts: {
+                [key: string]: string;
+            };
+            /** Bboxes */
+            bboxes: {
+                [key: string]: number[];
+            };
+            /**
+             * Signature
+             * @enum {string}
+             */
+            signature: "present_unverified" | "absent";
+            /** Warnings */
+            warnings: string[];
+        };
+        /** ETaxSummaryOut */
+        ETaxSummaryOut: {
+            /** Uploaded */
+            uploaded: number;
+            /** Matched */
+            matched: number;
+            /**
+             * Duplicates Of Promptbiz
+             * @description invoice numbers also on PromptBiz — only the network copy is used
+             */
+            duplicates_of_promptbiz: string[];
         };
         /** EvidenceOut */
         EvidenceOut: {
@@ -1663,6 +1731,25 @@ export interface components {
             key: string;
             /** Label */
             label: string;
+        };
+        /**
+         * InvoiceLinkOut
+         * @description Where an uploaded e-Tax invoice ended up after the last analysis.
+         */
+        InvoiceLinkOut: {
+            /** Invoice No */
+            invoice_no: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending_analysis" | "matched" | "unmatched" | "duplicate_of_promptbiz";
+            /** Transaction Id */
+            transaction_id?: number | null;
+            /** Paid At */
+            paid_at?: string | null;
+            /** Paid Amount */
+            paid_amount?: string | null;
         };
         /** LeadDetailOut */
         LeadDetailOut: {
