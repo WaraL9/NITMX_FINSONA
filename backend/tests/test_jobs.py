@@ -75,3 +75,24 @@ def test_only_a_ca_starts_jobs_and_jobs_belong_to_their_case(client, seeded_case
         other = db.query(Case).filter(Case.id != seeded_case_id).first().id
         job_id = db.query(AnalysisJob).filter_by(case_id=seeded_case_id).first().id
     assert client.get(f"/api/cases/{other}/analysis/jobs/{job_id}").status_code == 404
+
+
+def test_job_whose_row_vanished_still_finishes_cleanly(seeded_case_id):
+    """A demo reset can restore the snapshot while a job runs; the job must not crash at the end."""
+    with SessionLocal() as db:
+        job, _ = jobs.start(db, seeded_case_id, None)
+    original = jobs.run_analysis
+
+    def run_then_drop_row(db, case_id, **kw):
+        a = original(db, case_id, **kw)
+        with SessionLocal() as other:
+            other.delete(other.get(AnalysisJob, job.id))
+            other.commit()
+        return a
+
+    jobs.run_analysis = run_then_drop_row
+    try:
+        jobs.run(job.id)
+    finally:
+        jobs.run_analysis = original
+    assert job.id not in jobs._live

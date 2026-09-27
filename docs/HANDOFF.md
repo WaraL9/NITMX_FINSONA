@@ -105,7 +105,7 @@ case scoping, PDPA consents, hash-chained audit log + CSV, compliance/metrics/po
 portal, eval harness (`python -m app.eval.run`, 50 synthetic cases), instant demo reset, offline mode,
 Playwright e2e, single-process prod server (`npm start`) + Dockerfile.
 
-Test counts at handoff: 230 backend, 22 frontend, 9 e2e — all green.
+Test counts at handoff: 231 backend, 22 frontend, 9 e2e — all green.
 
 ## Next
 Every code item in `docs/BACKLOG.md` is done. Candidate follow-ups (not in the backlog):
@@ -128,5 +128,5 @@ Bills: OCR of *new* photos needs the
 live Azure provider (the sandbox only replays recorded responses for the generated samples).
 dStatement: the sandbox signs with a shared HMAC key; a live adapter would verify the source bank's certificate.
 Mismatches are flagged, not auto-corrected (the CA overrides/excludes the rows).
-Dockerfile never built (Docker Desktop was off). Azure OCR adapter never called live. Live LLM path only tested
+Dockerfile never built (Docker Desktop was off; re-checked 2026-09-28, still off). What *was* verified on 2026-09-28: the production server path the container runs (built SPA + `uvicorn app.main:app`) over real HTTP — SPA deep links, login, demo reset, a background job (202 in ~10 ms, live stage progress while polling, canonical 25.0M / DSCR 1.05 / 3.5M), reads during a running job without SQLite lock errors, audit chain intact. `requirements.txt` now pins Pillow and pypdfium2 (imported directly; previously only transitive). Azure OCR adapter never called live. Live LLM path only tested
 with injected fakes (no API key) — the demo runs in template/cache mode.

@@ -90,10 +90,11 @@ def run(job_id: int, user_id: int | None = None, ip: str | None = None) -> None:
             s["status"] = "failed" if status == "failed" else "done"
     with SessionLocal() as db:
         job = db.get(AnalysisJob, job_id)
-        job.status, job.analysis_id, job.error = status, analysis_id, error
-        job.stages = [dict(s) for s in stages]
-        job.finished_at = datetime.now(timezone.utc)
-        db.commit()
+        if job is not None:  # gone if a demo reset restored the snapshot meanwhile
+            job.status, job.analysis_id, job.error = status, analysis_id, error
+            job.stages = [dict(s) for s in stages]
+            job.finished_at = datetime.now(timezone.utc)
+            db.commit()
     _live.pop(job_id, None)
 
 
