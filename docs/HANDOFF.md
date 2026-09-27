@@ -87,10 +87,10 @@ Utility/rent bill ingest (E2-14: PDF text layer, scanned PDF or JPEG/PNG photo �
 `parsers/bill.py` → `AltDataRecord(source="bill_upload")`; `services/bills.py` reconciles at each analysis: paid date
 from a receipt or the matching statement debit, connector copy wins (conflicts flagged), no-payment-evidence is
 asked about rather than counted unpaid, OCR-uncertain fields held until `POST /api/cases/{id}/bills/{rid}/review`;
-lease end before maturity → signal. Photos are served as an upright PDF; `?original=true` gives the uploaded bytes.)
-Ingest (auto-detect, passwords, SHA-256, encrypted at rest), e-Tax invoice ingest (E6-06 lease rule now complete: the latest lease end on file caps the tenor at its remaining whole months via
-`analysis.sizing_tenor()`, used by sizing, drivers, comparison, RM app, memo and LOS.) e-Tax invoice ingest
-(E2-13: ETDA XML / PDF with
+lease end before maturity → the latest lease end on file caps the tenor at its remaining whole months (E6-06) via
+`analysis.sizing_tenor()`, used by sizing, drivers, comparison, RM app, memo and LOS. Photos are served as an upright
+PDF; `?original=true` gives the uploaded bytes.)
+Ingest (auto-detect, passwords, SHA-256, encrypted at rest), e-Tax invoice ingest (E2-13: ETDA XML / PDF with
 embedded XML / PDF text fallback → `Invoice(source="etax_upload", document_id)` → T1 matching; seller must be the
 applicant; same invoice twice rejected; a PromptBiz copy of the same invoice wins so one sale never verifies two
 receipts; XAdES signature only *detected*, not verified), synthetic statement/ภ.พ.30 generator, parser with
