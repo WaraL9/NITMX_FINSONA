@@ -9,11 +9,12 @@ import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { formatMillions, formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { tr } from "@/lib/i18n";
 
 const GROUP = {
-  ready: { label: "พร้อมปิดการขาย", tone: "verified" as const },
-  restructure: { label: "ต้องปรับโครงสร้างวงเงิน", tone: "judge" as const },
-  needs_data: { label: "ต้องรวบรวมข้อมูลเพิ่ม", tone: "neutral" as const },
+  ready: { get label() { return tr("พร้อมปิดการขาย"); }, tone: "verified" as const },
+  restructure: { get label() { return tr("ต้องปรับโครงสร้างวงเงิน"); }, tone: "judge" as const },
+  needs_data: { get label() { return tr("ต้องรวบรวมข้อมูลเพิ่ม"); }, tone: "neutral" as const },
 };
 const GAP_TONE = { data: "neutral", evidence: "judge", structure: "verified", risk: "risk", consent: "navy", opportunity: "tax" } as const;
 
@@ -35,10 +36,10 @@ function LeadRow({ l, onOpen }: { l: Lead; onOpen: () => void }) {
       <ScoreRing score={l.score} />
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-semibold text-ink">{l.company_name}</div>
-        <div className="truncate text-xs text-muted">{l.industry} · ขอ {formatMillions(l.requested_amount)}</div>
+        <div className="truncate text-xs text-muted">{l.industry} {tr("· ขอ")} {formatMillions(l.requested_amount)}</div>
         <div className="mt-1 flex flex-wrap gap-1">
           <Badge tone={GROUP[l.group].tone}>{GROUP[l.group].label}</Badge>
-          {l.open_queries > 0 && <Badge tone="judge">คำถามค้าง {l.open_queries}</Badge>}
+          {l.open_queries > 0 && <Badge tone="judge">{tr("คำถามค้าง")} {l.open_queries}</Badge>}
         </div>
       </div>
       <ChevronRight className="size-4 text-muted" />
@@ -61,7 +62,7 @@ function FieldSandbox({ caseId, requested }: { caseId: number; requested: string
   const ok = s.meets_target, min = s.passes_min;
   return (
     <Card>
-      <div className="flex items-center gap-2 text-sm font-semibold text-ink"><Target className="size-4 text-navy" /> จำลองวงเงินร่วมกับลูกค้า</div>
+      <div className="flex items-center gap-2 text-sm font-semibold text-ink"><Target className="size-4 text-navy" /> {tr("จำลองวงเงินร่วมกับลูกค้า")}</div>
       <div className="mt-2 flex items-baseline justify-between">
         <span className="num font-mono text-2xl font-semibold text-ink">{formatTHB(String(amount), 0)}</span>
         <span className={cn("num font-mono text-xl font-bold", ok ? "text-verified" : min ? "text-judge" : "text-risk")}>
@@ -69,10 +70,10 @@ function FieldSandbox({ caseId, requested }: { caseId: number; requested: string
         </span>
       </div>
       <Slider min={500_000} max={Math.max(5_000_000, req)} step={50_000} value={amount} onChange={setAmount}
-        marker={{ value: Number(s.safe_limit), label: `ผ่อนสบาย ${formatMillions(s.safe_limit, 2)}` }} aria-label="วงเงิน" />
+        marker={{ value: Number(s.safe_limit), label: tr("ผ่อนสบาย {0}", [formatMillions(s.safe_limit, 2)]) }} aria-label={tr("วงเงิน")} />
       <p className="mt-2 text-xs text-body">
-        ค่างวดประมาณ <span className="num font-mono text-ink">{formatTHB(s.new_payment, 0)}</span> บาท/เดือน ·{" "}
-        {ok ? "อยู่ในระดับที่ธุรกิจผ่อนสบาย" : min ? "ผ่อนได้แต่ตึงมือ" : "สูงกว่าที่ธุรกิจผ่อนไหว"}
+        {tr("ค่างวดประมาณ")} <span className="num font-mono text-ink">{formatTHB(s.new_payment, 0)}</span> {tr("บาท/เดือน ·")}{" "}
+        {ok ? tr("อยู่ในระดับที่ธุรกิจผ่อนสบาย") : min ? tr("ผ่อนได้แต่ตึงมือ") : tr("สูงกว่าที่ธุรกิจผ่อนไหว")}
       </p>
     </Card>
   );
@@ -84,16 +85,16 @@ function LeadDetailView({ caseId, onBack }: { caseId: number; onBack: () => void
     queryFn: async () => unwrap(await api.GET("/api/rm/leads/{case_id}", { params: { path: { case_id: caseId } } })),
     refetchInterval: 8000,
   });
-  if (!d) return <p className="text-sm text-muted">กำลังโหลด…</p>;
+  if (!d) return <p className="text-sm text-muted">{tr("กำลังโหลด…")}</p>;
   return (
     <div className="space-y-4">
-      <button onClick={onBack} className="flex items-center gap-1 text-sm text-muted hover:text-ink"><ArrowLeft className="size-4" /> รายชื่อลูกค้า</button>
+      <button onClick={onBack} className="flex items-center gap-1 text-sm text-muted hover:text-ink"><ArrowLeft className="size-4" /> {tr("รายชื่อลูกค้า")}</button>
       <Card>
         <div className="flex items-center gap-3">
           <ScoreRing score={d.score} />
           <div className="min-w-0">
             <div className="font-semibold text-ink">{d.company_name}</div>
-            <div className="text-xs text-muted">{d.industry} · ขอ {formatTHB(d.requested_amount, 0)} บาท</div>
+            <div className="text-xs text-muted">{d.industry} {tr("· ขอ")} {formatTHB(d.requested_amount, 0)} {tr("บาท")}</div>
             <Badge tone={GROUP[d.group].tone} className="mt-1">{GROUP[d.group].label}</Badge>
           </div>
         </div>
@@ -104,7 +105,7 @@ function LeadDetailView({ caseId, onBack }: { caseId: number; onBack: () => void
       </Card>
 
       <div>
-        <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink"><Lightbulb className="size-4 text-judge" /> ก่อนคุยกับลูกค้า</h3>
+        <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink"><Lightbulb className="size-4 text-judge" /> {tr("ก่อนคุยกับลูกค้า")}</h3>
         <div className="space-y-2">
           {d.gaps.map((g, i) => (
             <Card key={i} className="p-3">
@@ -116,19 +117,19 @@ function LeadDetailView({ caseId, onBack }: { caseId: number; onBack: () => void
               {g.impact && <p className="mt-1 text-xs font-medium text-verified">{g.impact}</p>}
             </Card>
           ))}
-          {d.gaps.length === 0 && <p className="text-sm text-muted">ข้อมูลครบ ไม่มีประเด็นค้าง</p>}
+          {d.gaps.length === 0 && <p className="text-sm text-muted">{tr("ข้อมูลครบ ไม่มีประเด็นค้าง")}</p>}
         </div>
       </div>
 
       {d.dscr_at_request && <FieldSandbox caseId={caseId} requested={d.requested_amount} />}
 
       <div>
-        <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink"><Inbox className="size-4 text-navy" /> คำถามจาก CA</h3>
+        <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink"><Inbox className="size-4 text-navy" /> {tr("คำถามจาก CA")}</h3>
         <div className="space-y-2">
           {d.queries.map((q) => (
             <QueryCard key={q.id} q={q} canAnswer canForward invalidate={[["lead", caseId], ["rm-inbox"], ["rm-leads"]]} />
           ))}
-          {d.queries.length === 0 && <p className="text-sm text-muted">ยังไม่มีคำถาม</p>}
+          {d.queries.length === 0 && <p className="text-sm text-muted">{tr("ยังไม่มีคำถาม")}</p>}
         </div>
       </div>
     </div>
@@ -152,7 +153,7 @@ export default function RmApp() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-ink">RM Field Assistant</h1>
-          <p className="text-xs text-muted">ลูกค้าที่ดูแล · คำถามเจาะจงจาก CA</p>
+          <p className="text-xs text-muted">{tr("ลูกค้าที่ดูแล · คำถามเจาะจงจาก CA")}</p>
         </div>
       </div>
       {caseId ? (
@@ -161,10 +162,10 @@ export default function RmApp() {
         <>
           <div className="grid grid-cols-2 gap-1 rounded-lg bg-surface-2 p-1 text-sm">
             <button onClick={() => set({ tab: null })} className={cn("flex items-center justify-center gap-1 rounded-md py-1.5", tab === "leads" ? "bg-panel font-medium text-ink shadow-sm" : "text-muted")}>
-              <Users className="size-4" /> ลูกค้า ({leads?.length ?? 0})
+              <Users className="size-4" /> {tr("ลูกค้า (")}{leads?.length ?? 0})
             </button>
             <button onClick={() => set({ tab: "inbox" })} className={cn("flex items-center justify-center gap-1 rounded-md py-1.5", tab === "inbox" ? "bg-panel font-medium text-ink shadow-sm" : "text-muted")}>
-              <Inbox className="size-4" /> คำถาม {open.length > 0 && <Badge tone="judge">{open.length}</Badge>}
+              <Inbox className="size-4" /> {tr("คำถาม")} {open.length > 0 && <Badge tone="judge">{open.length}</Badge>}
             </button>
           </div>
           {tab === "leads" ? (
@@ -174,7 +175,7 @@ export default function RmApp() {
           ) : (
             <div className="space-y-2">
               {inbox?.map((q) => <QueryCard key={q.id} q={q} canAnswer canForward invalidate={[["rm-inbox"], ["rm-leads"]]} />)}
-              {inbox?.length === 0 && <p className="text-sm text-muted">ไม่มีคำถามค้าง</p>}
+              {inbox?.length === 0 && <p className="text-sm text-muted">{tr("ไม่มีคำถามค้าง")}</p>}
             </div>
           )}
         </>

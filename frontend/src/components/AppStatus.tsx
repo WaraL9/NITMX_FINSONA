@@ -3,6 +3,7 @@ import { AlertTriangle, RefreshCw, WifiOff } from "lucide-react";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { api, unwrap } from "@/api/client";
 import { Button } from "@/components/ui/button";
+import { tr } from "@/lib/i18n";
 
 /** E16-06: visible at every width (the header health badges hide on small screens). */
 export function OfflineBanner() {
@@ -19,12 +20,12 @@ export function OfflineBanner() {
       <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-6 py-2 text-sm text-risk">
         <WifiOff className="size-4 shrink-0" />
         <span className="flex-1">
-          เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — ข้อมูลบนหน้าจออาจไม่เป็นปัจจุบัน ระบบจะลองเชื่อมต่อใหม่อัตโนมัติ
-          <span className="ml-1 text-xs text-body">(นักพัฒนา: รัน <code>npm run dev</code> ที่ root)</span>
+          {tr("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — ข้อมูลบนหน้าจออาจไม่เป็นปัจจุบัน ระบบจะลองเชื่อมต่อใหม่อัตโนมัติ")}
+          <span className="ml-1 text-xs text-body">{tr("(นักพัฒนา: รัน")} <code>npm run dev</code> {tr("ที่ root)")}</span>
         </span>
         <Button size="sm" variant="ghost" disabled={isFetching}
           onClick={() => void refetch().then((r) => { if (!r.isError) void qc.invalidateQueries(); })}>
-          <RefreshCw className={isFetching ? "size-4 animate-spin" : "size-4"} /> ลองใหม่
+          <RefreshCw className={isFetching ? "size-4 animate-spin" : "size-4"} /> {tr("ลองใหม่")}
         </Button>
       </div>
     </div>
@@ -54,12 +55,12 @@ export class ErrorBoundary extends Component<{ children: ReactNode; resetKey?: s
     return (
       <div role="alert" className="mx-auto max-w-lg rounded-lg border border-risk/40 bg-panel p-6 text-center">
         <AlertTriangle className="mx-auto size-8 text-risk" />
-        <h2 className="mt-2 text-lg font-semibold text-ink">หน้านี้แสดงผลไม่สำเร็จ</h2>
-        <p className="mt-1 text-sm text-muted">ข้อมูลของคุณไม่ได้รับผลกระทบ — ลองโหลดส่วนนี้ใหม่ หรือกลับไปหน้าหลัก</p>
+        <h2 className="mt-2 text-lg font-semibold text-ink">{tr("หน้านี้แสดงผลไม่สำเร็จ")}</h2>
+        <p className="mt-1 text-sm text-muted">{tr("ข้อมูลของคุณไม่ได้รับผลกระทบ — ลองโหลดส่วนนี้ใหม่ หรือกลับไปหน้าหลัก")}</p>
         <pre className="mt-3 max-h-24 overflow-auto rounded-md bg-surface p-2 text-left text-xs text-body">{this.state.error.message}</pre>
         <div className="mt-4 flex justify-center gap-2">
-          <Button size="sm" onClick={() => this.setState({ error: null })}><RefreshCw className="size-4" /> ลองใหม่</Button>
-          <Button size="sm" variant="secondary" onClick={() => { window.location.href = "/"; }}>หน้าหลัก</Button>
+          <Button size="sm" onClick={() => this.setState({ error: null })}><RefreshCw className="size-4" /> {tr("ลองใหม่")}</Button>
+          <Button size="sm" variant="secondary" onClick={() => { window.location.href = "/"; }}>{tr("หน้าหลัก")}</Button>
         </div>
       </div>
     );

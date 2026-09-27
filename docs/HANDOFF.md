@@ -1,6 +1,6 @@
 # Handoff — where Finsona AI stands
 
-_Last updated: 2026-09-27, after E8-12 (scenario comparison)._
+_Last updated: 2026-09-27, after E8-13 (Thai / English toggle)._
 
 ## What it is
 Finsona AI turns an SME's messy bank statements into a verified cash-flow picture and a safe loan size a bank
@@ -52,7 +52,13 @@ Playwright e2e in `e2e/` (uses installed Chrome). Commands: see `README.md` (`np
 10. dStatement: Case 1 documents → “ดึงจากธนาคาร (dStatement)” → BBL → “ไฟล์ที่อัปโหลดตรงกับธนาคาร 581/581”.
     Case 2 → SCB (the scan) → “ไม่ตรง 3 จุด” → วิเคราะห์ใหม่ → high anomaly “ไม่ตรงกับข้อมูลธนาคาร” (the OCR misreads).
 
-## Done (increments I0–I7 + P2 batch + E2-13 + E2-14 + E3-04 + E8-12)
+## Done (increments I0–I7 + P2 batch + E2-13 + E2-14 + E3-04 + E8-12 + E8-13)
+Thai / English UI (E8-13: `lib/i18n.ts` — `tr("<Thai text>", [args])`, Thai source text is the key, `en.ts`
+holds the English; header toggle “ไทย | EN”, persisted in localStorage, re-mounts the app below the query cache;
+years in BE for Thai, CE for English. **Rule for new UI text: write it in Thai inside `tr()` and add the English to
+`src/i18n/en.ts`** — `src/i18n/i18n.test.ts` scans the source and fails on any Thai UI text outside `tr()`, a
+missing/stale key, or mismatched `{n}` placeholders. `tr` not `t`: `t` is a transaction variable everywhere.
+Server-generated text (engine reasons, XAI drivers, signals, anomalies, credit memo) stays Thai.)
 Scenario comparison (E8-12: `GET /api/cases/{id}/comparison`, `services/comparison.py` — re-runs the engine in memory
 with no / current / all-open-accepted Watchlist decisions via `load_inputs` + `run_engine` (split out of
 `run_analysis`), sized with the same `ratios` functions; the “decided” column provably equals the stored analysis;
@@ -83,15 +89,17 @@ case scoping, PDPA consents, hash-chained audit log + CSV, compliance/metrics/po
 portal, eval harness (`python -m app.eval.run`, 50 synthetic cases), instant demo reset, offline mode,
 Playwright e2e, single-process prod server (`npm start`) + Dockerfile.
 
-Test counts at handoff: 216 backend, 13 frontend, 6 e2e — all green.
+Test counts at handoff: 216 backend, 22 frontend, 7 e2e — all green.
 
 ## Next (remaining backlog, suggested order)
-1. E8-13 Thai/English toggle · E7-05 watchlist evidence hint · E0-07 background jobs.
+1. E7-05 watchlist evidence hint · E0-07 background jobs.
 
 Blocked on the team (not code): real-bank statement parsers need real sample statements (T-01); LINE integration
 needs a LINE Official Account; backup demo video needs `npx playwright install ffmpeg` then `npm run e2e:record`.
 
 ## Not verified
+i18n: server-generated narrative (tag reasons, XAI driver texts, alt-data signals, anomaly titles, warnings, the
+credit memo PDF) is Thai only — making it bilingual needs message codes from the backend.
 e-Tax: digital signatures are detected but not cryptographically verified (needs signxml/lxml + the Thai CA
 chain); an unsigned upload is flagged as SME-provided evidence and still counts as T1 once it matches a real
 receipt. Scanned (image-only) invoices are rejected — no OCR path for invoices yet. PDF/A-3 conformance of

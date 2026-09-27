@@ -9,6 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { formatMillions, formatTHB } from "@/lib/money";
 import { useFlash } from "@/lib/useFlash";
 import { cn } from "@/lib/utils";
+import { tr } from "@/lib/i18n";
 
 const MIN = 1_000_000;
 const STEP = 50_000;
@@ -88,12 +89,12 @@ export function SizingSandbox({ caseId, a, requested }: { caseId: number; a: Ana
   return (
     <Card>
       <CardHeader
-        title="จำลองวงเงินกู้ที่ปลอดภัย (Dynamic Safe-Limit)"
-        subtitle={`${s.tenor_months} เดือน · ดอกเบี้ย ${(Number(s.annual_rate) * 100).toFixed(2)}% · เกณฑ์ DSCR ขั้นต่ำ ${s.policy.min_dscr}× · เป้าหมาย ${s.policy.target_dscr}×`}
+        title={tr("จำลองวงเงินกู้ที่ปลอดภัย (Dynamic Safe-Limit)")}
+        subtitle={tr("{0} เดือน · ดอกเบี้ย {1}% · เกณฑ์ DSCR ขั้นต่ำ {2}× · เป้าหมาย {3}×", [s.tenor_months, (Number(s.annual_rate) * 100).toFixed(2), s.policy.min_dscr, s.policy.target_dscr])}
         action={
           <div className="flex items-center gap-2">
-            {haircut > 0 && <Badge tone="risk">ข้อมูลทางเลือก: ปรับลดกระแสเงินสด {(haircut * 100).toFixed(0)}%</Badge>}
-            {s.stressed && <Badge tone="risk">กำลังทดสอบภาวะวิกฤต</Badge>}
+            {haircut > 0 && <Badge tone="risk">{tr("ข้อมูลทางเลือก: ปรับลดกระแสเงินสด")} {(haircut * 100).toFixed(0)}%</Badge>}
+            {s.stressed && <Badge tone="risk">{tr("กำลังทดสอบภาวะวิกฤต")}</Badge>}
             {isFetching && <Loader2 className="size-4 animate-spin text-muted" />}
           </div>
         }
@@ -101,7 +102,7 @@ export function SizingSandbox({ caseId, a, requested }: { caseId: number; a: Ana
       <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
         <div>
           <div className="flex items-baseline justify-between">
-            <span className="text-sm text-muted">วงเงินจำลอง</span>
+            <span className="text-sm text-muted">{tr("วงเงินจำลอง")}</span>
             <span data-testid="sim-amount" className="num font-mono text-3xl font-semibold text-ink">{formatTHB(String(amount), 0)}</span>
           </div>
           <Slider
@@ -110,37 +111,37 @@ export function SizingSandbox({ caseId, a, requested }: { caseId: number; a: Ana
             step={STEP}
             value={amount}
             onChange={setAmount}
-            marker={safe >= MIN && safe <= max ? { value: safe, label: `ปลอดภัย ${formatMillions(s.safe_limit, 2)}` } : undefined}
-            aria-label="วงเงินจำลอง"
+            marker={safe >= MIN && safe <= max ? { value: safe, label: tr("ปลอดภัย {0}", [formatMillions(s.safe_limit, 2)]) } : undefined}
+            aria-label={tr("วงเงินจำลอง")}
           />
           <div className="mt-1 flex justify-between text-[11px] text-muted">
             <span>{formatMillions(String(MIN))}</span>
-            <span>คำขอเดิม {formatMillions(requested)}</span>
+            <span>{tr("คำขอเดิม")} {formatMillions(requested)}</span>
             <span>{formatMillions(String(max))}</span>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             <Button size="sm" variant="verified" data-testid="use-safe-limit" onClick={() => setAmount(Math.max(MIN, Math.min(max, safe)))} disabled={safe < MIN}>
-              <Target className="size-4" /> ใช้วงเงินปลอดภัย {formatMillions(s.safe_limit, 2)}
+              <Target className="size-4" /> {tr("ใช้วงเงินปลอดภัย")} {formatMillions(s.safe_limit, 2)}
             </Button>
             <Button size="sm" variant="secondary" onClick={() => setAmount(requestedNum)}>
-              กลับไปวงเงินที่ขอ
+              {tr("กลับไปวงเงินที่ขอ")}
             </Button>
             <Button size="sm" variant={showStress ? "danger" : "ghost"} onClick={() => setShowStress((v) => !v)}>
-              <FlaskConical className="size-4" /> ทดสอบภาวะวิกฤต (Stress Test)
+              <FlaskConical className="size-4" /> {tr("ทดสอบภาวะวิกฤต (Stress Test)")}
             </Button>
           </div>
           {showStress && (
             <div className="rise mt-4 grid gap-4 rounded-lg border border-risk/30 bg-risk-soft p-4 sm:grid-cols-3">
-              <StressSlider label="รายได้ลดลง" value={stress.revenue} max={20} step={1} unit="%"
+              <StressSlider label={tr("รายได้ลดลง")} value={stress.revenue} max={20} step={1} unit="%"
                 onChange={(v) => setStress((x) => ({ ...x, revenue: v }))} />
-              <StressSlider label="ต้นทุนเพิ่มขึ้น" value={stress.cost} max={20} step={1} unit="%"
+              <StressSlider label={tr("ต้นทุนเพิ่มขึ้น")} value={stress.cost} max={20} step={1} unit="%"
                 onChange={(v) => setStress((x) => ({ ...x, cost: v }))} />
-              <StressSlider label="ดอกเบี้ยเพิ่มขึ้น" value={stress.rateBp} max={300} step={25} unit="bp"
+              <StressSlider label={tr("ดอกเบี้ยเพิ่มขึ้น")} value={stress.rateBp} max={300} step={25} unit="bp"
                 onChange={(v) => setStress((x) => ({ ...x, rateBp: v }))} />
               <div className="flex items-center justify-between text-xs text-muted sm:col-span-3">
-                <span>คำนวณใหม่จากรายได้และต้นทุนเฉลี่ยต่อเดือนของแฟ้มนี้ — ไม่มีการเดาตัวเลข</span>
+                <span>{tr("คำนวณใหม่จากรายได้และต้นทุนเฉลี่ยต่อเดือนของแฟ้มนี้ — ไม่มีการเดาตัวเลข")}</span>
                 <Button size="sm" variant="ghost" onClick={() => setStress(NO_STRESS)}>
-                  <RotateCcw className="size-3.5" /> ล้างค่า
+                  <RotateCcw className="size-3.5" /> {tr("ล้างค่า")}
                 </Button>
               </div>
             </div>
@@ -149,18 +150,18 @@ export function SizingSandbox({ caseId, a, requested }: { caseId: number; a: Ana
 
         <div className="grid min-w-72 grid-cols-2 gap-3">
           <div className={cn("col-span-2 rounded-lg border p-4 transition-colors", toneBox)}>
-            <div className="text-xs text-muted">DSCR (ความสามารถชำระหนี้)</div>
+            <div className="text-xs text-muted">{tr("DSCR (ความสามารถชำระหนี้)")}</div>
             <div data-testid="sim-dscr" className={cn("num font-mono text-4xl font-bold", toneText)}>{dscr !== null ? dscr.toFixed(2) : "—"}×</div>
             <div className={cn("mt-1 text-xs", toneText)}>
               {s.meets_target
-                ? "ผ่านเกณฑ์ — อยู่ในกรอบความปลอดภัย"
+                ? tr("ผ่านเกณฑ์ — อยู่ในกรอบความปลอดภัย")
                 : s.passes_min
-                  ? "ผ่านขั้นต่ำ แต่ต่ำกว่าเป้าหมาย"
-                  : `ต่ำกว่าเกณฑ์ขั้นต่ำ ${s.policy.min_dscr}× — เสี่ยงหนี้เสีย`}
+                  ? tr("ผ่านขั้นต่ำ แต่ต่ำกว่าเป้าหมาย")
+                  : tr("ต่ำกว่าเกณฑ์ขั้นต่ำ {0}× — เสี่ยงหนี้เสีย", [s.policy.min_dscr])}
             </div>
           </div>
           <div className="rounded-md border border-line bg-surface p-3">
-            <div className="text-[11px] text-muted">ค่างวดใหม่/เดือน</div>
+            <div className="text-[11px] text-muted">{tr("ค่างวดใหม่/เดือน")}</div>
             <div className="num font-mono text-sm text-ink">{formatTHB(s.new_payment, 0)}</div>
           </div>
           <div className="rounded-md border border-line bg-surface p-3">
@@ -168,11 +169,11 @@ export function SizingSandbox({ caseId, a, requested }: { caseId: number; a: Ana
             <div className="num font-mono text-sm text-ink">{s.dsr ? Number(s.dsr).toFixed(2) : "—"}</div>
           </div>
           <div className="rounded-md border border-line bg-surface p-3">
-            <div className="text-[11px] text-muted">กระแสเงินสดที่ใช้คำนวณ/เดือน</div>
+            <div className="text-[11px] text-muted">{tr("กระแสเงินสดที่ใช้คำนวณ/เดือน")}</div>
             <div className="num font-mono text-sm text-ink">{formatTHB(s.cfo_monthly, 0)}</div>
           </div>
           <div className="rounded-md border border-line bg-surface p-3">
-            <div className="text-[11px] text-muted">หนี้เดิม/เดือน</div>
+            <div className="text-[11px] text-muted">{tr("หนี้เดิม/เดือน")}</div>
             <div className="num font-mono text-sm text-ink">{formatTHB(s.existing_debt_monthly, 0)}</div>
           </div>
         </div>
@@ -180,23 +181,23 @@ export function SizingSandbox({ caseId, a, requested }: { caseId: number; a: Ana
 
       <div data-testid="structure" className={cn("mt-5 rounded-md border border-verified/40 bg-verified-soft p-3 text-sm", safeFlash && "flash")}>
         <Badge tone="verified" className="mr-2">
-          ข้อเสนอแนะเชิงโครงสร้าง
+          {tr("ข้อเสนอแนะเชิงโครงสร้าง")}
         </Badge>
         {safe < MIN ? (
-          <>กระแสเงินสดภายใต้สมมติฐานนี้ยังไม่รองรับหนี้ใหม่ตามเกณฑ์ — ต้องเพิ่มหลักฐานรายได้หรือลดภาระหนี้เดิมก่อน</>
+          <>{tr("กระแสเงินสดภายใต้สมมติฐานนี้ยังไม่รองรับหนี้ใหม่ตามเกณฑ์ — ต้องเพิ่มหลักฐานรายได้หรือลดภาระหนี้เดิมก่อน")}</>
         ) : st.needed ? (
           <>
-            แทนการปฏิเสธคำขอ {formatMillions(requested)} เสนอ{" "}
-            <span className="font-semibold text-ink">วงเงินระยะยาว {formatTHB(st.term_loan, 0)} บาท</span> (DSCR ≥ {s.policy.target_dscr}×)
+            {tr("แทนการปฏิเสธคำขอ")} {formatMillions(requested)} {tr("เสนอ")}{" "}
+            <span className="font-semibold text-ink">{tr("วงเงินระยะยาว")} {formatTHB(st.term_loan, 0)} {tr("บาท")}</span> (DSCR ≥ {s.policy.target_dscr}×)
             {Number(st.trade_line) > 0 && (
               <>
-                {" "}+ <span className="font-semibold text-ink">วงเงินหมุนเวียน Trade Line {formatTHB(st.trade_line, 0)} บาท</span> ผูกการชำระคืนกับใบแจ้งหนี้บน PromptBiz ({(Number(st.trade_line_ratio) * 100).toFixed(0)}% ของรายรับ Golden ต่อเดือน)
+                {" "}+ <span className="font-semibold text-ink">{tr("วงเงินหมุนเวียน Trade Line")} {formatTHB(st.trade_line, 0)} {tr("บาท")}</span> {tr("ผูกการชำระคืนกับใบแจ้งหนี้บน PromptBiz (")}{(Number(st.trade_line_ratio) * 100).toFixed(0)}{tr("% ของรายรับ Golden ต่อเดือน)")}
               </>
             )}{" "}
-            รวม <span className="num font-mono font-semibold text-verified">{formatTHB(st.total, 0)} บาท</span>
+            {tr("รวม")} <span className="num font-mono font-semibold text-verified">{formatTHB(st.total, 0)} {tr("บาท")}</span>
           </>
         ) : (
-          <>วงเงินที่ขอ {formatMillions(requested)} อยู่ในกรอบปลอดภัย (สูงสุด {formatTHB(s.safe_limit, 0)} บาท)</>
+          <>{tr("วงเงินที่ขอ")} {formatMillions(requested)} {tr("อยู่ในกรอบปลอดภัย (สูงสุด")} {formatTHB(s.safe_limit, 0)} {tr("บาท)")}</>
         )}
       </div>
     </Card>

@@ -2,6 +2,7 @@ import { useLineage } from "@/components/lineage/LineageDrawer";
 import { formatMillions, formatTHB } from "@/lib/money";
 import { useFlash } from "@/lib/useFlash";
 import { cn } from "@/lib/utils";
+import { tr } from "@/lib/i18n";
 
 export interface FigureProps {
   caseId: number;
@@ -29,7 +30,7 @@ export function Figure({ caseId, metric, label, value, format = "baht", negative
         e.stopPropagation();
         openMetric(caseId, metric, label, expected ?? value);
       }}
-      title="คลิกเพื่อดูรายการต้นทางบนเอกสาร"
+      title={tr("คลิกเพื่อดูรายการต้นทางบนเอกสาร")}
       className={cn("traceable num font-mono", flash && "flash", className)}
     >
       {negative && value !== "0.00" ? "−" : ""}

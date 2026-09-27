@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { authHeaders } from "@/lib/auth";
 import { formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { tr } from "@/lib/i18n";
 
 /** Loads a protected evidence file with the user header (plain <img> can't send headers). */
 function AuthImage({ id, mime, alt }: { id: number; mime: string; alt: string }) {
@@ -58,9 +59,9 @@ export function EvidenceStrip({ q }: { q: QueryItem }) {
 }
 
 const STATUS = {
-  open: { label: "รอคำตอบ", tone: "judge" as const },
-  answered: { label: "ตอบแล้ว", tone: "verified" as const },
-  closed: { label: "ปิดแล้ว", tone: "neutral" as const },
+  open: { get label() { return tr("รอคำตอบ"); }, tone: "judge" as const },
+  answered: { get label() { return tr("ตอบแล้ว"); }, tone: "verified" as const },
+  closed: { get label() { return tr("ปิดแล้ว"); }, tone: "neutral" as const },
 };
 
 /**
@@ -96,13 +97,13 @@ export function QueryCard({ q, canAnswer, canForward, invalidate }: {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="text-xs text-muted">
-            {q.txn_date} · {q.counterparty ?? "ไม่ระบุคู่โอน"}
+            {q.txn_date} · {q.counterparty ?? tr("ไม่ระบุคู่โอน")}
           </div>
-          <div className="num font-mono text-lg font-semibold text-ink">{formatTHB(q.amount, 0)} บาท</div>
+          <div className="num font-mono text-lg font-semibold text-ink">{formatTHB(q.amount, 0)} {tr("บาท")}</div>
         </div>
         <div className="flex flex-col items-end gap-1">
           <Badge tone={STATUS[q.status].tone}>{STATUS[q.status].label}</Badge>
-          <Badge tone={q.audience === "sme" ? "navy" : "neutral"}>{q.audience === "sme" ? "ส่งถึงผู้ประกอบการ" : "ถึง RM"}</Badge>
+          <Badge tone={q.audience === "sme" ? "navy" : "neutral"}>{q.audience === "sme" ? tr("ส่งถึงผู้ประกอบการ") : tr("ถึง RM")}</Badge>
         </div>
       </div>
       <div className="mt-2 flex gap-2 text-sm text-ink">
@@ -125,14 +126,14 @@ export function QueryCard({ q, canAnswer, canForward, invalidate }: {
 
       {open && canAnswer && (
         <div className="mt-3 space-y-2">
-          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="คำตอบ เช่น เป็นค่างวดที่ 1 ตามสัญญาว่าจ้าง แนบรูปสัญญาแล้ว"
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder={tr("คำตอบ เช่น เป็นค่างวดที่ 1 ตามสัญญาว่าจ้าง แนบรูปสัญญาแล้ว")}
             className="w-full rounded-md border border-line bg-panel p-2 text-sm text-ink outline-none focus:border-navy" />
           {files.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {files.map((f, i) => (
                 <span key={i} className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-xs">
                   {f.name}
-                  <button onClick={() => setFiles(files.filter((_, j) => j !== i))} aria-label="ลบไฟล์"><X className="size-3" /></button>
+                  <button onClick={() => setFiles(files.filter((_, j) => j !== i))} aria-label={tr("ลบไฟล์")}><X className="size-3" /></button>
                 </span>
               ))}
             </div>
@@ -141,10 +142,10 @@ export function QueryCard({ q, canAnswer, canForward, invalidate }: {
             onChange={(e) => { setFiles([...files, ...Array.from(e.target.files ?? [])].slice(0, 5)); e.target.value = ""; }} />
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="secondary" onClick={() => input.current?.click()}>
-              <Camera className="size-4" /> ถ่ายรูป/แนบไฟล์
+              <Camera className="size-4" /> {tr("ถ่ายรูป/แนบไฟล์")}
             </Button>
             <Button size="sm" onClick={() => send.mutate()} disabled={send.isPending || (!note.trim() && !files.length)}>
-              {send.isPending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} ส่งคำตอบ
+              {send.isPending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} {tr("ส่งคำตอบ")}
             </Button>
           </div>
           {send.isError && <p className="text-xs text-risk">{send.error.message}</p>}
@@ -153,10 +154,10 @@ export function QueryCard({ q, canAnswer, canForward, invalidate }: {
 
       {open && canForward && q.audience === "rm" && (
         <div className="mt-2 flex gap-2 border-t border-line pt-2">
-          <input value={fwdNote} onChange={(e) => setFwdNote(e.target.value)} placeholder="ข้อความถึงลูกค้า (ไม่บังคับ)"
+          <input value={fwdNote} onChange={(e) => setFwdNote(e.target.value)} placeholder={tr("ข้อความถึงลูกค้า (ไม่บังคับ)")}
             className="h-8 flex-1 rounded-md border border-line bg-panel px-2 text-xs text-ink outline-none focus:border-navy" />
           <Button size="sm" variant="ghost" onClick={() => forward.mutate()} disabled={forward.isPending}>
-            <Forward className="size-4" /> ส่งต่อให้ลูกค้าตอบ
+            <Forward className="size-4" /> {tr("ส่งต่อให้ลูกค้าตอบ")}
           </Button>
         </div>
       )}

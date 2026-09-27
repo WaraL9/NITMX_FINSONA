@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { caseSource, caseStatus } from "@/lib/labels";
 import { formatTHB } from "@/lib/money";
+import { tr } from "@/lib/i18n";
 
 export default function CaseList() {
   const navigate = useNavigate();
@@ -17,22 +18,22 @@ export default function CaseList() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-ink">แฟ้มคำขอสินเชื่อ</h1>
-        <p className="mt-1 text-sm text-muted">คำขอสินเชื่อ SME ที่รอการวิเคราะห์และใช้ดุลยพินิจของเจ้าหน้าที่</p>
+        <h1 className="text-2xl font-semibold text-ink">{tr("แฟ้มคำขอสินเชื่อ")}</h1>
+        <p className="mt-1 text-sm text-muted">{tr("คำขอสินเชื่อ SME ที่รอการวิเคราะห์และใช้ดุลยพินิจของเจ้าหน้าที่")}</p>
       </div>
 
-      {isLoading && <p className="text-sm text-muted">กำลังโหลด…</p>}
-      {isError && <p className="text-sm text-risk">เชื่อมต่อ backend ไม่ได้ — รัน `npm run dev` ที่ root ของโปรเจกต์</p>}
+      {isLoading && <p className="text-sm text-muted">{tr("กำลังโหลด…")}</p>}
+      {isError && <p className="text-sm text-risk">{tr("เชื่อมต่อ backend ไม่ได้ — รัน `npm run dev` ที่ root ของโปรเจกต์")}</p>}
 
       {cases && (
         <Table>
           <THead>
             <tr>
-              <TH>กิจการ</TH>
-              <TH>อุตสาหกรรม</TH>
-              <TH className="text-right">วงเงินที่ขอ (บาท)</TH>
-              <TH>ช่องทาง</TH>
-              <TH>สถานะ</TH>
+              <TH>{tr("กิจการ")}</TH>
+              <TH>{tr("อุตสาหกรรม")}</TH>
+              <TH className="text-right">{tr("วงเงินที่ขอ (บาท)")}</TH>
+              <TH>{tr("ช่องทาง")}</TH>
+              <TH>{tr("สถานะ")}</TH>
               <TH />
             </tr>
           </THead>
@@ -56,7 +57,7 @@ export default function CaseList() {
             {cases.length === 0 && (
               <tr>
                 <TD colSpan={6} className="py-10 text-center text-muted">
-                  ยังไม่มีแฟ้มสินเชื่อ — รัน <code>npm run seed</code>
+                  {tr("ยังไม่มีแฟ้มสินเชื่อ — รัน")} <code>npm run seed</code>
                 </TD>
               </tr>
             )}

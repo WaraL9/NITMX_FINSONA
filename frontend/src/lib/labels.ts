@@ -1,25 +1,26 @@
 import type { CaseSummary } from "@/api/client";
+import { tr } from "@/lib/i18n";
 
 type Tone = "neutral" | "verified" | "tax" | "judge" | "risk" | "navy";
 
 export const caseStatus: Record<CaseSummary["status"], { label: string; tone: Tone }> = {
-  draft: { label: "ร่างคำขอ", tone: "neutral" },
-  processing: { label: "กำลังประมวลผล", tone: "tax" },
-  in_review: { label: "รอการใช้ดุลยพินิจ (Human Action Required)", tone: "judge" },
-  decided: { label: "ตัดสินใจแล้ว", tone: "verified" },
+  draft: { get label() { return tr("ร่างคำขอ"); }, tone: "neutral" },
+  processing: { get label() { return tr("กำลังประมวลผล"); }, tone: "tax" },
+  in_review: { get label() { return tr("รอการใช้ดุลยพินิจ (Human Action Required)"); }, tone: "judge" },
+  decided: { get label() { return tr("ตัดสินใจแล้ว"); }, tone: "verified" },
 };
 
 export const caseSource: Record<CaseSummary["source"], string> = {
   sme_portal: "SME Portal",
   rm: "RM",
-  branch: "สาขา",
+  get branch() { return tr("สาขา"); },
 };
 
 export const ownerType: Record<string, string> = {
-  company: "บัญชีบริษัท",
-  director: "บัญชีกรรมการ",
-  family: "บัญชีครอบครัว",
-  external: "บัญชีภายนอก",
+  get company() { return tr("บัญชีบริษัท"); },
+  get director() { return tr("บัญชีกรรมการ"); },
+  get family() { return tr("บัญชีครอบครัว"); },
+  get external() { return tr("บัญชีภายนอก"); },
 };
 
 export function formatRate(rate: string): string {
@@ -32,32 +33,32 @@ export function formatRate(rate: string): string {
 
 type TierTone = "verified" | "tax" | "navy" | "judge";
 export const tierInfo: Record<string, { label: string; short: string; tone: TierTone }> = {
-  T1_golden: { label: "ระดับ 1 · Golden (PromptBiz / e-Tax)", short: "T1 Golden", tone: "verified" },
-  T2_tax: { label: "ระดับ 2 · Tax-verified (ภ.พ.30)", short: "T2 ภาษี", tone: "tax" },
-  T3_operational: { label: "ระดับ 3 · Operational", short: "T3 บริบท", tone: "navy" },
-  T4_unverified: { label: "ระดับ 4 · Unverified (Watchlist)", short: "T4 รอตรวจ", tone: "judge" },
+  T1_golden: { get label() { return tr("ระดับ 1 · Golden (PromptBiz / e-Tax)"); }, short: "T1 Golden", tone: "verified" },
+  T2_tax: { get label() { return tr("ระดับ 2 · Tax-verified (ภ.พ.30)"); }, get short() { return tr("T2 ภาษี"); }, tone: "tax" },
+  T3_operational: { get label() { return tr("ระดับ 3 · Operational"); }, get short() { return tr("T3 บริบท"); }, tone: "navy" },
+  T4_unverified: { get label() { return tr("ระดับ 4 · Unverified (Watchlist)"); }, get short() { return tr("T4 รอตรวจ"); }, tone: "judge" },
 };
 
 export const tagLabel: Record<string, string> = {
-  customer_receipt: "รับชำระจากลูกค้า",
-  promptpay_receipt: "รับพร้อมเพย์",
-  cash_deposit: "ฝากเงินสด",
-  other_income: "เงินเข้าอื่น",
-  own_transfer_loop: "เงินโอนวน",
-  own_transfer_internal: "โอนระหว่างบัญชีบริษัท",
-  owner_injection: "เงินจากเจ้าของ/ครอบครัว",
-  ocr_pending: "รอตรวจทาน OCR (ยังไม่นับ)",
-  owner_drawing: "โอนให้เจ้าของ",
-  household: "ค่าใช้จ่ายครัวเรือน",
-  debt_service: "ผ่อนหนี้เดิม",
-  payroll: "เงินเดือน",
-  rent: "ค่าเช่า",
-  utilities: "สาธารณูปโภค",
-  bank_fee: "ค่าธรรมเนียม",
-  cash_withdrawal: "ถอนเงินสด",
-  supplier_payment: "จ่ายซัพพลายเออร์",
-  other_expense: "รายจ่ายอื่น",
-  personal_account: "บัญชีส่วนตัว",
-  ca_accepted: "CA รับรอง",
-  ca_excluded: "CA ตัดออก",
+  get customer_receipt() { return tr("รับชำระจากลูกค้า"); },
+  get promptpay_receipt() { return tr("รับพร้อมเพย์"); },
+  get cash_deposit() { return tr("ฝากเงินสด"); },
+  get other_income() { return tr("เงินเข้าอื่น"); },
+  get own_transfer_loop() { return tr("เงินโอนวน"); },
+  get own_transfer_internal() { return tr("โอนระหว่างบัญชีบริษัท"); },
+  get owner_injection() { return tr("เงินจากเจ้าของ/ครอบครัว"); },
+  get ocr_pending() { return tr("รอตรวจทาน OCR (ยังไม่นับ)"); },
+  get owner_drawing() { return tr("โอนให้เจ้าของ"); },
+  get household() { return tr("ค่าใช้จ่ายครัวเรือน"); },
+  get debt_service() { return tr("ผ่อนหนี้เดิม"); },
+  get payroll() { return tr("เงินเดือน"); },
+  get rent() { return tr("ค่าเช่า"); },
+  get utilities() { return tr("สาธารณูปโภค"); },
+  get bank_fee() { return tr("ค่าธรรมเนียม"); },
+  get cash_withdrawal() { return tr("ถอนเงินสด"); },
+  get supplier_payment() { return tr("จ่ายซัพพลายเออร์"); },
+  get other_expense() { return tr("รายจ่ายอื่น"); },
+  get personal_account() { return tr("บัญชีส่วนตัว"); },
+  get ca_accepted() { return tr("CA รับรอง"); },
+  get ca_excluded() { return tr("CA ตัดออก"); },
 };

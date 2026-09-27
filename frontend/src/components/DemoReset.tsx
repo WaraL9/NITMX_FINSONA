@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, errorMessage } from "@/api/client";
 import { cn } from "@/lib/utils";
+import { tr } from "@/lib/i18n";
 
 /** E16-01: one-click demo reset (CA, demo mode). Two clicks — no browser confirm dialog. */
 export function DemoReset() {
@@ -24,20 +25,20 @@ export function DemoReset() {
     },
     onSuccess: (d) => {
       setArmed(false);
-      setDone(`รีเซ็ตแล้ว ${(d.ms / 1000).toFixed(1)} วิ`);
+      setDone(tr("รีเซ็ตแล้ว {0} วิ", [(d.ms / 1000).toFixed(1)]));
       qc.clear();
       navigate("/");
     },
     onError: () => setArmed(false),
   });
   // Icon-only at rest so the header never overflows; the label appears once there is something to say.
-  const label = reset.isPending ? "กำลังรีเซ็ต…" : reset.isError ? "รีเซ็ตไม่สำเร็จ" : done ?? (armed ? "ยืนยัน?" : null);
+  const label = reset.isPending ? tr("กำลังรีเซ็ต…") : reset.isError ? tr("รีเซ็ตไม่สำเร็จ") : done ?? (armed ? tr("ยืนยัน?") : null);
   return (
     <button
       data-testid="demo-reset"
       disabled={reset.isPending}
-      title="รีเซ็ตเดโม — คืนข้อมูลเป็นสถานะเริ่มต้น"
-      aria-label="รีเซ็ตเดโม"
+      title={tr("รีเซ็ตเดโม — คืนข้อมูลเป็นสถานะเริ่มต้น")}
+      aria-label={tr("รีเซ็ตเดโม")}
       onClick={() => (armed ? reset.mutate() : setArmed(true))}
       className={cn(
         "flex h-8 items-center gap-1 rounded-md px-2 whitespace-nowrap",

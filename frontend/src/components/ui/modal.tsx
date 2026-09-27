@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { tr } from "@/lib/i18n";
 
 export interface ModalProps {
   open: boolean;
@@ -36,7 +37,7 @@ export function Modal({ open, onClose, title, children, footer, size = "md" }: M
     >
       <div className="flex items-center justify-between border-b border-line px-6 py-4">
         <h2 className="text-base font-semibold text-ink">{title}</h2>
-        <button onClick={onClose} className="rounded p-1 text-muted hover:bg-surface-2" aria-label="ปิด">
+        <button onClick={onClose} className="rounded p-1 text-muted hover:bg-surface-2" aria-label={tr("ปิด")}>
           <X className="size-4" />
         </button>
       </div>

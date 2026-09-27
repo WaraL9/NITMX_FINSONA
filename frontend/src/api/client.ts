@@ -1,6 +1,7 @@
 import createClient from "openapi-fetch";
 import { authHeaders, logout } from "@/lib/auth";
 import type { components, paths } from "./schema";
+import { tr } from "@/lib/i18n";
 
 /** Typed client generated from the backend's OpenAPI schema (`npm run gen:api`). */
 export const api = createClient<paths>({ baseUrl: "" });
@@ -96,7 +97,7 @@ export function errorMessage(err: unknown): string {
     if (typeof d === "string") return d;
     if (Array.isArray(d) && d[0]?.msg) return String(d[0].msg);
   }
-  return err instanceof Error ? err.message : "เกิดข้อผิดพลาด";
+  return err instanceof Error ? err.message : tr("เกิดข้อผิดพลาด");
 }
 export type MemoPackage = components["schemas"]["MemoPackageOut"];
 export type Driver = components["schemas"]["DriverOut"];
@@ -119,7 +120,7 @@ export async function answerQuery(queryId: number, note: string, files: File[]):
     headers: authHeaders(),
   });
   const body = await res.json().catch(() => ({ detail: res.statusText }));
-  if (!res.ok) throw new Error(typeof body.detail === "string" ? body.detail : "ส่งคำตอบไม่สำเร็จ");
+  if (!res.ok) throw new Error(typeof body.detail === "string" ? body.detail : tr("ส่งคำตอบไม่สำเร็จ"));
   return body as QueryItem;
 }
 

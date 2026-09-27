@@ -6,17 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { tagLabel, tierInfo } from "@/lib/labels";
 import { formatTHB } from "@/lib/money";
+import { tr } from "@/lib/i18n";
 
 const CREDIT_OPTIONS: { value: OverrideValue; label: string }[] = [
   { value: "T1_golden", label: tierInfo.T1_golden.label },
   { value: "T2_tax", label: tierInfo.T2_tax.label },
   { value: "T3_operational", label: tierInfo.T3_operational.label },
-  { value: "T4_unverified", label: "ระดับ 4 · ไม่นับเป็นรายได้จนกว่าจะมีหลักฐาน" },
-  { value: "non_revenue", label: "ไม่ใช่รายได้จากการค้า (เช่น เงินคืน/เงินกู้/เงินทุน)" },
+  { value: "T4_unverified", get label() { return tr("ระดับ 4 · ไม่นับเป็นรายได้จนกว่าจะมีหลักฐาน"); } },
+  { value: "non_revenue", get label() { return tr("ไม่ใช่รายได้จากการค้า (เช่น เงินคืน/เงินกู้/เงินทุน)"); } },
 ];
 const DEBIT_OPTIONS: { value: OverrideValue; label: string }[] = [
-  { value: "business_cost", label: "นับเป็นต้นทุนดำเนินงานของธุรกิจ" },
-  { value: "non_business", label: "ไม่ใช่ต้นทุนธุรกิจ (ค่าใช้จ่ายส่วนตัว/เงินถอนเจ้าของ)" },
+  { value: "business_cost", get label() { return tr("นับเป็นต้นทุนดำเนินงานของธุรกิจ"); } },
+  { value: "non_business", get label() { return tr("ไม่ใช่ต้นทุนธุรกิจ (ค่าใช้จ่ายส่วนตัว/เงินถอนเจ้าของ)"); } },
 ];
 
 /** E9-04: CA override of the engine's classification, with required reasoning. */
@@ -62,16 +63,16 @@ export function OverrideDialog({ caseId, txn, onClose }: { caseId: number; txn: 
     <Modal
       open={!!txn}
       onClose={onClose}
-      title="ปรับการจัดหมวดโดยเจ้าหน้าที่ (CA Override)"
+      title={tr("ปรับการจัดหมวดโดยเจ้าหน้าที่ (CA Override)")}
       footer={
         <>
           {txn?.tag_source === "ca" && (
             <Button variant="secondary" disabled={reason.trim().length < 10 || revert.isPending} onClick={() => revert.mutate()}>
-              <RotateCcw className="size-4" /> คืนค่าตามระบบ
+              <RotateCcw className="size-4" /> {tr("คืนค่าตามระบบ")}
             </Button>
           )}
           <Button disabled={!value || reason.trim().length < 10 || save.isPending} onClick={() => save.mutate()}>
-            {save.isPending && <Loader2 className="size-4 animate-spin" />} บันทึกและคำนวณใหม่
+            {save.isPending && <Loader2 className="size-4 animate-spin" />} {tr("บันทึกและคำนวณใหม่")}
           </Button>
         </>
       }
@@ -84,9 +85,9 @@ export function OverrideDialog({ caseId, txn, onClose }: { caseId: number; txn: 
               <span className="num font-mono font-semibold text-ink">{formatTHB(isCredit ? txn.credit : txn.debit)}</span>
             </div>
             <div className="mt-1 text-xs text-muted">
-              ปัจจุบัน: {txn.tier ? tierInfo[txn.tier]?.label : tagLabel[txn.tag ?? ""] ?? txn.tag}
+              {tr("ปัจจุบัน:")} {txn.tier ? tierInfo[txn.tier]?.label : tagLabel[txn.tag ?? ""] ?? txn.tag}
             </div>
-            {txn.tag_reason && <div className="mt-1 text-xs text-muted">เหตุผลของระบบ: {txn.tag_reason}</div>}
+            {txn.tag_reason && <div className="mt-1 text-xs text-muted">{tr("เหตุผลของระบบ:")} {txn.tag_reason}</div>}
           </div>
           <div className="space-y-1.5">
             {options.map((o) => (
@@ -97,7 +98,7 @@ export function OverrideDialog({ caseId, txn, onClose }: { caseId: number; txn: 
             ))}
           </div>
           <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3}
-            placeholder="เหตุผลทางวิชาชีพ (บังคับ · บันทึกใน Audit Log)"
+            placeholder={tr("เหตุผลทางวิชาชีพ (บังคับ · บันทึกใน Audit Log)")}
             className="w-full rounded-md border border-line bg-surface p-3 text-sm text-ink outline-none focus:border-navy" />
           {err && <p className="text-sm text-risk">{err.message}</p>}
         </div>

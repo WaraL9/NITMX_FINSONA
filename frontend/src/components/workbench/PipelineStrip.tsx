@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Check, FileText, GitBranch, Layers, Scale, ScanText } from "lucide-react";
 import { api, isStatementReport, unwrap, type Analysis } from "@/api/client";
 import { cn } from "@/lib/utils";
+import { tr } from "@/lib/i18n";
 
 /**
  * E8-03: the stages a case went through, with what each produced and how long it took.
@@ -18,14 +19,14 @@ export function PipelineStrip({ caseId, a }: { caseId: number; a: Analysis }) {
   const rows = docs?.reduce((s, d) => s + (isStatementReport(d.parse_report) ? d.parse_report.rows : 0), 0) ?? 0;
   const t = a.timings_ms ?? {};
   const fetched = a.connector && "fetched" in a.connector ? String(a.connector.fetched) : "0";
-  const etax = a.etax?.uploaded ? ` · e-Tax ${a.etax.uploaded} ใบ` : "";
+  const etax = a.etax?.uploaded ? tr(" · e-Tax {0} ใบ", [a.etax.uploaded]) : "";
 
   const steps = [
-    { icon: FileText, title: "รับเอกสาร", detail: `${docs?.length ?? 0} ไฟล์ · ${pages} หน้า`, ms: null },
-    { icon: ScanText, title: "สกัดข้อมูล", detail: `${rows.toLocaleString()} รายการ + พิกัด`, ms: null },
-    { icon: GitBranch, title: "ตัดเงินโอนวน", detail: `พบ ${a.loops.length} วงจร`, ms: t.loops },
-    { icon: Layers, title: "จัดหมวด + กระทบยอด 3 เส้า", detail: `PromptBiz ${fetched} ใบ${etax} · ภ.พ.30`, ms: (t.classify ?? 0) + (t.tiers ?? 0) },
-    { icon: Scale, title: "คำนวณวงเงิน", detail: `DSCR · Safe-Limit`, ms: t.aggregate },
+    { icon: FileText, title: tr("รับเอกสาร"), detail: tr("{0} ไฟล์ · {1} หน้า", [docs?.length ?? 0, pages]), ms: null },
+    { icon: ScanText, title: tr("สกัดข้อมูล"), detail: tr("{0} รายการ + พิกัด", [rows.toLocaleString()]), ms: null },
+    { icon: GitBranch, title: tr("ตัดเงินโอนวน"), detail: tr("พบ {0} วงจร", [a.loops.length]), ms: t.loops },
+    { icon: Layers, title: tr("จัดหมวด + กระทบยอด 3 เส้า"), detail: tr("PromptBiz {0} ใบ{1} · ภ.พ.30", [fetched, etax]), ms: (t.classify ?? 0) + (t.tiers ?? 0) },
+    { icon: Scale, title: tr("คำนวณวงเงิน"), detail: `DSCR · Safe-Limit`, ms: t.aggregate },
   ];
 
   return (
@@ -50,7 +51,7 @@ export function PipelineStrip({ caseId, a }: { caseId: number; a: Analysis }) {
         </div>
       ))}
       <div className="rise flex items-center px-2 text-xs text-muted" style={{ animationDelay: `${steps.length * 90}ms` }}>
-        วิเคราะห์ทั้งแฟ้มใน <span className="mx-1 font-mono font-semibold text-verified">{a.duration_ms} ms</span>
+        {tr("วิเคราะห์ทั้งแฟ้มใน")} <span className="mx-1 font-mono font-semibold text-verified">{a.duration_ms} ms</span>
       </div>
     </div>
   );

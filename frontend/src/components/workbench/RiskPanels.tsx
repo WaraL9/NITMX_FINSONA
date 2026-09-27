@@ -5,11 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
 import { formatMillions } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { tr } from "@/lib/i18n";
 
 const LEVEL = {
-  low: { label: "กระจายตัวดี", tone: "verified" as const },
-  moderate: { label: "กระจุกตัวปานกลาง", tone: "judge" as const },
-  high: { label: "กระจุกตัวสูง", tone: "risk" as const },
+  low: { get label() { return tr("กระจายตัวดี"); }, tone: "verified" as const },
+  moderate: { get label() { return tr("กระจุกตัวปานกลาง"); }, tone: "judge" as const },
+  high: { get label() { return tr("กระจุกตัวสูง"); }, tone: "risk" as const },
 };
 
 const pct = (s: string) => `${(Number(s) * 100).toFixed(1)}%`;
@@ -24,8 +25,8 @@ export function ConcentrationPanel({ caseId, a }: { caseId: number; a: Analysis 
   return (
     <Card>
       <CardHeader
-        title={<span className="flex items-center gap-2"><Users className="size-4 text-navy" /> การกระจุกตัวของลูกค้า</span>}
-        subtitle={`${c.customers} ลูกค้าที่ระบุตัวได้ · ลูกค้ารายใหญ่สุด ${pct(c.top1_share)} · 5 รายแรก ${pct(c.top5_share)} · HHI ${c.hhi.toLocaleString()}`}
+        title={<span className="flex items-center gap-2"><Users className="size-4 text-navy" /> {tr("การกระจุกตัวของลูกค้า")}</span>}
+        subtitle={tr("{0} ลูกค้าที่ระบุตัวได้ · ลูกค้ารายใหญ่สุด {1} · 5 รายแรก {2} · HHI {3}", [c.customers, pct(c.top1_share), pct(c.top5_share), c.hhi.toLocaleString()])}
         action={<Badge tone={lv.tone}>{lv.label}</Badge>}
       />
       {c.flags.length > 0 && (
@@ -35,7 +36,7 @@ export function ConcentrationPanel({ caseId, a }: { caseId: number; a: Analysis 
       )}
       <div className="space-y-1.5">
         {c.top.slice(0, 6).map((t) => (
-          <button key={t.name} data-testid="customer-row" onClick={() => openRows(caseId, t.txn_ids, `รายรับจาก ${t.name}`)}
+          <button key={t.name} data-testid="customer-row" onClick={() => openRows(caseId, t.txn_ids, tr("รายรับจาก {0}", [t.name]))}
             className="grid w-full grid-cols-[1fr_auto] items-center gap-x-3 rounded-md px-2 py-1 text-left hover:bg-surface">
             <span className="truncate text-sm text-ink">{t.name}</span>
             <span className="num font-mono text-xs text-muted">{formatMillions(t.amount, 2)} · {pct(t.share)}</span>
@@ -43,13 +44,13 @@ export function ConcentrationPanel({ caseId, a }: { caseId: number; a: Analysis 
               <span className={cn("block h-full rounded-full", Number(t.share) > 0.3 ? "bg-risk" : "bg-navy")}
                 style={{ width: `${(Number(t.share) / max) * 100}%` }} />
             </span>
-            <span className="col-span-2 text-[11px] text-muted">{t.receipts} ครั้ง · จ่ายใน {t.months_active} เดือน</span>
+            <span className="col-span-2 text-[11px] text-muted">{t.receipts} {tr("ครั้ง · จ่ายใน")} {t.months_active} {tr("เดือน")}</span>
           </button>
         ))}
       </div>
       {Number(c.unidentified) > 0 && (
         <p className="mt-3 text-xs text-muted">
-          ไม่นับรวมรายรับที่ไม่ระบุตัวผู้จ่าย (เงินสด/พร้อมเพย์แบบปิดชื่อ) {formatMillions(c.unidentified, 2)}
+          {tr("ไม่นับรวมรายรับที่ไม่ระบุตัวผู้จ่าย (เงินสด/พร้อมเพย์แบบปิดชื่อ)")} {formatMillions(c.unidentified, 2)}
         </p>
       )}
     </Card>
@@ -57,9 +58,9 @@ export function ConcentrationPanel({ caseId, a }: { caseId: number; a: Analysis 
 }
 
 const SEVERITY = {
-  high: { tone: "risk" as const, icon: AlertTriangle, label: "สูง" },
-  watch: { tone: "judge" as const, icon: SearchCheck, label: "ควรตรวจ" },
-  info: { tone: "neutral" as const, icon: Info, label: "ข้อสังเกต" },
+  high: { tone: "risk" as const, icon: AlertTriangle, get label() { return tr("สูง"); } },
+  watch: { tone: "judge" as const, icon: SearchCheck, get label() { return tr("ควรตรวจ"); } },
+  info: { tone: "neutral" as const, icon: Info, get label() { return tr("ข้อสังเกต"); } },
 };
 
 /** E4-09: informational pattern flags — they never change a figure, but each opens its rows. */
@@ -68,11 +69,11 @@ export function AnomaliesPanel({ caseId, a }: { caseId: number; a: Analysis }) {
   const list = a.anomalies ?? [];
   return (
     <Card>
-      <CardHeader title="ความผิดปกติที่ควรตรวจสอบ" subtitle="ข้อสังเกตจากรูปแบบธุรกรรม — ไม่เปลี่ยนตัวเลขใด ๆ" />
+      <CardHeader title={tr("ความผิดปกติที่ควรตรวจสอบ")} subtitle={tr("ข้อสังเกตจากรูปแบบธุรกรรม — ไม่เปลี่ยนตัวเลขใด ๆ")} />
       {list.length === 0 ? (
         <div className="flex items-center gap-2 rounded-md border border-verified/40 bg-verified-soft p-3 text-sm text-body">
           <ShieldCheck className="size-4 text-verified" />
-          ไม่พบรูปแบบผิดปกติ (เงินผ่านทาง, แต่งยอดท้ายรอบ, รายได้พุ่งผิดปกติ, ฝากเงินสดตัวเลขกลม)
+          {tr("ไม่พบรูปแบบผิดปกติ (เงินผ่านทาง, แต่งยอดท้ายรอบ, รายได้พุ่งผิดปกติ, ฝากเงินสดตัวเลขกลม)")}
         </div>
       ) : (
         <div className="space-y-2">

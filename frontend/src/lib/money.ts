@@ -1,4 +1,5 @@
-/**
+
+import { tr } from "@/lib/i18n";/**
  * Display helpers for money that arrives from the API as decimal strings ("5000000.00").
  * The frontend never does money arithmetic; the backend engine is the only calculator.
  */
@@ -35,5 +36,5 @@ export function formatMillions(value: string, digits = 1): string {
   const s = q.toString().padStart(digits + 1, "0");
   const whole = s.slice(0, s.length - digits);
   const dec = digits ? "." + s.slice(-digits) : "";
-  return `${sign}${groupThousands(whole)}${dec} ลบ.`;
+  return tr("{0}{1}{2} ลบ.", [sign, groupThousands(whole), dec]);
 }

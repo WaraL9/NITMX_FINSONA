@@ -7,8 +7,17 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
 import { formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { tr } from "@/lib/i18n";
 
 type Scenario = components["schemas"]["ScenarioOut"];
+
+// Column labels are UI text, so they are translated here (the API also sends Thai titles for other clients).
+const HEAD: Record<Scenario["key"], { title: string; note: string }> = {
+  request: { get title() { return tr("ตามคำขอ"); }, get note() { return tr("วงเงินที่ขอ บนกระแสเงินสดปัจจุบัน (รวมการตัดสินของ CA)"); } },
+  engine_only: { get title() { return tr("วงเงินปลอดภัย (หลักฐานอย่างเดียว)"); }, get note() { return tr("ยังไม่นับรายการ Watchlist ใด ๆ"); } },
+  decided: { get title() { return tr("หลังตัดสิน Watchlist"); }, get note() { return tr("ตามการตัดสินของ CA ที่บันทึกไว้ = ผลวิเคราะห์ปัจจุบัน"); } },
+  all_accepted: { get title() { return tr("ถ้ารับรองรายการที่ค้างทั้งหมด"); }, get note() { return tr("สมมติฐานเพื่อประกอบการพิจารณา — ไม่ใช่การตัดสิน"); } },
+};
 
 const ratio = (v: string | null | undefined) => (v == null ? "—" : `${Number(v).toFixed(2)}×`);
 const pct = (v: string | null | undefined) => (v == null ? "—" : `${(Number(v) * 100).toFixed(1)}%`);
@@ -25,13 +34,13 @@ export function ScenarioComparison({ caseId, a }: { caseId: number; a: Analysis 
   });
   if (!c) return null;
   const rows: { label: string; cell: (s: Scenario) => ReactNode }[] = [
-    { label: "วงเงินระยะยาวที่พิจารณา", cell: (s) => <span className="font-semibold text-ink">{formatTHB(s.amount, 0)}</span> },
-    { label: "+ Trade Line (ผูก PromptBiz)", cell: (s) => (s.key === "request" ? "—" : formatTHB(s.trade_line, 0)) },
-    { label: "วงเงินรวมที่เสนอได้", cell: (s) => (s.key === "request" ? "—" : formatTHB(s.total_facility, 0)) },
-    { label: "กระแสเงินสดที่ใช้คำนวณ / เดือน", cell: (s) => formatTHB(s.cfo_monthly, 0) },
-    { label: "ค่างวดใหม่ / เดือน", cell: (s) => formatTHB(s.new_payment, 0) },
+    { label: tr("วงเงินระยะยาวที่พิจารณา"), cell: (s) => <span className="font-semibold text-ink">{formatTHB(s.amount, 0)}</span> },
+    { label: tr("+ Trade Line (ผูก PromptBiz)"), cell: (s) => (s.key === "request" ? "—" : formatTHB(s.trade_line, 0)) },
+    { label: tr("วงเงินรวมที่เสนอได้"), cell: (s) => (s.key === "request" ? "—" : formatTHB(s.total_facility, 0)) },
+    { label: tr("กระแสเงินสดที่ใช้คำนวณ / เดือน"), cell: (s) => formatTHB(s.cfo_monthly, 0) },
+    { label: tr("ค่างวดใหม่ / เดือน"), cell: (s) => formatTHB(s.new_payment, 0) },
     {
-      label: `DSCR (ขั้นต่ำ ${c.min_dscr} · เป้า ${c.target_dscr})`,
+      label: tr("DSCR (ขั้นต่ำ {0} · เป้า {1})", [c.min_dscr, c.target_dscr]),
       cell: (s) => (
         <span className={cn("font-semibold", s.passes_min ? "text-verified" : "text-risk")} data-testid={`cmp-dscr-${s.key}`}>
           {ratio(s.dscr)}
@@ -40,7 +49,7 @@ export function ScenarioComparison({ caseId, a }: { caseId: number; a: Analysis 
     },
     { label: "DSR", cell: (s) => pct(s.dsr) },
     {
-      label: "วงเงินปลอดภัย",
+      label: tr("วงเงินปลอดภัย"),
       cell: (s) => (
         <span data-testid={`cmp-safe-${s.key}`}>
           {formatTHB(s.safe_limit, 0)}
@@ -52,18 +61,18 @@ export function ScenarioComparison({ caseId, a }: { caseId: number; a: Analysis 
         </span>
       ),
     },
-    { label: "รายได้ที่ยืนยันแล้ว (ทั้งช่วง)", cell: (s) => formatTHB(s.verified_revenue, 0) },
+    { label: tr("รายได้ที่ยืนยันแล้ว (ทั้งช่วง)"), cell: (s) => formatTHB(s.verified_revenue, 0) },
     {
-      label: "Watchlist ที่นับรวม",
+      label: tr("Watchlist ที่นับรวม"),
       cell: (s) =>
-        s.key === "engine_only" ? "ไม่นับ" : `${s.accepted_count} รายการ${s.accepted_count ? ` (${formatTHB(s.accepted_amount, 0)})` : ""}`,
+        s.key === "engine_only" ? tr("ไม่นับ") : tr("{0} รายการ{1}", [s.accepted_count, s.accepted_count ? ` (${formatTHB(s.accepted_amount, 0)})` : ""]),
     },
   ];
   return (
     <Card data-testid="scenario-comparison">
       <CardHeader
-        title={<span className="flex items-center gap-2"><Columns3 className="size-4 text-navy" /> เปรียบเทียบสถานการณ์</span>}
-        subtitle={`คำนวณใหม่จากเครื่องยนต์เดียวกันทุกคอลัมน์ · ปรับลดจากข้อมูลทางเลือก ${(Number(c.haircut) * 100).toFixed(0)}% เท่ากันทุกคอลัมน์`}
+        title={<span className="flex items-center gap-2"><Columns3 className="size-4 text-navy" /> {tr("เปรียบเทียบสถานการณ์")}</span>}
+        subtitle={tr("คำนวณใหม่จากเครื่องยนต์เดียวกันทุกคอลัมน์ · ปรับลดจากข้อมูลทางเลือก {0}% เท่ากันทุกคอลัมน์", [(Number(c.haircut) * 100).toFixed(0)])}
       />
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px] text-sm">
@@ -73,17 +82,17 @@ export function ScenarioComparison({ caseId, a }: { caseId: number; a: Analysis 
               {c.scenarios.map((s) => (
                 <th key={s.key} className={cn("px-3 pb-2 text-left align-bottom font-medium",
                   s.key === "decided" ? "text-navy" : "text-ink")}>
-                  <div>{s.title}</div>
-                  <div className="text-xs font-normal text-muted">{s.note}</div>
+                  <div>{HEAD[s.key].title}</div>
+                  <div className="text-xs font-normal text-muted">{HEAD[s.key].note}</div>
                   <div className="mt-1">
                     {s.key === "request" ? (
-                      <Badge tone={s.passes_min ? "verified" : "risk"}>{s.passes_min ? "ผ่านเกณฑ์" : "ไม่ผ่านเกณฑ์ DSCR"}</Badge>
+                      <Badge tone={s.passes_min ? "verified" : "risk"}>{s.passes_min ? tr("ผ่านเกณฑ์") : tr("ไม่ผ่านเกณฑ์ DSCR")}</Badge>
                     ) : s.key === "all_accepted" ? (
-                      <Badge tone="judge">สมมติฐาน</Badge>
+                      <Badge tone="judge">{tr("สมมติฐาน")}</Badge>
                     ) : s.key === "decided" ? (
-                      <Badge tone="navy">ผลปัจจุบัน{s.open_count ? ` · ค้าง ${s.open_count}` : ""}</Badge>
+                      <Badge tone="navy">{tr("ผลปัจจุบัน")}{s.open_count ? tr(" · ค้าง {0}", [s.open_count]) : ""}</Badge>
                     ) : (
-                      <Badge tone="neutral">ฐาน</Badge>
+                      <Badge tone="neutral">{tr("ฐาน")}</Badge>
                     )}
                   </div>
                 </th>

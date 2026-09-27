@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { tr } from "@/lib/i18n";
 
 /**
  * Session (E14-01). The bearer token lives in localStorage so a refresh keeps you logged in;
@@ -63,9 +64,9 @@ export async function login(username: string, password: string): Promise<Session
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    if (res.status === 401) throw new Error("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
-    if (res.status === 429) throw new Error("ลองรหัสผิดหลายครั้ง — กรุณารอสักครู่แล้วลองใหม่");
-    throw new Error("เข้าสู่ระบบไม่สำเร็จ");
+    if (res.status === 401) throw new Error(tr("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"));
+    if (res.status === 429) throw new Error(tr("ลองรหัสผิดหลายครั้ง — กรุณารอสักครู่แล้วลองใหม่"));
+    throw new Error(tr("เข้าสู่ระบบไม่สำเร็จ"));
   }
   setSession({ token: body.token, user: body.user });
   return body.user;
@@ -77,7 +78,7 @@ export async function openProtected(url: string) {
   const res = await fetch(url, { headers: authHeaders() });
   if (!res.ok) {
     win?.close();
-    throw new Error(`เปิดไฟล์ไม่สำเร็จ (${res.status})`);
+    throw new Error(tr("เปิดไฟล์ไม่สำเร็จ ({0})", [res.status]));
   }
   const blobUrl = URL.createObjectURL(await res.blob());
   if (win) win.location.href = blobUrl;
@@ -87,9 +88,9 @@ export async function openProtected(url: string) {
 
 export const ROLE_HOME: Record<string, string> = { CA: "/", AUDITOR: "/", RM: "/rm", SME: "/sme" };
 export const DEMO_ACCOUNTS = [
-  { username: "ca", label: "เจ้าหน้าที่วิเคราะห์สินเชื่อ (CA)" },
-  { username: "rm", label: "เจ้าหน้าที่ลูกค้าสัมพันธ์ (RM)" },
-  { username: "sme", label: "ผู้ประกอบการ (SME)" },
-  { username: "auditor", label: "ผู้ตรวจสอบ (Auditor)" },
+  { username: "ca", get label() { return tr("เจ้าหน้าที่วิเคราะห์สินเชื่อ (CA)"); } },
+  { username: "rm", get label() { return tr("เจ้าหน้าที่ลูกค้าสัมพันธ์ (RM)"); } },
+  { username: "sme", get label() { return tr("ผู้ประกอบการ (SME)"); } },
+  { username: "auditor", get label() { return tr("ผู้ตรวจสอบ (Auditor)"); } },
 ];
 export const DEMO_PASSWORD = "finsona-demo";

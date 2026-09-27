@@ -183,3 +183,24 @@ test("dStatement: the bank's own record confirms an uploaded statement PDF", asy
   await page.getByTestId("tab-audit").click();
   await expect(page.getByText("ดึงสเตทเมนต์จากธนาคาร (dStatement)").first()).toBeVisible();
 });
+
+test("Thai / English toggle: the whole UI switches and the choice persists", async ({ page, request }) => {
+  await resetDemo(request);
+  await page.goto("/login");
+  await page.getByTestId("lang-en").click();
+  await expect(page.getByText("Sign in to Finsona AI")).toBeVisible();
+  await page.getByRole("button", { name: "Credit analyst (CA)" }).click();
+  await expect(page).toHaveURL("/");
+  await expect(page.getByRole("link", { name: "Loan cases" })).toBeVisible();
+  await page.goto(CASE);
+  await expect(page.getByTestId("tab-overview")).toHaveText(/Overview & cash flow/);
+  await expect(page.getByTestId("use-safe-limit")).toContainText("Use safe limit");
+  await expect(page.getByText("Scenario comparison")).toBeVisible();
+  await page.reload();
+  await expect(page.getByTestId("tab-tiers")).toHaveText(/3-way reconciliation/);
+  expect(await page.evaluate(() => document.documentElement.lang)).toBe("en");
+  // Figures are identical in both languages — only the words change.
+  await expect(page.getByTestId("sim-dscr")).toHaveText("1.05×");
+  await page.getByTestId("lang-th").click();
+  await expect(page.getByTestId("tab-overview")).toHaveText(/ภาพรวม & กระแสเงินสด/);
+});

@@ -7,30 +7,31 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { tr } from "@/lib/i18n";
 
 const ACTION: Record<string, string> = {
-  document_upload: "อัปโหลดเอกสาร",
-  analysis_run: "ประมวลผลวิเคราะห์",
-  watchlist_decision: "ตัดสินรายการ Watchlist",
-  tag_override: "CA ปรับการจัดหมวด",
-  tag_override_revert: "ยกเลิกการปรับการจัดหมวด",
-  lineage_view: "เปิดดูพิกัดเอกสาร",
-  ocr_review: "ตรวจทาน OCR",
-  bill_review: "ตรวจทานบิล (OCR)",
-  dstatement_pull: "ดึงสเตทเมนต์จากธนาคาร (dStatement)",
-  los_submitted: "ส่งเข้าระบบ LOS",
-  login: "เข้าสู่ระบบ",
-  policy_change: "เปลี่ยนนโยบายสินเชื่อ",
-  consent_change: "เปลี่ยนความยินยอม",
-  query_answered: "ตอบคำถามพร้อมหลักฐาน",
-  query_forwarded: "ส่งคำถามต่อให้ลูกค้า",
-  application_created: "สร้างคำขอสินเชื่อ",
-  application_submitted: "ส่งคำขอสินเชื่อ",
-  case_deleted: "ลบแฟ้ม",
-  memo_signed: "ลงนาม Credit Memo",
-  memo_reopened: "เปิดแก้ไข Credit Memo",
-  memo_narrative_edit: "แก้ไขบทสรุป",
-  sandbox_scenario_change: "เปลี่ยนสถานการณ์ Sandbox",
+  get document_upload() { return tr("อัปโหลดเอกสาร"); },
+  get analysis_run() { return tr("ประมวลผลวิเคราะห์"); },
+  get watchlist_decision() { return tr("ตัดสินรายการ Watchlist"); },
+  get tag_override() { return tr("CA ปรับการจัดหมวด"); },
+  get tag_override_revert() { return tr("ยกเลิกการปรับการจัดหมวด"); },
+  get lineage_view() { return tr("เปิดดูพิกัดเอกสาร"); },
+  get ocr_review() { return tr("ตรวจทาน OCR"); },
+  get bill_review() { return tr("ตรวจทานบิล (OCR)"); },
+  get dstatement_pull() { return tr("ดึงสเตทเมนต์จากธนาคาร (dStatement)"); },
+  get los_submitted() { return tr("ส่งเข้าระบบ LOS"); },
+  get login() { return tr("เข้าสู่ระบบ"); },
+  get policy_change() { return tr("เปลี่ยนนโยบายสินเชื่อ"); },
+  get consent_change() { return tr("เปลี่ยนความยินยอม"); },
+  get query_answered() { return tr("ตอบคำถามพร้อมหลักฐาน"); },
+  get query_forwarded() { return tr("ส่งคำถามต่อให้ลูกค้า"); },
+  get application_created() { return tr("สร้างคำขอสินเชื่อ"); },
+  get application_submitted() { return tr("ส่งคำขอสินเชื่อ"); },
+  get case_deleted() { return tr("ลบแฟ้ม"); },
+  get memo_signed() { return tr("ลงนาม Credit Memo"); },
+  get memo_reopened() { return tr("เปิดแก้ไข Credit Memo"); },
+  get memo_narrative_edit() { return tr("แก้ไขบทสรุป"); },
+  get sandbox_scenario_change() { return tr("เปลี่ยนสถานการณ์ Sandbox"); },
 };
 
 async function downloadCsv(caseId: number) {
@@ -60,23 +61,23 @@ export function AuditPanel({ caseId }: { caseId: number }) {
   return (
     <Card>
       <CardHeader
-        title="บันทึกประวัติการตรวจสอบ (Immutable Audit Log)"
-        subtitle="ทุกการกระทำถูกเชื่อมด้วยลายเซ็น SHA-256 ต่อกันเป็นลูกโซ่ — แก้ไขย้อนหลังแม้แถวเดียวจะตรวจพบทันที"
+        title={tr("บันทึกประวัติการตรวจสอบ (Immutable Audit Log)")}
+        subtitle={tr("ทุกการกระทำถูกเชื่อมด้วยลายเซ็น SHA-256 ต่อกันเป็นลูกโซ่ — แก้ไขย้อนหลังแม้แถวเดียวจะตรวจพบทันที")}
         action={
           <div className="flex items-center gap-2">
             {chain && checked && (
               chain.ok ? (
-                <Badge tone="verified"><ShieldCheck className="size-3" /> ลูกโซ่ถูกต้อง {chain.entries} รายการ</Badge>
+                <Badge tone="verified"><ShieldCheck className="size-3" /> {tr("ลูกโซ่ถูกต้อง")} {chain.entries} {tr("รายการ")}</Badge>
               ) : (
-                <Badge tone="risk" title={chain.detail ?? ""}><ShieldX className="size-3" /> พบการแก้ไขที่รายการ #{chain.first_bad_id}</Badge>
+                <Badge tone="risk" title={chain.detail ?? ""}><ShieldX className="size-3" /> {tr("พบการแก้ไขที่รายการ #")}{chain.first_bad_id}</Badge>
               )
             )}
             <Button size="sm" variant="ghost" onClick={() => void downloadCsv(caseId)}>
-              <Download className="size-4" /> ส่งออก CSV
+              <Download className="size-4" /> {tr("ส่งออก CSV")}
             </Button>
             <Button size="sm" variant="secondary" disabled={isFetching}
               onClick={() => (checked ? refetch() : setChecked(true))}>
-              <Link2 className="size-4" /> ตรวจสอบความถูกต้องของลูกโซ่
+              <Link2 className="size-4" /> {tr("ตรวจสอบความถูกต้องของลูกโซ่")}
             </Button>
           </div>
         }
@@ -85,10 +86,10 @@ export function AuditPanel({ caseId }: { caseId: number }) {
         <THead>
           <tr>
             <TH>#</TH>
-            <TH>เวลา (UTC)</TH>
-            <TH>ผู้ใช้</TH>
-            <TH>การกระทำ</TH>
-            <TH>รายละเอียด / เหตุผล</TH>
+            <TH>{tr("เวลา (UTC)")}</TH>
+            <TH>{tr("ผู้ใช้")}</TH>
+            <TH>{tr("การกระทำ")}</TH>
+            <TH>{tr("รายละเอียด / เหตุผล")}</TH>
             <TH>Hash</TH>
           </tr>
         </THead>
@@ -97,7 +98,7 @@ export function AuditPanel({ caseId }: { caseId: number }) {
             <TR key={e.id}>
               <TD className="font-mono text-xs text-muted">{e.id}</TD>
               <TD className="font-mono text-xs whitespace-nowrap">{e.ts.slice(0, 19).replace("T", " ")}</TD>
-              <TD className="text-xs whitespace-nowrap">{e.user_name ?? "ระบบ"}</TD>
+              <TD className="text-xs whitespace-nowrap">{e.user_name ?? tr("ระบบ")}</TD>
               <TD><Badge tone={e.action === "watchlist_decision" || e.action.startsWith("tag_override") || e.action.startsWith("memo") ? "judge" : "neutral"}>{ACTION[e.action] ?? e.action}</Badge></TD>
               <TD className="max-w-md text-xs">
                 {e.reason && <div className="text-ink">“{e.reason}”</div>}

@@ -13,7 +13,8 @@ state, what is done, and what is next. Product spec: `docs/ITMX.md` (Thai). Back
   also `npm run e2e`. Never commit `backend/.secret`, `backend/.storage_key`, `data/private/`, snapshots or DBs.
 - After any schema change (`backend/app/models.py`): `npm run seed` (also refreshes the reset snapshot), then
   `npm run gen:api` if API shapes changed.
-- UI text is Thai; default theme is "dim" (dark but not very dark) with a light toggle.
+- UI text is Thai, always inside `tr("…")` (`@/lib/i18n`; not `t` — that is a transaction variable) with the English
+  added to `frontend/src/i18n/en.ts`; `i18n.test.ts` fails otherwise. Default theme is "dim" with a light toggle.
 
 ## Rules that must not break
 - **The engine does all money math, deterministically.** Money = `Decimal`, stored as integer satang, sent as

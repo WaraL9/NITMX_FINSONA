@@ -4,6 +4,7 @@ import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { authHeaders } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { tr } from "@/lib/i18n";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -93,7 +94,7 @@ export function PdfPage({ url, page, bbox, className }: PdfPageProps) {
           <Loader2 className="size-5 animate-spin" />
         </div>
       )}
-      {error && <div className="p-6 text-sm text-risk">เปิดเอกสารไม่สำเร็จ: {error}</div>}
+      {error && <div className="p-6 text-sm text-risk">{tr("เปิดเอกสารไม่สำเร็จ:")} {error}</div>}
       {scale && bbox && (
         <div
           ref={box}

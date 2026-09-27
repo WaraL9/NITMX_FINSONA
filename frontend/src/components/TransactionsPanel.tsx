@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ownerType, tagLabel, tierInfo } from "@/lib/labels";
 import { formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { tr } from "@/lib/i18n";
 
 const PAGE_SIZE = 50;
 
@@ -61,8 +62,8 @@ export function TransactionsPanel({ caseId, accounts }: { caseId: number; accoun
   return (
     <Card>
       <CardHeader
-        title="รายการธุรกรรมที่สกัดได้"
-        subtitle="ทุกบรรทัดผูกกับหน้าและพิกัดบนเอกสารต้นฉบับ · คลิกเพื่อเปิดหน้าเอกสาร"
+        title={tr("รายการธุรกรรมที่สกัดได้")}
+        subtitle={tr("ทุกบรรทัดผูกกับหน้าและพิกัดบนเอกสารต้นฉบับ · คลิกเพื่อเปิดหน้าเอกสาร")}
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -71,13 +72,13 @@ export function TransactionsPanel({ caseId, accounts }: { caseId: number; accoun
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="ค้นหารายละเอียด / คู่โอน เช่น งานตกแต่งคลินิก"
+            placeholder={tr("ค้นหารายละเอียด / คู่โอน เช่น งานตกแต่งคลินิก")}
             className="h-9 w-full rounded-md border border-line bg-surface pr-3 pl-9 text-sm text-ink outline-none focus:border-navy"
           />
         </div>
         <div className="flex flex-wrap gap-1">
           <FilterChip active={accountId === undefined} onClick={() => setAccountId(undefined)}>
-            ทุกบัญชี
+            {tr("ทุกบัญชี")}
           </FilterChip>
           {accounts.map((a) => (
             <FilterChip key={a.id} active={accountId === a.id} onClick={() => setAccountId(a.id)}>
@@ -88,10 +89,10 @@ export function TransactionsPanel({ caseId, accounts }: { caseId: number; accoun
         </div>
       </div>
 
-      {isError && <p className="mb-4 text-sm text-risk">โหลดรายการธุรกรรมไม่สำเร็จ — ตรวจสอบว่า backend ทำงานอยู่</p>}
+      {isError && <p className="mb-4 text-sm text-risk">{tr("โหลดรายการธุรกรรมไม่สำเร็จ — ตรวจสอบว่า backend ทำงานอยู่")}</p>}
       <div className="mb-4 flex flex-wrap gap-1">
         <FilterChip active={tier === undefined} onClick={() => setTier(undefined)}>
-          ทุกระดับ
+          {tr("ทุกระดับ")}
         </FilterChip>
         {Object.entries(tierInfo).map(([k, v]) => (
           <FilterChip key={k} active={tier === k} onClick={() => setTier(k)}>
@@ -104,15 +105,15 @@ export function TransactionsPanel({ caseId, accounts }: { caseId: number; accoun
         <Table>
           <THead>
             <tr>
-              <TH>วันที่ เวลา</TH>
-              <TH>บัญชี</TH>
-              <TH>รายการ</TH>
-              <TH>รายละเอียด</TH>
-              <TH>ผลวิเคราะห์</TH>
-              <TH className="text-right">ถอน</TH>
-              <TH className="text-right">ฝาก</TH>
-              <TH className="text-right">คงเหลือ</TH>
-              <TH className="text-right">หน้า</TH>
+              <TH>{tr("วันที่ เวลา")}</TH>
+              <TH>{tr("บัญชี")}</TH>
+              <TH>{tr("รายการ")}</TH>
+              <TH>{tr("รายละเอียด")}</TH>
+              <TH>{tr("ผลวิเคราะห์")}</TH>
+              <TH className="text-right">{tr("ถอน")}</TH>
+              <TH className="text-right">{tr("ฝาก")}</TH>
+              <TH className="text-right">{tr("คงเหลือ")}</TH>
+              <TH className="text-right">{tr("หน้า")}</TH>
             </tr>
           </THead>
           <TBody>
@@ -123,7 +124,7 @@ export function TransactionsPanel({ caseId, accounts }: { caseId: number; accoun
                   key={t.id}
                   className="cursor-pointer"
                   onClick={() => openTxn(t.id)}
-                  title="ดูบรรทัดนี้บนเอกสารต้นฉบับ"
+                  title={tr("ดูบรรทัดนี้บนเอกสารต้นฉบับ")}
                 >
                   <TD className="font-mono text-xs whitespace-nowrap">{formatDateTime(t.posted_at)}</TD>
                   <TD className="text-xs whitespace-nowrap">
@@ -146,7 +147,7 @@ export function TransactionsPanel({ caseId, accounts }: { caseId: number; accoun
                       {t.loop_id && <Badge tone="risk">{t.loop_id}</Badge>}
                       {t.tag && !t.tier && <Badge>{tagLabel[t.tag] ?? t.tag}</Badge>}
                       {t.tag_source === "ca" && <Badge tone="navy">CA</Badge>}
-                      {t.tag_source === "llm" && <Badge tone="navy">AI แนะนำ</Badge>}
+                      {t.tag_source === "llm" && <Badge tone="navy">{tr("AI แนะนำ")}</Badge>}
                     </div>
                   </TD>
                   <TD numeric className="text-risk">
@@ -166,8 +167,8 @@ export function TransactionsPanel({ caseId, accounts }: { caseId: number; accoun
                             setOverriding(t);
                           }}
                           className="rounded p-1 text-muted hover:bg-surface-2 hover:text-navy"
-                          title="ปรับการจัดหมวด (CA Override)"
-                          aria-label="ปรับการจัดหมวด"
+                          title={tr("ปรับการจัดหมวด (CA Override)")}
+                          aria-label={tr("ปรับการจัดหมวด")}
                         >
                           <SlidersHorizontal className="size-3.5" />
                         </button>
@@ -180,7 +181,7 @@ export function TransactionsPanel({ caseId, accounts }: { caseId: number; accoun
             {data && data.items.length === 0 && (
               <tr>
                 <TD colSpan={9} className="py-8 text-center text-muted">
-                  ไม่พบรายการ
+                  {tr("ไม่พบรายการ")}
                 </TD>
               </tr>
             )}
@@ -191,7 +192,7 @@ export function TransactionsPanel({ caseId, accounts }: { caseId: number; accoun
       {data && (
         <div className="mt-3 flex items-center justify-between text-sm text-muted">
           <span>
-            {data.total.toLocaleString()} รายการ · หน้า {page + 1} / {pages}
+            {data.total.toLocaleString()} {tr("รายการ · หน้า")} {page + 1} / {pages}
           </span>
           <div className="flex gap-1">
             <Button size="sm" variant="secondary" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>

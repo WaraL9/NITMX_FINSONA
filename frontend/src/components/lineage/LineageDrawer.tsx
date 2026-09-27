@@ -8,6 +8,7 @@ import { tagLabel, tierInfo } from "@/lib/labels";
 import { formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { PdfPage } from "./PdfPage";
+import { tr } from "@/lib/i18n";
 
 /**
  * Pixel lineage (E10-02/03/04): any figure opens a split-screen panel.
@@ -78,18 +79,18 @@ function Header({ title, subtitle, onBack, onClose }: { title: ReactNode; subtit
   return (
     <div className="flex items-start gap-3 border-b border-line px-5 py-4">
       {onBack && (
-        <button onClick={onBack} className="mt-0.5 rounded p-1 text-muted hover:bg-surface-2" aria-label="ย้อนกลับ">
+        <button onClick={onBack} className="mt-0.5 rounded p-1 text-muted hover:bg-surface-2" aria-label={tr("ย้อนกลับ")}>
           <ArrowLeft className="size-4" />
         </button>
       )}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 text-xs text-judge">
-          <FileSearch className="size-3.5" /> ตรวจสอบย้อนกลับถึงเอกสารต้นฉบับ
+          <FileSearch className="size-3.5" /> {tr("ตรวจสอบย้อนกลับถึงเอกสารต้นฉบับ")}
         </div>
         <h2 className="mt-1 truncate text-base font-semibold text-ink">{title}</h2>
         {subtitle && <div className="mt-0.5 text-xs text-muted">{subtitle}</div>}
       </div>
-      <button onClick={onClose} className="rounded p-1 text-muted hover:bg-surface-2" aria-label="ปิด">
+      <button onClick={onClose} className="rounded p-1 text-muted hover:bg-surface-2" aria-label={tr("ปิด")}>
         <X className="size-4" />
       </button>
     </div>
@@ -126,10 +127,10 @@ function RowsView({ view, onPick, onClose }: { view: Extract<View, { kind: "metr
         subtitle={
           data && (
             <span className="flex flex-wrap items-center gap-2">
-              {data.total.toLocaleString()} รายการ · รวม{" "}
+              {data.total.toLocaleString()} {tr("รายการ · รวม")}{" "}
               <span className="num font-mono text-ink">{formatTHB(total!, 2)}</span>
               {matches !== null && (
-                <Badge tone={matches ? "verified" : "risk"}>{matches ? "ผลรวมตรงกับตัวเลขบนหน้าจอ" : "ผลรวมไม่ตรง"}</Badge>
+                <Badge tone={matches ? "verified" : "risk"}>{matches ? tr("ผลรวมตรงกับตัวเลขบนหน้าจอ") : tr("ผลรวมไม่ตรง")}</Badge>
               )}
             </span>
           )
@@ -155,14 +156,14 @@ function RowsView({ view, onPick, onClose }: { view: Extract<View, { kind: "metr
             <div className={cn("num font-mono text-sm", t.credit !== "0.00" ? "text-verified" : "text-risk")}>
               {formatTHB(t.credit !== "0.00" ? t.credit : t.debit)}
             </div>
-            <div className="w-12 text-right text-xs text-muted">น.{t.page_no}</div>
+            <div className="w-12 text-right text-xs text-muted">{tr("น.")}{t.page_no}</div>
           </button>
         ))}
       </div>
       {data && data.total > PAGE && (
         <div className="flex items-center justify-between border-t border-line px-5 py-2 text-xs text-muted">
           <span>
-            {offset + 1}–{Math.min(offset + PAGE, data.total)} จาก {data.total}
+            {offset + 1}–{Math.min(offset + PAGE, data.total)} {tr("จาก")} {data.total}
           </span>
           <div className="flex gap-1">
             <Button size="sm" variant="secondary" disabled={offset === 0} onClick={() => setOffset(offset - PAGE)}>
@@ -193,8 +194,8 @@ export function TxnLineage({ txnId, compact }: { txnId: number; compact?: boolea
     queryFn: async () => unwrap(await api.GET("/api/transactions/{txn_id}/lineage", { params: { path: { txn_id: txnId } } })),
     staleTime: 60_000,
   });
-  if (isError) return <p className="p-5 text-sm text-risk">โหลดข้อมูลต้นทางไม่สำเร็จ</p>;
-  if (!l) return <p className="p-5 text-sm text-muted">กำลังโหลด…</p>;
+  if (isError) return <p className="p-5 text-sm text-risk">{tr("โหลดข้อมูลต้นทางไม่สำเร็จ")}</p>;
+  if (!l) return <p className="p-5 text-sm text-muted">{tr("กำลังโหลด…")}</p>;
   const t = l.transaction;
   const bbox = t.bbox;
   return (
@@ -203,48 +204,47 @@ export function TxnLineage({ txnId, compact }: { txnId: number; compact?: boolea
         <PdfPage url={documentFileUrl(l.document.id)} page={t.page_no} bbox={bbox} className="max-h-[60vh] overflow-y-auto" />
       ) : l.document && isStatementReport(l.document.parse_report) && l.document.parse_report.source ? (
         <p data-testid="lineage-bank-record" className="rounded-md border border-verified/40 bg-verified-soft px-3 py-2 text-sm text-body">
-          รายการนี้มาจากธนาคารต้นทางโดยตรงผ่าน dStatement — ข้อมูลมีลายมือชื่อของธนาคาร ไม่มีหน้าเอกสารให้ไฮไลต์
-          (ไฟล์ต้นฉบับ: <span className="font-mono">{l.document.filename}</span>)
+          {tr("รายการนี้มาจากธนาคารต้นทางโดยตรงผ่าน dStatement — ข้อมูลมีลายมือชื่อของธนาคาร ไม่มีหน้าเอกสารให้ไฮไลต์ (ไฟล์ต้นฉบับ:")} <span className="font-mono">{l.document.filename}</span>)
         </p>
       ) : (
-        <p className="text-sm text-muted">ไม่มีเอกสารต้นฉบับ</p>
+        <p className="text-sm text-muted">{tr("ไม่มีเอกสารต้นฉบับ")}</p>
       )}
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-md border border-line bg-surface p-3 sm:grid-cols-3">
-        <Meta label="เอกสาร">{l.document?.filename ?? "—"}</Meta>
-        <Meta label="หน้า / บรรทัด">
+        <Meta label={tr("เอกสาร")}>{l.document?.filename ?? "—"}</Meta>
+        <Meta label={tr("หน้า / บรรทัด")}>
           {t.page_no ?? "—"} / {t.row_index + 1}
         </Meta>
-        <Meta label="ลายนิ้วมือไฟล์">
+        <Meta label={tr("ลายนิ้วมือไฟล์")}>
           {l.sha256_verified ? (
             <span className="inline-flex items-center gap-1 text-verified">
-              <ShieldCheck className="size-3.5" /> SHA-256 ตรงกับตอนอัปโหลด
+              <ShieldCheck className="size-3.5" /> {tr("SHA-256 ตรงกับตอนอัปโหลด")}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 text-risk">
-              <ShieldX className="size-3.5" /> ไฟล์ไม่ตรง
+              <ShieldX className="size-3.5" /> {tr("ไฟล์ไม่ตรง")}
             </span>
           )}
         </Meta>
-        <Meta label="พิกัด (x0, y0, x1, y1 pt)">
+        <Meta label={tr("พิกัด (x0, y0, x1, y1 pt)")}>
           <span className="font-mono">{bbox ? bbox.map((v) => v.toFixed(0)).join(", ") : "—"}</span>
         </Meta>
-        <Meta label="ความเชื่อมั่นการอ่าน">{(t.confidence * 100).toFixed(1)}%</Meta>
-        <Meta label="ตัวอ่านเอกสาร">
+        <Meta label={tr("ความเชื่อมั่นการอ่าน")}>{(t.confidence * 100).toFixed(1)}%</Meta>
+        <Meta label={tr("ตัวอ่านเอกสาร")}>
           <span className="font-mono">{t.extractor_version}</span>
         </Meta>
       </div>
       <div className="rounded-md border border-line p-3 text-sm">
         <div className="flex flex-wrap items-center gap-2">
           <span className="num font-mono text-base font-semibold text-ink">
-            {formatTHB(t.credit !== "0.00" ? t.credit : t.debit)} บาท
+            {formatTHB(t.credit !== "0.00" ? t.credit : t.debit)} {tr("บาท")}
           </span>
           {t.tier && <Badge tone={tierInfo[t.tier]?.tone}>{tierInfo[t.tier]?.label}</Badge>}
           {t.tag && <Badge>{tagLabel[t.tag] ?? t.tag}</Badge>}
-          {t.loop_id && <Badge tone="risk">วงจร {t.loop_id}</Badge>}
+          {t.loop_id && <Badge tone="risk">{tr("วงจร")} {t.loop_id}</Badge>}
           {t.tag_source === "ca" && <Badge tone="navy">CA Override</Badge>}
         </div>
         <div className="mt-1 text-xs text-muted">{t.description}</div>
-        {t.tag_reason && <div className="mt-2 text-xs text-body">เหตุผลของระบบ: {t.tag_reason}</div>}
+        {t.tag_reason && <div className="mt-2 text-xs text-body">{tr("เหตุผลของระบบ:")} {t.tag_reason}</div>}
       </div>
     </div>
   );
@@ -253,7 +253,7 @@ export function TxnLineage({ txnId, compact }: { txnId: number; compact?: boolea
 function TxnView({ view, onBack, onClose }: { view: Extract<View, { kind: "txn" }>; onBack?: () => void; onClose: () => void }) {
   return (
     <>
-      <Header title="รายการต้นทางบนเอกสาร" subtitle="กรอบสีส้มคือบรรทัดที่ตัวเลขนี้มาจาก · การเปิดดูถูกบันทึกใน Audit Log" onBack={onBack} onClose={onClose} />
+      <Header title={tr("รายการต้นทางบนเอกสาร")} subtitle={tr("กรอบสีส้มคือบรรทัดที่ตัวเลขนี้มาจาก · การเปิดดูถูกบันทึกใน Audit Log")} onBack={onBack} onClose={onClose} />
       <div className="flex-1 overflow-y-auto">
         <TxnLineage txnId={view.txnId} />
       </div>

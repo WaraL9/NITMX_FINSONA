@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { useSession } from "@/lib/auth";
+import { tr } from "@/lib/i18n";
 
 const FIELDS = [
   ["min_dscr", "DSCR ขั้นต่ำ (ต่ำกว่านี้ = แดง)", "1.00–3.00"],
@@ -32,40 +33,40 @@ export default function PolicyPage() {
     },
     onSuccess: (d) => { qc.setQueryData(["policy"], d); qc.invalidateQueries(); setReason(""); },
   });
-  if (!data) return <p className="text-sm text-muted">กำลังโหลด…</p>;
+  if (!data) return <p className="text-sm text-muted">{tr("กำลังโหลด…")}</p>;
   const valid = FIELDS.every(([k]) => DEC.test(form[k] ?? "")) && reason.trim().length >= 10;
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-ink">นโยบายสินเชื่อ (Credit Policy)</h1>
-        <p className="mt-1 text-sm text-muted">ทุกการเปลี่ยนแปลงสร้างเวอร์ชันใหม่ บันทึกใน Audit Log และคำนวณแฟ้มที่ยังไม่ตัดสินใหม่ทันที · Memo ที่ลงนามแล้วไม่เปลี่ยน</p>
+        <h1 className="text-2xl font-semibold text-ink">{tr("นโยบายสินเชื่อ (Credit Policy)")}</h1>
+        <p className="mt-1 text-sm text-muted">{tr("ทุกการเปลี่ยนแปลงสร้างเวอร์ชันใหม่ บันทึกใน Audit Log และคำนวณแฟ้มที่ยังไม่ตัดสินใหม่ทันที · Memo ที่ลงนามแล้วไม่เปลี่ยน")}</p>
       </div>
       <Card>
-        <CardHeader title="นโยบายที่ใช้อยู่" />
+        <CardHeader title={tr("นโยบายที่ใช้อยู่")} />
         <div className="grid gap-4 sm:grid-cols-2">
           {FIELDS.map(([k, label, hint]) => (
-            <label key={k} className="text-xs text-muted">{label}
+            <label key={k} className="text-xs text-muted">{tr(label)}
               <input disabled={!canEdit} value={form[k] ?? ""} onChange={(e) => setForm({ ...form, [k]: e.target.value })}
                 className="mt-1 h-10 w-full rounded-md border border-line bg-surface px-3 font-mono text-sm text-ink outline-none focus:border-navy disabled:opacity-70" />
-              <span className="text-[11px]">{hint}</span>
+              <span className="text-[11px]">{tr(hint)}</span>
             </label>
           ))}
         </div>
         {canEdit && (
           <>
-            <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} placeholder="เหตุผลการเปลี่ยนนโยบาย (บังคับ)"
+            <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} placeholder={tr("เหตุผลการเปลี่ยนนโยบาย (บังคับ)")}
               className="mt-4 w-full rounded-md border border-line bg-surface p-3 text-sm text-ink outline-none focus:border-navy" />
             {save.isError && <p className="text-sm text-risk">{save.error.message}</p>}
             <Button className="mt-2" disabled={!valid || save.isPending} onClick={() => save.mutate()}>
-              {save.isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} บันทึกเวอร์ชันใหม่
+              {save.isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} {tr("บันทึกเวอร์ชันใหม่")}
             </Button>
           </>
         )}
       </Card>
       <Card>
-        <CardHeader title="ประวัติเวอร์ชัน" />
+        <CardHeader title={tr("ประวัติเวอร์ชัน")} />
         <Table>
-          <THead><tr><TH>#</TH><TH>เวลา</TH><TH>โดย</TH><TH>DSCR ขั้นต่ำ/เป้า</TH><TH>DSR</TH><TH>Trade Line</TH><TH>เหตุผล</TH></tr></THead>
+          <THead><tr><TH>#</TH><TH>{tr("เวลา")}</TH><TH>{tr("โดย")}</TH><TH>{tr("DSCR ขั้นต่ำ/เป้า")}</TH><TH>DSR</TH><TH>Trade Line</TH><TH>{tr("เหตุผล")}</TH></tr></THead>
           <TBody>
             {data.history.map((h) => (
               <TR key={h.id}>
@@ -78,7 +79,7 @@ export default function PolicyPage() {
                 <TD className="text-xs">{h.reason}</TD>
               </TR>
             ))}
-            {data.history.length === 0 && <tr><TD colSpan={7} className="py-6 text-center text-muted">ใช้ค่าเริ่มต้นของระบบ (ยังไม่มีการแก้ไข)</TD></tr>}
+            {data.history.length === 0 && <tr><TD colSpan={7} className="py-6 text-center text-muted">{tr("ใช้ค่าเริ่มต้นของระบบ (ยังไม่มีการแก้ไข)")}</TD></tr>}
           </TBody>
         </Table>
       </Card>

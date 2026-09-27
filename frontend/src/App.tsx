@@ -18,6 +18,7 @@ import MetricsPage from "@/pages/Metrics";
 import PolicyPage from "@/pages/Policy";
 import RmApp from "@/pages/RmApp";
 import SmePortal from "@/pages/SmePortal";
+import { setLang, tr, useLang } from "@/lib/i18n";
 
 function HealthIndicator() {
   const { data, isError } = useQuery({
@@ -30,7 +31,7 @@ function HealthIndicator() {
   return (
     <div className="flex items-center gap-2">
       <Badge tone={data.connector_mode === "live" ? "verified" : "judge"}>Connectors: {data.connector_mode}</Badge>
-      <Badge tone={data.live_llm ? "verified" : "neutral"} title={data.live_llm ? "Claude via Anthropic API" : "ไม่มี API key — ใช้แคช/แม่แบบ ตัวเลขทั้งหมดยังมาจากระบบคำนวณ"}>
+      <Badge tone={data.live_llm ? "verified" : "neutral"} title={data.live_llm ? "Claude via Anthropic API" : tr("ไม่มี API key — ใช้แคช/แม่แบบ ตัวเลขทั้งหมดยังมาจากระบบคำนวณ")}>
         LLM: {data.live_llm ? "live" : "template"}
       </Badge>
       <Badge tone={data.live_ocr ? "verified" : "neutral"}>OCR: {data.live_ocr ? "live" : "cached"}</Badge>
@@ -50,6 +51,21 @@ function ThemeToggle() {
     >
       {theme === "dim" ? <Sun className="size-4" /> : <Moon className="size-4" />}
     </button>
+  );
+}
+
+/** E8-13: Thai / English. */
+function LangToggle() {
+  const lang = useLang();
+  return (
+    <div className="flex overflow-hidden rounded-md border border-line text-xs" role="group" aria-label="Language / ภาษา">
+      {(["th", "en"] as const).map((l) => (
+        <button key={l} data-testid={`lang-${l}`} onClick={() => setLang(l)} aria-pressed={lang === l}
+          className={cn("px-2 py-1", lang === l ? "bg-navy text-white" : "text-muted hover:bg-surface-2 hover:text-ink")}>
+          {l === "th" ? "ไทย" : "EN"}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -74,8 +90,8 @@ function UserMenu() {
           value={session.user.username}
           onChange={(e) => void switchTo(e.target.value)}
           className="h-8 rounded-md border border-line bg-surface px-2 text-xs text-ink outline-none"
-          aria-label="สลับบัญชีสาธิต"
-          title="Demo mode: สลับบัญชีสาธิต"
+          aria-label={tr("สลับบัญชีสาธิต")}
+          title={tr("Demo mode: สลับบัญชีสาธิต")}
         >
           {DEMO_ACCOUNTS.map((a) => (
             <option key={a.username} value={a.username}>
@@ -95,7 +111,7 @@ function UserMenu() {
         }}
         className="rounded-md px-2 py-1 whitespace-nowrap text-muted hover:bg-surface-2 hover:text-ink"
       >
-        ออกจากระบบ
+        {tr("ออกจากระบบ")}
       </button>
     </div>
   );
@@ -119,12 +135,12 @@ function RoleNav() {
   const role = useSession()?.user.role;
   return (
     <nav className="flex gap-1">
-      {(role === "CA" || role === "AUDITOR") && <NavItem to="/">แฟ้มสินเชื่อ</NavItem>}
+      {(role === "CA" || role === "AUDITOR") && <NavItem to="/">{tr("แฟ้มสินเชื่อ")}</NavItem>}
       {(role === "RM" || role === "CA") && <NavItem to="/rm">RM Field</NavItem>}
-      {role === "SME" && <NavItem to="/sme">สินเชื่อของฉัน</NavItem>}
-      {(role === "CA" || role === "AUDITOR") && <NavItem to="/policy">นโยบายสินเชื่อ</NavItem>}
-      {(role === "CA" || role === "AUDITOR") && <NavItem to="/metrics">ตัวชี้วัด</NavItem>}
-      {(role === "CA" || role === "AUDITOR") && <NavItem to="/compliance">ธรรมาภิบาล</NavItem>}
+      {role === "SME" && <NavItem to="/sme">{tr("สินเชื่อของฉัน")}</NavItem>}
+      {(role === "CA" || role === "AUDITOR") && <NavItem to="/policy">{tr("นโยบายสินเชื่อ")}</NavItem>}
+      {(role === "CA" || role === "AUDITOR") && <NavItem to="/metrics">{tr("ตัวชี้วัด")}</NavItem>}
+      {(role === "CA" || role === "AUDITOR") && <NavItem to="/compliance">{tr("ธรรมาภิบาล")}</NavItem>}
     </nav>
   );
 }
@@ -147,6 +163,7 @@ export default function App() {
               <HealthIndicator />
             </div>
             <UserMenu />
+            <LangToggle />
             <ThemeToggle />
           </div>
         </div>
@@ -175,7 +192,7 @@ export default function App() {
           <Route path="/metrics" element={<MetricsPage />} />
           <Route path="/compliance" element={<CompliancePage />} />
           <Route path="/design" element={<DesignSystem />} />
-          <Route path="*" element={<p className="text-muted">ไม่พบหน้านี้</p>} />
+          <Route path="*" element={<p className="text-muted">{tr("ไม่พบหน้านี้")}</p>} />
         </Routes>
         )}
         </LineageProvider>

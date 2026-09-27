@@ -22,6 +22,7 @@ import { ownerType } from "@/lib/labels";
 import { formatTHB } from "@/lib/money";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { tr } from "@/lib/i18n";
 
 const LOOP_COLORS = ["#f87171", "#fb923c", "#f472b6", "#facc15", "#a78bfa"];
 
@@ -152,13 +153,13 @@ export function LoopsCard({ caseId, a, accounts }: { caseId: number; a: Analysis
       <CardHeader
         title={
           <span className="flex items-center gap-2">
-            <Repeat className="size-4 text-risk" /> เงินโอนวนที่ตรวจพบ ({a.loops.length})
+            <Repeat className="size-4 text-risk" /> {tr("เงินโอนวนที่ตรวจพบ (")}{a.loops.length})
           </span>
         }
-        subtitle="ตรวจจับด้วยกราฟธุรกรรมตามเวลา · ตัดยอดออกจากรายได้โดยอัตโนมัติ"
+        subtitle={tr("ตรวจจับด้วยกราฟธุรกรรมตามเวลา · ตัดยอดออกจากรายได้โดยอัตโนมัติ")}
         action={
           <Button size="sm" variant="secondary" data-testid="open-loop-graph" onClick={() => setOpen(true)}>
-            ดูผังเส้นทางเงินวน
+            {tr("ดูผังเส้นทางเงินวน")}
           </Button>
         }
       />
@@ -166,13 +167,13 @@ export function LoopsCard({ caseId, a, accounts }: { caseId: number; a: Analysis
         {a.loops.map((l, i) => (
           <button
             key={l.id}
-            onClick={() => openLoop(caseId, l.id, `วงจร ${l.id} · ${l.legs.length} ทอด`)}
+            onClick={() => openLoop(caseId, l.id, tr("วงจร {0} · {1} ทอด", [l.id, l.legs.length]))}
             className="w-full rounded-md border border-line bg-surface px-3 py-2 text-left text-sm hover:border-risk/60"
           >
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-2 font-medium text-ink">
                 <span className="size-2.5 rounded-full" style={{ background: LOOP_COLORS[i % LOOP_COLORS.length] }} />
-                {l.id} · {l.legs.length} ทอด · {l.hours} ชม.
+                {l.id} · {l.legs.length} {tr("ทอด ·")} {l.hours} {tr("ชม.")}
               </span>
               <span className="num font-mono text-risk">−{formatTHB(l.netted_amount, 0)}</span>
             </div>
@@ -182,21 +183,21 @@ export function LoopsCard({ caseId, a, accounts }: { caseId: number; a: Analysis
             </div>
           </button>
         ))}
-        {a.loops.length === 0 && <p className="text-sm text-muted">ไม่พบเงินโอนวน</p>}
+        {a.loops.length === 0 && <p className="text-sm text-muted">{tr("ไม่พบเงินโอนวน")}</p>}
       </div>
 
       <Modal open={open} onClose={() => setOpen(false)} size="xl"
-        title={<span className="flex items-center gap-2"><Repeat className="size-4 text-risk" /> ผังเส้นทางเงินวนระหว่างบัญชี</span>}>
+        title={<span className="flex items-center gap-2"><Repeat className="size-4 text-risk" /> {tr("ผังเส้นทางเงินวนระหว่างบัญชี")}</span>}>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <Button size="sm" variant={selected === null ? "primary" : "secondary"} onClick={() => setSelected(null)}>
-            ทุกวงจร
+            {tr("ทุกวงจร")}
           </Button>
           {a.loops.map((l) => (
             <Button key={l.id} size="sm" variant={selected === l.id ? "primary" : "secondary"} onClick={() => setSelected(l.id)}>
               {l.id} · −{formatTHB(l.netted_amount, 0)}
             </Button>
           ))}
-          <span className="ml-auto text-xs text-muted">คลิกเส้นลูกศรเพื่อเปิดรายการบนสเตทเมนต์ต้นฉบับ</span>
+          <span className="ml-auto text-xs text-muted">{tr("คลิกเส้นลูกศรเพื่อเปิดรายการบนสเตทเมนต์ต้นฉบับ")}</span>
         </div>
         {/* Mount only while open: React Flow sizes itself on mount, and a closed <dialog> has no size. */}
         {open && (
@@ -204,7 +205,7 @@ export function LoopsCard({ caseId, a, accounts }: { caseId: number; a: Analysis
             onLeg={(id) => { setOpen(false); openTxn(id); }} />
         )}
         <p className="mt-3 text-xs text-muted">
-          เงินก้อนเดิมถูกโอนข้ามบัญชีของตนเองแล้ววนกลับภายใน 72 ชั่วโมง ด้วยยอดใกล้เคียงกัน — ระบบนับยอดที่เข้าบัญชีบริษัทในวงจรเป็นยอดหมุนเวียนเทียมและตัดออกจากรายได้
+          {tr("เงินก้อนเดิมถูกโอนข้ามบัญชีของตนเองแล้ววนกลับภายใน 72 ชั่วโมง ด้วยยอดใกล้เคียงกัน — ระบบนับยอดที่เข้าบัญชีบริษัทในวงจรเป็นยอดหมุนเวียนเทียมและตัดออกจากรายได้")}
         </p>
       </Modal>
     </Card>

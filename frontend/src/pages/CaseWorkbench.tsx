@@ -22,13 +22,14 @@ import { WaterfallChart } from "@/components/workbench/WaterfallChart";
 import { caseStatus, formatRate, ownerType } from "@/lib/labels";
 import { formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { tr } from "@/lib/i18n";
 
 const TABS = [
-  { id: "overview", label: "ภาพรวม & กระแสเงินสด", icon: LayoutDashboard },
-  { id: "tiers", label: "กระทบยอด 3 เส้า", icon: Scale },
-  { id: "watchlist", label: "Watchlist ดุลยพินิจ", icon: ListChecks },
-  { id: "documents", label: "เอกสาร & ธุรกรรม", icon: FileText },
-  { id: "ocr", label: "ตรวจทาน OCR", icon: ScanLine },
+  { id: "overview", get label() { return tr("ภาพรวม & กระแสเงินสด"); }, icon: LayoutDashboard },
+  { id: "tiers", get label() { return tr("กระทบยอด 3 เส้า"); }, icon: Scale },
+  { id: "watchlist", get label() { return tr("Watchlist ดุลยพินิจ"); }, icon: ListChecks },
+  { id: "documents", get label() { return tr("เอกสาร & ธุรกรรม"); }, icon: FileText },
+  { id: "ocr", get label() { return tr("ตรวจทาน OCR"); }, icon: ScanLine },
   { id: "audit", label: "Audit Log", icon: History },
   { id: "memo", label: "Credit Memo", icon: FileSignature },
 ] as const;
@@ -39,12 +40,12 @@ function CaseHeader({ c, a, onRun, running, stale }: { c: CaseDetail; a: Analysi
     <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line pb-5">
       <div className="min-w-0">
         <div className="flex items-center gap-2 text-xs text-muted">
-          <Building2 className="size-3.5" /> แฟ้มสินเชื่อ #{c.id}
+          <Building2 className="size-3.5" /> {tr("แฟ้มสินเชื่อ #")}{c.id}
         </div>
         <h1 className="mt-1 text-2xl font-semibold text-ink">{c.company_name}</h1>
         <div className="mt-2 flex flex-wrap gap-2">
           <Badge>{c.industry}</Badge>
-          <Badge>อายุธุรกิจ {c.business_age_years} ปี</Badge>
+          <Badge>{tr("อายุธุรกิจ")} {c.business_age_years} {tr("ปี")}</Badge>
           {c.accounts.map((acc) => (
             <Badge key={acc.id} tone={acc.owner_type === "company" ? "tax" : "judge"} title={ownerType[acc.owner_type]}>
               {acc.bank_code} ·{acc.account_no_masked.slice(-6, -2)}
@@ -53,16 +54,16 @@ function CaseHeader({ c, a, onRun, running, stale }: { c: CaseDetail; a: Analysi
         </div>
       </div>
       <div className="text-right">
-        <div className="text-xs text-muted">วงเงินที่ขอกู้</div>
-        <div className="num font-mono text-2xl font-semibold text-ink">{formatTHB(c.requested_amount, 0)} บาท</div>
+        <div className="text-xs text-muted">{tr("วงเงินที่ขอกู้")}</div>
+        <div className="num font-mono text-2xl font-semibold text-ink">{formatTHB(c.requested_amount, 0)} {tr("บาท")}</div>
         <div className="mt-1 text-xs text-muted">
-          {c.purpose} · {c.tenor_months} เดือน · {formatRate(c.annual_rate)}
+          {c.purpose} · {c.tenor_months} {tr("เดือน ·")} {formatRate(c.annual_rate)}
         </div>
         <div className="mt-2 flex items-center justify-end gap-2">
           <Badge tone={caseStatus[c.status].tone}>{caseStatus[c.status].label}</Badge>
           <Button size="sm" variant={stale || !a ? "primary" : "secondary"} onClick={onRun} disabled={running} data-testid="run-analysis">
             {running ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-            {a ? "วิเคราะห์ใหม่" : "เริ่มวิเคราะห์"}
+            {a ? tr("วิเคราะห์ใหม่") : tr("เริ่มวิเคราะห์")}
           </Button>
         </div>
       </div>
@@ -138,11 +139,11 @@ export default function CaseWorkbench() {
   });
   const ocrPending = ocrRows?.filter((r) => r.review_status === "pending").length ?? 0;
 
-  if (isLoading) return <p className="text-sm text-muted">กำลังโหลด…</p>;
+  if (isLoading) return <p className="text-sm text-muted">{tr("กำลังโหลด…")}</p>;
   if (isError || !c) {
     // 404/403 means the case is really not there (or not yours); anything else is a connection problem.
     const missing = !error || /^API 40[34]/.test(error.message);
-    return <p className="text-sm text-risk">{missing ? "ไม่พบแฟ้มสินเชื่อนี้ หรือคุณไม่มีสิทธิ์เข้าถึง" : "โหลดแฟ้มไม่สำเร็จ — ตรวจการเชื่อมต่อแล้วลองใหม่"}</p>;
+    return <p className="text-sm text-risk">{missing ? tr("ไม่พบแฟ้มสินเชื่อนี้ หรือคุณไม่มีสิทธิ์เข้าถึง") : tr("โหลดแฟ้มไม่สำเร็จ — ตรวจการเชื่อมต่อแล้วลองใหม่")}</p>;
   }
 
   const pending = watchlist?.filter((i) => i.status === "pending" || i.status === "queried").length ?? 0;
@@ -153,7 +154,7 @@ export default function CaseWorkbench() {
       {run.isError && <p className="text-sm text-risk">{run.error.message}</p>}
       {stale && (
         <p className="flex items-center gap-2 text-sm text-judge">
-          <TriangleAlert className="size-4" /> มีเอกสารใหม่หลังการวิเคราะห์ครั้งล่าสุด — กด “วิเคราะห์ใหม่”
+          <TriangleAlert className="size-4" /> {tr("มีเอกสารใหม่หลังการวิเคราะห์ครั้งล่าสุด — กด “วิเคราะห์ใหม่”")}
         </p>
       )}
 
@@ -161,8 +162,8 @@ export default function CaseWorkbench() {
         <button data-testid="ocr-banner" onClick={() => setTab("ocr")}
           className="flex w-full items-center gap-2 rounded-md border border-judge/40 bg-judge-soft px-3 py-2 text-left text-sm text-body hover:border-judge">
           <ScanLine className="size-4 shrink-0 text-judge" />
-          มีเอกสารสแกน {ocrPending} แถวที่ OCR อ่านไม่มั่นใจ — ตรวจทานก่อนจึงจะลงนาม Credit Memo ได้
-          <span className="ml-auto font-medium text-navy">ตรวจทาน →</span>
+          {tr("มีเอกสารสแกน")} {ocrPending} {tr("แถวที่ OCR อ่านไม่มั่นใจ — ตรวจทานก่อนจึงจะลงนาม Credit Memo ได้")}
+          <span className="ml-auto font-medium text-navy">{tr("ตรวจทาน →")}</span>
         </button>
       )}
 
@@ -190,7 +191,7 @@ export default function CaseWorkbench() {
 
       {!a && tab !== "documents" && tab !== "audit" && (
         <Card className="text-center text-sm text-muted">
-          ยังไม่ได้วิเคราะห์แฟ้มนี้ — อัปโหลดเอกสารในแท็บ “เอกสาร & ธุรกรรม” แล้วกด “เริ่มวิเคราะห์”
+          {tr("ยังไม่ได้วิเคราะห์แฟ้มนี้ — อัปโหลดเอกสารในแท็บ “เอกสาร & ธุรกรรม” แล้วกด “เริ่มวิเคราะห์”")}
         </Card>
       )}
 

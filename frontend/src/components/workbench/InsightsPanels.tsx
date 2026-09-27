@@ -7,6 +7,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { Toggle } from "@/components/ui/toggle";
 import { formatMillions } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { tr } from "@/lib/i18n";
 
 /** E8-11 / E7-06: why the safe limit is what it is — each factor measured by ablation. */
 export function DriversPanel({ caseId, a }: { caseId: number; a: Analysis }) {
@@ -16,8 +17,8 @@ export function DriversPanel({ caseId, a }: { caseId: number; a: Analysis }) {
   return (
     <Card>
       <CardHeader
-        title="ปัจจัยที่มีผลต่อวงเงิน (Explainable AI)"
-        subtitle="ผลต่อวงเงินปลอดภัยเมื่อตัดปัจจัยนั้นออก คำนวณแยกทีละปัจจัยด้วยสูตรเดียวกับระบบ (จึงไม่รวมกันเป็นยอดเดียว)"
+        title={tr("ปัจจัยที่มีผลต่อวงเงิน (Explainable AI)")}
+        subtitle={tr("ผลต่อวงเงินปลอดภัยเมื่อตัดปัจจัยนั้นออก คำนวณแยกทีละปัจจัยด้วยสูตรเดียวกับระบบ (จึงไม่รวมกันเป็นยอดเดียว)")}
       />
       <div className="space-y-2">
         {drivers.map((d) => {
@@ -26,7 +27,7 @@ export function DriversPanel({ caseId, a }: { caseId: number; a: Analysis }) {
           const color = d.kind === "positive" ? "text-verified" : d.kind === "risk" ? "text-judge" : "text-muted";
           const bar = d.kind === "positive" ? "bg-verified" : "bg-judge";
           const label =
-            d.kind === "info" ? "ไม่กระทบวงเงิน" : d.key === "unverified" ? `ศักยภาพ +${formatMillions(d.impact, 2)}`
+            d.kind === "info" ? tr("ไม่กระทบวงเงิน") : d.key === "unverified" ? tr("ศักยภาพ +{0}", [formatMillions(d.impact, 2)])
               : `${impact > 0 ? "+" : ""}${formatMillions(d.impact, 2)}`;
           return (
             <button
@@ -79,8 +80,8 @@ export function AltDataPanel({ caseId, a }: { caseId: number; a: Analysis }) {
   return (
     <Card>
       <CardHeader
-        title="ข้อมูลทางเลือก: ค่าไฟ ค่าน้ำ ค่าเช่า"
-        subtitle={`${alt.months_covered} เดือน · ${alt.bills} ใบแจ้งหนี้ · ตรงเวลา ${alt.on_time} · ล่าช้า >30 วัน ${alt.late_30} · >60 วัน/ค้าง ${alt.late_60_or_unpaid}`}
+        title={tr("ข้อมูลทางเลือก: ค่าไฟ ค่าน้ำ ค่าเช่า")}
+        subtitle={tr("{0} เดือน · {1} ใบแจ้งหนี้ · ตรงเวลา {2} · ล่าช้า >30 วัน {3} · >60 วัน/ค้าง {4}", [alt.months_covered, alt.bills, alt.on_time, alt.late_30, alt.late_60_or_unpaid])}
         action={<SourceBadge mode={conn?.mode === "live" ? "live" : "sandbox"} source="Utility & Rent" />}
       />
       <div className={cn("flex items-center gap-3 rounded-md border p-3",
@@ -88,8 +89,8 @@ export function AltDataPanel({ caseId, a }: { caseId: number; a: Analysis }) {
         {haircut > 0 ? <ShieldAlert className={cn("size-5", alt.ews ? "text-risk" : "text-judge")} /> : <ShieldCheck className="size-5 text-verified" />}
         <div className="text-sm">
           <div className="font-medium text-ink">
-            {alt.ews ? "สัญญาณเตือนภัยล่วงหน้า (EWS)" : haircut > 0 ? "พบการชำระล่าช้า" : "วินัยการชำระดี"}
-            <Badge tone={haircut > 0 ? "risk" : "verified"} className="ml-2">ปรับลดกระแสเงินสด {(haircut * 100).toFixed(0)}%</Badge>
+            {alt.ews ? tr("สัญญาณเตือนภัยล่วงหน้า (EWS)") : haircut > 0 ? tr("พบการชำระล่าช้า") : tr("วินัยการชำระดี")}
+            <Badge tone={haircut > 0 ? "risk" : "verified"} className="ml-2">{tr("ปรับลดกระแสเงินสด")} {(haircut * 100).toFixed(0)}%</Badge>
           </div>
           <ul className="mt-1 list-disc pl-4 text-xs text-body">
             {alt.signals.map((s) => <li key={s}>{s}</li>)}
@@ -98,16 +99,16 @@ export function AltDataPanel({ caseId, a }: { caseId: number; a: Analysis }) {
       </div>
       {alt.uploads && alt.uploads.uploaded > 0 && (
         <p data-testid="alt-uploads" className="mt-2 text-xs text-muted">
-          บิลที่ผู้กู้อัปโหลด {alt.uploads.uploaded} ใบ · ใช้คำนวณ {alt.uploads.used}
-          {alt.uploads.corroborated > 0 && ` · ตรงกับข้อมูลผู้ให้บริการ ${alt.uploads.corroborated}`}
-          {alt.uploads.conflict > 0 && ` · ขัดแย้ง ${alt.uploads.conflict}`}
-          {alt.uploads.payment_not_found > 0 && ` · ไม่พบการชำระ ${alt.uploads.payment_not_found}`}
-          {alt.uploads.held_review > 0 && ` · รอตรวจทาน ${alt.uploads.held_review}`}
+          {tr("บิลที่ผู้กู้อัปโหลด")} {alt.uploads.uploaded} {tr("ใบ · ใช้คำนวณ")} {alt.uploads.used}
+          {alt.uploads.corroborated > 0 && tr(" · ตรงกับข้อมูลผู้ให้บริการ {0}", [alt.uploads.corroborated])}
+          {alt.uploads.conflict > 0 && tr(" · ขัดแย้ง {0}", [alt.uploads.conflict])}
+          {alt.uploads.payment_not_found > 0 && tr(" · ไม่พบการชำระ {0}", [alt.uploads.payment_not_found])}
+          {alt.uploads.held_review > 0 && tr(" · รอตรวจทาน {0}", [alt.uploads.held_review])}
         </p>
       )}
       <div className="mt-3 flex items-center justify-between rounded-md border border-dashed border-judge/50 px-3 py-2 text-xs">
         <span className="flex items-center gap-1.5 text-muted">
-          <PlugZap className="size-3.5 text-judge" /> Sandbox what-if: จำลองว่าค่าไฟฟ้าชำระล่าช้า 2 งวด (มี.ค.–เม.ย.)
+          <PlugZap className="size-3.5 text-judge" /> {tr("Sandbox what-if: จำลองว่าค่าไฟฟ้าชำระล่าช้า 2 งวด (มี.ค.–เม.ย.)")}
         </span>
         <span className="flex items-center gap-2">
           {toggle.isPending && <Loader2 className="size-3.5 animate-spin" />}
