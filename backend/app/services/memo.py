@@ -16,7 +16,7 @@ from app.config import settings
 from app.engine import ratios
 from app.memo.pdf import render_memo
 from app.models import AuditEntry, Case, CreditMemo, Document, Transaction, User, WatchlistItem
-from app.services import audit, ocr_review
+from app.services import appendix, audit, ocr_review
 from app.engine.types import Policy
 from app.services import policy as policy_svc
 from app.services.analysis import latest_analysis
@@ -197,6 +197,7 @@ def sign(db: Session, case_id: int, user: User, ip: str | None, recommendation: 
     head = last.hash if last else audit.GENESIS
     folder = settings.storage_dir / f"case_{case_id}"
     pdf = folder / f"credit_memo_{signed_at:%Y%m%dT%H%M%S}.pdf"
+    pkg["appendix"] = appendix.build(db, case, pkg["analysis"])  # E11-05
     render_memo(pkg, {
         "recommendation": recommendation,
         "approved_amount": f"{amount:.2f}",

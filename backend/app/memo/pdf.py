@@ -1,4 +1,4 @@
-"""One-page credit memo PDF (E11-03).
+"""Credit memo PDF: a one-page decision (E11-03) plus an evidence appendix (E11-05).
 
 ReportLab with the bundled Thai font. ReportLab wraps on spaces only, and Thai writes
 whole phrases without spaces, so `wrap()` breaks long runs between characters while never
@@ -236,7 +236,127 @@ def render_memo(pkg: dict[str, Any], sign: dict[str, Any], out: Path) -> None:
             p.text(ln, 7.5, color=GREY)
             p.down(9.5)
     c.showPage()
+    if pkg.get("appendix"):
+        _appendix(c, pkg, sign)
     c.save()
+
+
+BOTTOM = 48
+DECISION_TH = {"accepted": "รับรองเป็นรายได้", "excluded": "ตัดออก", "queried": "สอบถาม RM", "T1_golden": "ปรับเป็นระดับ 1",
+               "T2_tax": "ปรับเป็นระดับ 2", "T3_operational": "ปรับเป็นระดับ 3", "T4_unverified": "ปรับเป็นไม่ยืนยัน",
+               "non_revenue": "ไม่ใช่รายได้", "business_cost": "ต้นทุนธุรกิจ", "non_business": "ไม่ใช่ต้นทุนธุรกิจ"}
+
+
+class _Appendix(_Page):
+    """_Page that starts a new page when the next block would run off the bottom."""
+
+    def __init__(self, c: Canvas, title: str, case_id: int):
+        super().__init__(c)
+        self.title, self.case_id, self.page = title, case_id, 1
+        self._header()
+
+    def _header(self):
+        self.c.setFillColorRGB(*NAVY)
+        self.c.rect(0, H - 8, W, 8, stroke=0, fill=1)
+        self.text(self.title, 13, BOLD)
+        self.right(f"แฟ้ม #{self.case_id} · ภาคผนวก หน้า {self.page}", W - MX, 8.5, color=GREY)
+        self.down(18)
+
+    def need(self, dy: float):
+        if self.y - dy < BOTTOM:
+            self.c.showPage()
+            self.page += 1
+            self.y = H - 40
+            self._header()
+
+    def section(self, title: str):
+        self.need(40)
+        super().section(title)
+
+    def lines(self, text: str, size: float = 8, color=(0.1, 0.1, 0.12), indent: float = 0, font: str = FONT):
+        for ln in wrap(text, font, size, W - 2 * MX - indent):
+            self.need(10.5)
+            self.text(ln, size, font, MX + indent, color)
+            self.down(10.5)
+
+    def cols(self, values: list[str], xs: list[float], size: float = 8, font: str = FONT, color=(0.1, 0.1, 0.12),
+             right: set[int] = frozenset()):
+        self.need(10.5)
+        for i, (v, x) in enumerate(zip(values, xs)):
+            if i in right:
+                self.right(v, x, size, font, color)
+            else:
+                self.text(v, size, font, x, color)
+        self.down(10.5)
+
+
+def _appendix(c: Canvas, pkg: dict[str, Any], sign: dict[str, Any]) -> None:
+    ap, case = pkg["appendix"], pkg["case"]
+    p = _Appendix(c, "ภาคผนวก: หลักฐานประกอบการพิจารณา", case["id"])
+
+    p.section(f"ก. เอกสารต้นฉบับ ({len(ap['documents'])} ไฟล์) — ลายนิ้วมือ SHA-256 ใช้ยืนยันว่าไฟล์ไม่ถูกแก้ไข")
+    xs = [MX, MX + 205, MX + 250, MX + 290, MX + 395]
+    p.cols(["ไฟล์", "หน้า", "รายการ", "วิธีอ่าน", "SHA-256"], xs, 7.5, BOLD, GREY)
+    for d in ap["documents"]:
+        how = "OCR" + (f" {d['ocr_confidence'] * 100:.0f}%" if d.get("ocr_confidence") else "") if d["parser"].startswith("ocr")             else ("ภ.พ.30" if d["kind"] == "pp30" else "PDF text")
+        if d.get("continuity_ok") is False:
+            how += " · ยอดไม่ต่อเนื่อง"
+        p.cols([d["filename"][:44], str(d["pages"]), "" if d["rows"] is None else f"{d['rows']:,}", how, d["sha256"][:28] + "…"],
+               xs, 7.5)
+
+    cov = ap["coverage"]
+    p.section("ข. ความครอบคลุมของสเตทเมนต์ตามบัญชี")
+    if cov.get("period_start"):
+        p.lines(f"ช่วงที่พิจารณา {cov['period_start']} ถึง {cov['period_end']} · "
+                + ("ครบทุกบัญชี" if cov["complete"] else "มีช่วงที่ขาด — รายได้อาจต่ำกว่าจริงหรือซ่อนเดือนที่ไม่ดี"),
+                color=GREEN if cov["complete"] else RED)
+    for a in cov["accounts"]:
+        gaps = ", ".join(f"{s} – {e}" for s, e in a["gaps"])
+        owner = {"company": "บัญชีบริษัท", "director": "บัญชีกรรมการ", "family": "บัญชีครอบครัว"}.get(a["owner_type"], a["owner_type"])
+        p.lines(f"{a['label']} ({owner}) · {a['documents']} ไฟล์ · " + (f"ขาด {gaps}" if gaps else "ครบ"), indent=8)
+
+    ex = ap["external"]
+    p.section("ค. ข้อมูลภายนอกที่ใช้")
+    p.lines(f"PromptBiz e-Invoice: {ex['invoices']} ใบ รวม {_money(ex['invoice_total'])} บาท · จับคู่กับรายการรับเงิน "
+            f"{ex['receipts_matched']} รายการ" + (f" · แหล่ง {ex['connector']}" if ex.get("connector") else ""))
+    if ex["tax_filings"]:
+        p.lines("ภ.พ.30 ยอดขาย: " + " · ".join(f"{f['period']} {_money(f['sales'])}" for f in ex["tax_filings"]))
+    p.lines(f"ค่าสาธารณูปโภค (ข้อมูลทางเลือก): {ex['utility_bills']} บิล")
+
+    js = ap["judgements"]
+    p.section(f"ง. ดุลยพินิจของเจ้าหน้าที่ทุกรายการ ({len(js)} รายการ)")
+    if not js:
+        p.lines("ไม่มีการใช้ดุลยพินิจเปลี่ยนผลของระบบ", color=GREY)
+    for j in js:
+        kind = "Watchlist" if j["kind"] == "watchlist" else "ปรับหมวด"
+        p.lines(f"{j['date']} · {kind} · {j['what'] or '—'} · {_money(j['amount'])} บาท → {DECISION_TH.get(j['decision'], j['decision'])}"
+                + (f" โดย {j['by']}" if j.get("by") else ""), font=BOLD)
+        if j.get("reason"):
+            p.lines(f"เหตุผล: “{j['reason']}”", indent=10, color=GREY)
+    ocr = ap.get("ocr_review") or {}
+    if ocr:
+        p.lines(f"ตรวจทาน OCR: ยืนยัน {ocr.get('confirmed', 0)} · แก้ไข {ocr.get('corrected', 0)} · ค้าง {ocr.get('pending', 0)} แถว "
+                "(รายละเอียดค่าก่อน–หลังอยู่ใน Audit Log)")
+
+    cc = ap["concentration"] or {}
+    p.section("จ. ข้อสังเกตด้านความเสี่ยง")
+    if cc.get("level"):
+        level = {"low": "กระจายตัวดี", "moderate": "ปานกลาง", "high": "กระจุกตัวสูง"}[cc["level"]]
+        p.lines(f"การกระจุกตัวของลูกค้า: {level} · {cc['customers']} ราย · รายใหญ่สุด {Decimal(cc['top1_share']) * 100:.1f}% · "
+                f"5 รายแรก {Decimal(cc['top5_share']) * 100:.1f}% · HHI {cc['hhi']:,}")
+        for f in cc.get("flags") or []:
+            p.lines(f"• {f}", indent=8, color=RED)
+    if ap["anomalies"]:
+        for a in ap["anomalies"]:
+            p.lines(f"• {a['title']}: {a['detail']}", indent=8, color=AMBER)
+    else:
+        p.lines("ไม่พบรูปแบบธุรกรรมผิดปกติ (เงินผ่านทาง, แต่งยอดท้ายรอบ, รายได้พุ่ง, ฝากเงินสดตัวเลขกลม)", color=GREY)
+
+    p.section("ฉ. ความถูกต้องของบันทึก")
+    p.lines(f"ลงนาม ณ ตำแหน่ง Audit Log ที่ {ap['audit_entries']:,} · chain head {sign['audit_head']}")
+    p.lines(f"ผลวิเคราะห์ #{ap['analysis_id']} · {ap['engine_version']} · ตัวเลขทั้งหมดคำนวณด้วยสูตรแบบกำหนดแน่นอน ทำซ้ำได้จากเอกสารข้างต้น",
+            color=GREY)
+    c.showPage()
 
 
 def now_iso() -> str:

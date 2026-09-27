@@ -285,7 +285,7 @@ function SignOff({ p, caseId }: { p: MemoPackage; caseId: number }) {
       {sign.isError && <p className="mt-1 text-sm text-risk">{sign.error.message}</p>}
       <Button className="mt-3 w-full" size="lg" data-testid="sign-memo" disabled={reason.trim().length < 10 || !amountOk || sign.isPending} onClick={() => sign.mutate()}>
         {sign.isPending ? <Loader2 className="size-4 animate-spin" /> : <FileSignature className="size-4" />}
-        ลงนามและออก Credit Memo 1 หน้า (PDF)
+        ลงนามและออก Credit Memo (PDF) พร้อมภาคผนวกหลักฐาน
       </Button>
       <p className="mt-2 text-center text-[11px] text-muted">PDF จะถูกบันทึกลายนิ้วมือ SHA-256 และผูกกับ Audit Log</p>
     </Card>

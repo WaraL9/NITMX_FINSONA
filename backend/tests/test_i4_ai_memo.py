@@ -165,6 +165,20 @@ def test_sign_rules_pdf_and_audit(client, seeded_case_id, draft_memo):
     pdf = client.get(f"/api/cases/{seeded_case_id}/memo/pdf")
     assert pdf.status_code == 200 and pdf.content[:5] == b"%PDF-"
     assert hashlib.sha256(pdf.content).hexdigest() == m["pdf_sha256"]
+    # E11-05: page 1 is the decision; the appendix lists the evidence behind it
+    import io
+
+    import pdfplumber
+
+    with pdfplumber.open(io.BytesIO(pdf.content)) as doc:
+        assert len(doc.pages) >= 2
+        page1 = doc.pages[0].extract_text()
+        appendix = "".join(pg.extract_text() or "" for pg in doc.pages[1:]).replace("\n", "")
+    assert "บันทึกวิเคราะห์สินเชื่อ" in page1
+    assert "ภาคผนวก" in appendix
+    docs = client.get(f"/api/cases/{seeded_case_id}/documents").json()
+    assert all(d["sha256"][:28] in appendix for d in docs)  # every source file fingerprinted
+    assert m["audit_head"] in appendix
     signed = next(e for e in client.get(f"/api/cases/{seeded_case_id}/audit").json() if e["action"] == "memo_signed")
     assert signed["after"]["pdf_sha256"] == m["pdf_sha256"] and signed["after"]["audit_head_in_pdf"] == m["audit_head"]
     assert client.post(url, json=body, headers=CA).status_code == 409  # already signed
