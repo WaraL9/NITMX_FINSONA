@@ -988,6 +988,65 @@
         }
       }
     },
+    "/api/cases/{case_id}/coverage": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Case Coverage",
+        "description": "E2-11: which days of the case period each account's statements cover, and the gaps.",
+        "operationId": "case_coverage_api_cases__case_id__coverage_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoverageOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/documents/{document_id}/file": {
       "get": {
         "tags": [
@@ -3699,6 +3758,63 @@
   },
   "components": {
     "schemas": {
+      "AccountCoverageOut": {
+        "properties": {
+          "account_id": {
+            "type": "integer",
+            "title": "Account Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "owner_type": {
+            "type": "string",
+            "title": "Owner Type"
+          },
+          "documents": {
+            "type": "integer",
+            "title": "Documents"
+          },
+          "covered": {
+            "items": {
+              "items": {
+                "type": "string",
+                "format": "date"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Covered"
+          },
+          "gaps": {
+            "items": {
+              "items": {
+                "type": "string",
+                "format": "date"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Gaps"
+          },
+          "missing_days": {
+            "type": "integer",
+            "title": "Missing Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "label",
+          "owner_type",
+          "documents",
+          "covered",
+          "gaps",
+          "missing_days"
+        ],
+        "title": "AccountCoverageOut"
+      },
       "AccountOut": {
         "properties": {
           "id": {
@@ -4992,6 +5108,53 @@
           "recorded_at"
         ],
         "title": "ConsentState"
+      },
+      "CoverageOut": {
+        "properties": {
+          "period_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Start"
+          },
+          "period_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period End"
+          },
+          "complete": {
+            "type": "boolean",
+            "title": "Complete"
+          },
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/AccountCoverageOut"
+            },
+            "type": "array",
+            "title": "Accounts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "period_start",
+          "period_end",
+          "complete",
+          "accounts"
+        ],
+        "title": "CoverageOut"
       },
       "CustomerShareOut": {
         "properties": {
@@ -6757,6 +6920,19 @@
             },
             "type": "array",
             "title": "Warnings"
+          },
+          "duplicate_rows_skipped": {
+            "type": "integer",
+            "title": "Duplicate Rows Skipped",
+            "default": 0
+          },
+          "duplicate_pages": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Duplicate Pages",
+            "default": []
           },
           "ocr": {
             "anyOf": [

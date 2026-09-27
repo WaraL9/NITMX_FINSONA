@@ -99,6 +99,7 @@ class ParsedStatement:
     pages: list[PageInfo]
     rows: list[ParsedRow]
     warnings: list[str] = field(default_factory=list)
+    duplicate_pages: list[int] = field(default_factory=list)  # E2-11: skipped, same content as an earlier page
 
     @property
     def total_debit(self) -> Decimal:

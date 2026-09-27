@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, FileLock2, FileText, Loader2, Receipt, ScanLine, TriangleAlert, Upload } from "lucide-react";
+import { CalendarCheck, CalendarX, CheckCircle2, FileLock2, FileText, Loader2, Receipt, ScanLine, TriangleAlert, Upload } from "lucide-react";
 import { useRef, useState, type DragEvent } from "react";
 import {
   api,
@@ -148,6 +148,12 @@ function DocumentRow({ doc, account }: { doc: DocumentOut; account?: Account }) 
         <div className="mt-0.5 font-mono text-[11px] text-muted" title={doc.sha256}>
           SHA-256 {doc.sha256.slice(0, 12)}…
         </div>
+        {r && (r.duplicate_rows_skipped > 0 || r.duplicate_pages.length > 0) && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {r.duplicate_pages.length > 0 && <Badge tone="judge">หน้าซ้ำ {r.duplicate_pages.join(", ")} — ข้าม</Badge>}
+            {r.duplicate_rows_skipped > 0 && <Badge tone="judge">{r.duplicate_rows_skipped} รายการซ้ำกับไฟล์อื่น — ไม่นับซ้ำ</Badge>}
+          </div>
+        )}
       </TD>
       <TD>
         {account ? (
@@ -261,6 +267,7 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
         subtitle={docs ? `${docs.length} ไฟล์ · ${totalRows.toLocaleString()} รายการธุรกรรม` : undefined}
         action={<SourceBadge mode="live" source="Statement PDF" />}
       />
+      <CoverageStrip caseId={caseId} version={docs?.length ?? 0} />
 
       <div
         onDragOver={(e) => {
@@ -336,5 +343,42 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
         onSubmit={(password) => locked && upload.mutate({ file: locked, password })}
       />
     </Card>
+  );
+}
+
+
+function thDate(iso: string) {
+  return `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${(Number(iso.slice(0, 4)) + 543) % 100}`;
+}
+
+/** E2-11: does every account have statements for the whole case period? */
+function CoverageStrip({ caseId, version }: { caseId: number; version: number }) {
+  const { data: c } = useQuery({
+    queryKey: ["coverage", caseId, version],
+    queryFn: async () => unwrap(await api.GET("/api/cases/{case_id}/coverage", { params: { path: { case_id: caseId } } })),
+  });
+  if (!c || !c.period_start || !c.period_end) return null;
+  if (c.complete) {
+    return (
+      <div className="mb-4 flex items-center gap-2 rounded-md border border-verified/40 bg-verified-soft px-3 py-2 text-sm text-body">
+        <CalendarCheck className="size-4 text-verified" />
+        สเตทเมนต์ครอบคลุมครบทุกบัญชี {thDate(c.period_start)} – {thDate(c.period_end)}
+      </div>
+    );
+  }
+  return (
+    <div data-testid="coverage-gaps" className="mb-4 rounded-md border border-risk/40 bg-risk-soft px-3 py-2 text-sm text-body">
+      <div className="flex items-center gap-2 font-medium text-ink">
+        <CalendarX className="size-4 text-risk" /> สเตทเมนต์ไม่ครบช่วง {thDate(c.period_start)} – {thDate(c.period_end)} — รายได้อาจต่ำกว่าจริงหรือซ่อนเดือนที่ไม่ดี
+      </div>
+      <ul className="mt-1 space-y-0.5 text-xs">
+        {c.accounts.filter((a) => a.gaps.length > 0).map((a) => (
+          <li key={a.account_id}>
+            <span className="font-mono">{a.label}</span> ขาด {a.gaps.map(([s, e]) => `${thDate(s)}–${thDate(e)}`).join(", ")} ({a.missing_days} วัน)
+            {a.documents === 0 && " — ยังไม่มีสเตทเมนต์"}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

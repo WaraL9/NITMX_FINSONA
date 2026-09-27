@@ -50,6 +50,11 @@ class IngestError(Exception):
         self.extra = extra
 
 
+class OverlappingStatement(IngestError):
+    code = "overlapping_statement"
+    status = 409
+
+
 class PasswordRequired(IngestError):
     code = "password_required"
 
@@ -214,6 +219,26 @@ def ingest_document(
         except ParseError as e:
             raise ParseFailed(str(e)) from e
 
+    account, created = (None, False)
+    duplicates_skipped = 0
+    if stmt is not None:
+        account, created = _match_account(db, case, stmt, account_id)
+        # E2-11: an overlapping statement for the same account repeats rows already in the case.
+        # Counting them twice would inflate revenue, so they are skipped (same account, time,
+        # amounts and printed balance = the same bank transaction).
+        existing = set(db.execute(select(Transaction.posted_at, Transaction.debit, Transaction.credit,
+                                         Transaction.balance).where(Transaction.account_id == account.id)).all())
+        if existing:
+            fresh = [r for r in stmt.rows if (r.posted_at, r.debit, r.credit, r.balance) not in existing]
+            duplicates_skipped = len(stmt.rows) - len(fresh)
+            if stmt.rows and not fresh:
+                raise OverlappingStatement(
+                    "ธุรกรรมทุกรายการในไฟล์นี้มีอยู่ในแฟ้มแล้ว (สเตทเมนต์บัญชีเดียวกันช่วงเวลาซ้ำ)",
+                    account_id=account.id)
+            new_rows = fresh
+        else:
+            new_rows = stmt.rows
+
     folder: Path = settings.storage_dir / f"case_{case_id}"
     folder.mkdir(parents=True, exist_ok=True)
     original = folder / f"{digest}.pdf"
@@ -222,10 +247,6 @@ def ingest_document(
     if encrypted:
         view = folder / f"{digest}.view.pdf"
         storage.write(view, plain)
-
-    account, created = (None, False)
-    if stmt is not None:
-        account, created = _match_account(db, case, stmt, account_id)
 
     doc = Document(
         case_id=case_id,
@@ -274,7 +295,7 @@ def ingest_document(
                 extractor_version=stmt.parser_version,
                 ocr_fields=r.field_confidence if ocr else None,
             )
-            for r in stmt.rows
+            for r in new_rows
         )
         breaks = stmt.continuity_breaks()
         doc.parser = f"ocr:{ocr.provider}+{stmt.parser}" if ocr else stmt.parser
@@ -296,7 +317,10 @@ def ingest_document(
             "continuity_breaks": breaks[:50],
             "was_encrypted": encrypted,
             "account_created": created,
-            "warnings": stmt.warnings,
+            "warnings": stmt.warnings + (
+                [f"{duplicates_skipped} รายการซ้ำกับสเตทเมนต์ที่อัปโหลดแล้ว — ไม่นับซ้ำ"] if duplicates_skipped else []),
+            "duplicate_rows_skipped": duplicates_skipped,
+            "duplicate_pages": stmt.duplicate_pages,
         }
         if ocr is not None:
             doc.parse_report["ocr"] = {"provider": ocr.provider, "model": ocr.model, "words": ocr.word_count,

@@ -84,6 +84,8 @@ class ParseReport(BaseModel):
     was_encrypted: bool
     account_created: bool
     warnings: list[str]
+    duplicate_rows_skipped: int = 0
+    duplicate_pages: list[int] = []
     ocr: "OcrReport | None" = None
 
 
@@ -336,6 +338,23 @@ class AnomalyOut(BaseModel):
     detail: str
     amount: str
     txn_ids: list[int]
+
+
+class AccountCoverageOut(BaseModel):
+    account_id: int
+    label: str
+    owner_type: str
+    documents: int
+    covered: list[list[date]]
+    gaps: list[list[date]]
+    missing_days: int
+
+
+class CoverageOut(BaseModel):
+    period_start: date | None
+    period_end: date | None
+    complete: bool
+    accounts: list[AccountCoverageOut]
 
 
 class OcrReviewIn(BaseModel):

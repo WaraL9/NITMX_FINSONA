@@ -255,6 +255,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/coverage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Case Coverage
+         * @description E2-11: which days of the case period each account's statements cover, and the gaps.
+         */
+        get: operations["case_coverage_api_cases__case_id__coverage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/documents/{document_id}/file": {
         parameters: {
             query?: never;
@@ -924,6 +944,23 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AccountCoverageOut */
+        AccountCoverageOut: {
+            /** Account Id */
+            account_id: number;
+            /** Label */
+            label: string;
+            /** Owner Type */
+            owner_type: string;
+            /** Documents */
+            documents: number;
+            /** Covered */
+            covered: string[][];
+            /** Gaps */
+            gaps: string[][];
+            /** Missing Days */
+            missing_days: number;
+        };
         /** AccountOut */
         AccountOut: {
             /** Id */
@@ -1385,6 +1422,17 @@ export interface components {
             granted: boolean;
             /** Recorded At */
             recorded_at: string | null;
+        };
+        /** CoverageOut */
+        CoverageOut: {
+            /** Period Start */
+            period_start: string | null;
+            /** Period End */
+            period_end: string | null;
+            /** Complete */
+            complete: boolean;
+            /** Accounts */
+            accounts: components["schemas"]["AccountCoverageOut"][];
         };
         /** CustomerShareOut */
         CustomerShareOut: {
@@ -1979,6 +2027,16 @@ export interface components {
             account_created: boolean;
             /** Warnings */
             warnings: string[];
+            /**
+             * Duplicate Rows Skipped
+             * @default 0
+             */
+            duplicate_rows_skipped: number;
+            /**
+             * Duplicate Pages
+             * @default []
+             */
+            duplicate_pages: number[];
             ocr?: components["schemas"]["OcrReport"] | null;
         };
         /** PolicyIn */
@@ -3003,6 +3061,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    case_coverage_api_cases__case_id__coverage_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoverageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

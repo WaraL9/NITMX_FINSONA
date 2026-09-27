@@ -118,11 +118,22 @@ class SynthV1Parser:
         warnings: list[str] = []
         pages: list[PageInfo] = []
         rows: list[ParsedRow] = []
+        seen: dict[tuple, int] = {}
+        duplicates: list[int] = []
 
         for page in page_words:
             pno = page.page_no
             pages.append(PageInfo(pno, page.width, page.height))
             words = [w for w in page.words if w.get("size", 0) <= MAX_TEXT_SIZE]
+            # A page scanned or printed twice repeats every row; its footer ("page n / m") differs,
+            # so compare the table body only (E2-11).
+            sig = tuple(w["text"] for w in sorted(words, key=lambda w: (round(w["top"]), w["x0"]))
+                        if DATE_RE.match(w["text"]) or MONEY_RE.match(w["text"]) or TIME_RE.match(w["text"]))
+            if sig and sig in seen:
+                duplicates.append(pno)
+                warnings.append(f"page {pno}: same transactions as page {seen[sig]} — duplicate page skipped")
+                continue
+            seen[sig] = pno
             found = _columns(words)
             if not found:
                 warnings.append(f"page {pno}: table header not found")
@@ -195,6 +206,7 @@ class SynthV1Parser:
             pages=pages,
             rows=rows,
             warnings=warnings,
+            duplicate_pages=duplicates,
         )
         breaks = stmt.continuity_breaks()
         if breaks:

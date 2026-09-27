@@ -9,12 +9,12 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import client_ip, require_role
 from app.db import get_db
-from app.services import audit
+from app.services import audit, coverage
 from app.api.metrics import metric_filters
 from app.models import Account, Case, Document, Page, Transaction, User
 from app import storage
 from app.api.common import txn_out
-from app.schemas import ApiError, DocumentKind, DocumentOut, TransactionPage
+from app.schemas import ApiError, CoverageOut, DocumentKind, DocumentOut, TransactionPage
 from app.services.ingest import IngestError, ingest_document
 
 router = APIRouter(tags=["documents"])
@@ -65,6 +65,12 @@ async def upload_document(
               after={"filename": doc.filename, "sha256": doc.sha256, "kind": doc.kind, "pages": doc.page_count})
     db.commit()
     return doc
+
+
+@router.get("/api/cases/{case_id}/coverage", response_model=CoverageOut)
+def case_coverage(case_id: int, db: Session = Depends(get_db)):
+    """E2-11: which days of the case period each account's statements cover, and the gaps."""
+    return coverage.compute(db, _require_case(db, case_id))
 
 
 @router.get("/api/cases/{case_id}/documents", response_model=list[DocumentOut])
