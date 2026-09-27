@@ -411,6 +411,19 @@ class ComparisonOut(BaseModel):
     scenarios: list[ScenarioOut]
 
 
+class EvidenceItemOut(BaseModel):
+    document: str
+    why: str
+
+
+class EvidenceHintOut(BaseModel):
+    """E7-05: advice only — documents that would verify the item, and a question for the RM."""
+    source: Literal["live", "cache", "template"]
+    evidence: list[EvidenceItemOut]
+    question: str
+    model: str | None = None
+
+
 class WatchlistOut(BaseModel):
     id: int
     status: Literal["pending", "accepted", "excluded", "queried"]
@@ -418,6 +431,7 @@ class WatchlistOut(BaseModel):
     system_note: str
     reason: str | None
     transaction: TransactionOut
+    evidence_hint: EvidenceHintOut | None = None
 
 
 # ---------- people, decisions, overrides, audit, lineage ----------

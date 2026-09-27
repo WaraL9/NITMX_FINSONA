@@ -222,6 +222,8 @@ class WatchlistItem(Base):
     reason: Mapped[str | None] = mapped_column(Text)
     decided_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # E7-05: documents that would verify this item + a question for the RM (advice only).
+    evidence_hint: Mapped[dict[str, Any] | None] = mapped_column(JSON)
 
 
 class AuditEntry(Base):

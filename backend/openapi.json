@@ -6538,6 +6538,67 @@
         ],
         "title": "ETaxSummaryOut"
       },
+      "EvidenceHintOut": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "live",
+              "cache",
+              "template"
+            ],
+            "title": "Source"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceItemOut"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "evidence",
+          "question"
+        ],
+        "title": "EvidenceHintOut",
+        "description": "E7-05: advice only — documents that would verify the item, and a question for the RM."
+      },
+      "EvidenceItemOut": {
+        "properties": {
+          "document": {
+            "type": "string",
+            "title": "Document"
+          },
+          "why": {
+            "type": "string",
+            "title": "Why"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document",
+          "why"
+        ],
+        "title": "EvidenceItemOut"
+      },
       "EvidenceOut": {
         "properties": {
           "id": {
@@ -9649,6 +9710,16 @@
           },
           "transaction": {
             "$ref": "#/components/schemas/TransactionOut"
+          },
+          "evidence_hint": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvidenceHintOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",

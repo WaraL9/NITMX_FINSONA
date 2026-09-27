@@ -1880,6 +1880,30 @@ export interface components {
              */
             duplicates_of_promptbiz: string[];
         };
+        /**
+         * EvidenceHintOut
+         * @description E7-05: advice only — documents that would verify the item, and a question for the RM.
+         */
+        EvidenceHintOut: {
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "live" | "cache" | "template";
+            /** Evidence */
+            evidence: components["schemas"]["EvidenceItemOut"][];
+            /** Question */
+            question: string;
+            /** Model */
+            model?: string | null;
+        };
+        /** EvidenceItemOut */
+        EvidenceItemOut: {
+            /** Document */
+            document: string;
+            /** Why */
+            why: string;
+        };
         /** EvidenceOut */
         EvidenceOut: {
             /** Id */
@@ -2894,6 +2918,7 @@ export interface components {
             /** Reason */
             reason: string | null;
             transaction: components["schemas"]["TransactionOut"];
+            evidence_hint?: components["schemas"]["EvidenceHintOut"] | null;
         };
         /** Waterfall */
         Waterfall: {

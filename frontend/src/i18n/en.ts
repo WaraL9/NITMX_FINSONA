@@ -491,6 +491,12 @@ export const EN: Record<string, string> = {
   "ไม่นับรวมในวงเงินจนกว่า CA จะรับรอง": "Not counted towards the limit until the CA accepts it",
   "เปิดดูรายการบน Watchlist (": "Open the Watchlist (",
   // components/workbench/WatchlistPanel.tsx
+  "AI แนะนำ (แคช)": "AI suggestion (cached)",
+  "แม่แบบของระบบ": "System template",
+  "หลักฐานที่จะยืนยันรายการนี้ได้": "Evidence that would verify this item",
+  "คำถามถึงลูกค้า:": "Question for the customer:",
+  "ใช้ถาม RM": "Ask via RM",
+  "คำแนะนำประกอบการตัดสินใจเท่านั้น — ไม่เปลี่ยนตัวเลขใด ๆ และ AI ไม่ได้เขียนจำนวนเงิน (ระบบเติมให้)": "Advice only — it changes no figure, and the AI writes no amounts (the system fills them in)",
   "รอดุลยพินิจ": "Awaiting judgement",
   "CA รับรองเป็นรายได้": "Accepted by CA as revenue",
   "ตัดออกจากการคำนวณ": "Excluded from the calculation",

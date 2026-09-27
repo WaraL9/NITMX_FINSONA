@@ -125,7 +125,7 @@ def watchlist(case_id: int, db: Session = Depends(get_db)):
     ).all()
     return [
         WatchlistOut(id=w.id, status=w.status, suspicion_score=w.suspicion_score, system_note=w.system_note,
-                     reason=w.reason, transaction=txn_out(t, page_no))
+                     reason=w.reason, transaction=txn_out(t, page_no), evidence_hint=w.evidence_hint)
         for w, t, page_no in rows
     ]
 

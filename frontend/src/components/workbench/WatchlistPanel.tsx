@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Loader2, MessageSquareMore, RotateCcw, ShieldAlert, XCircle } from "lucide-react";
+import { CheckCircle2, FileSearch, Loader2, MessageSquareMore, RotateCcw, ShieldAlert, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api, errorMessage, unwrap, type WatchlistAction, type WatchlistEntry } from "@/api/client";
 import { QueryCard } from "@/components/field/QueryCard";
@@ -27,6 +27,48 @@ const PLACEHOLDER: Record<WatchlistAction, string> = {
 
 function fmtDate(iso: string) {
   return `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+}
+
+const HINT_SOURCE: Record<NonNullable<WatchlistEntry["evidence_hint"]>["source"], string> = {
+  get live() { return tr("AI แนะนำ"); },
+  get cache() { return tr("AI แนะนำ (แคช)"); },
+  get template() { return tr("แม่แบบของระบบ"); },
+};
+
+/** E7-05: which documents would verify this item — advice for the CA, never a figure. */
+function EvidenceHint({ item, onAsk }: { item: WatchlistEntry; onAsk?: (question: string) => void }) {
+  const h = item.evidence_hint;
+  if (!h) return null;
+  return (
+    <div data-testid="evidence-hint" className="rounded-md border border-navy/30 bg-navy/5 p-3 text-sm">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 font-medium text-ink">
+          <FileSearch className="size-4 text-navy" /> {tr("หลักฐานที่จะยืนยันรายการนี้ได้")}
+        </div>
+        <Badge tone={h.source === "template" ? "neutral" : "navy"} title={h.model ?? undefined}>{HINT_SOURCE[h.source]}</Badge>
+      </div>
+      <ol className="mt-2 list-decimal space-y-1 pl-5">
+        {h.evidence.map((e) => (
+          <li key={e.document}>
+            <span className="text-ink">{e.document}</span>
+            <div className="text-xs text-muted">{e.why}</div>
+          </li>
+        ))}
+      </ol>
+      {h.question && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-line pt-2">
+          <span className="text-xs text-muted">{tr("คำถามถึงลูกค้า:")}</span>
+          <span className="flex-1 text-body">{h.question}</span>
+          {onAsk && (
+            <Button size="sm" variant="secondary" data-testid="use-hint-question" onClick={() => onAsk(h.question)}>
+              <MessageSquareMore className="size-4" /> {tr("ใช้ถาม RM")}
+            </Button>
+          )}
+        </div>
+      )}
+      <p className="mt-2 text-[11px] text-muted">{tr("คำแนะนำประกอบการตัดสินใจเท่านั้น — ไม่เปลี่ยนตัวเลขใด ๆ และ AI ไม่ได้เขียนจำนวนเงิน (ระบบเติมให้)")}</p>
+    </div>
+  );
 }
 
 function Detail({ caseId, item, onDone }: { caseId: number; item: WatchlistEntry; onDone: (msg: string) => void }) {
@@ -106,6 +148,8 @@ function Detail({ caseId, item, onDone }: { caseId: number; item: WatchlistEntry
           {item.system_note}
         </div>
       </div>
+
+      <EvidenceHint item={item} onAsk={item.status === "pending" ? (q) => { setReason(q); setAction("query_rm"); } : undefined} />
 
       <QueryThread caseId={caseId} itemId={item.id} live={item.status === "queried"} />
 

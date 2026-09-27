@@ -118,7 +118,8 @@ def decide(case_id: int, item_id: int, body: DecisionIn, request: Request, db: S
     t = db.get(Transaction, item.transaction_id)
     return DecisionOut(
         item=WatchlistOut(id=item.id, status=item.status, suspicion_score=item.suspicion_score,
-                          system_note=item.system_note, reason=item.reason, transaction=txn_out(t, _page_no(db, t))),
+                          system_note=item.system_note, reason=item.reason, transaction=txn_out(t, _page_no(db, t)),
+                          evidence_hint=item.evidence_hint),
         analysis=analysis_out(analysis),
     )
 

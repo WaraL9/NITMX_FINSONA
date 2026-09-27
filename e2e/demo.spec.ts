@@ -204,3 +204,19 @@ test("Thai / English toggle: the whole UI switches and the choice persists", asy
   await page.getByTestId("lang-th").click();
   await expect(page.getByTestId("tab-overview")).toHaveText(/ภาพรวม & กระแสเงินสด/);
 });
+
+test("Watchlist evidence hint: the suggested question goes to the RM in one click", async ({ page, request }) => {
+  await resetDemo(request);
+  await page.goto("/login");
+  await page.getByRole("button", { name: "เจ้าหน้าที่วิเคราะห์สินเชื่อ (CA)" }).click();
+  await expect(page).toHaveURL("/");
+  await page.goto(`${CASE}?tab=watchlist`);
+  await page.getByTestId("wl-item").filter({ hasText: "700,000" }).click();
+  const hint = page.getByTestId("evidence-hint");
+  await expect(hint).toContainText("เงินสด");
+  await expect(hint).toContainText("700,000.00 บาท"); // amount filled in by the engine, not written by the AI
+  await page.getByTestId("use-hint-question").click();
+  await expect(page.locator("#reason")).toHaveValue(/700,000\.00 บาท/);
+  await page.getByRole("button", { name: "Query RM" }).click();
+  await expect(page.getByTestId("wl-item").filter({ hasText: "700,000" })).toContainText("ส่งคำถามให้ RM แล้ว");
+});

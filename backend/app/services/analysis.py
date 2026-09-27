@@ -247,6 +247,8 @@ def run_analysis(db: Session, case_id: int, sync_invoices: bool = True, user_id:
             db.add(WatchlistItem(case_id=case_id, transaction_id=tid, suspicion_score=w.score, system_note=w.note))
         else:
             item.suspicion_score, item.system_note = w.score, w.note
+    db.flush()
+    _evidence_hints(db, case)
 
     payload = serialize(result, sync, period)
     payload["ocr_held"] = {"rows": len(held), "credit": f"{sum((t.credit for t in held), Decimal('0')):.2f}",
@@ -272,6 +274,25 @@ def run_analysis(db: Session, case_id: int, sync_invoices: bool = True, user_id:
     db.commit()
     db.refresh(analysis)
     return analysis
+
+
+def _evidence_hints(db: Session, case: Case) -> None:
+    """E7-05: suggest what would verify each open Watchlist item. Advice only — no figure
+    depends on it. Template hints are retried each run so they upgrade once an LLM answers."""
+    from app.ai.evidence_hint import HintInput, suggest
+
+    todo = [w for w in db.scalars(select(WatchlistItem).where(WatchlistItem.case_id == case.id,
+                                                              WatchlistItem.status.in_(("pending", "queried"))))
+            if not w.evidence_hint or w.evidence_hint.get("source") == "template"]
+    if not todo:
+        return
+    txns = {t.id: t for t in db.scalars(select(Transaction).where(Transaction.id.in_([w.transaction_id for w in todo])))}
+    hints = suggest(db, [HintInput(w.id, txns[w.transaction_id].description, txns[w.transaction_id].counterparty_name,
+                                   txns[w.transaction_id].code or "", txns[w.transaction_id].credit,
+                                   txns[w.transaction_id].posted_at, w.system_note) for w in todo],
+                    case.industry, case_id=case.id)
+    for w in todo:
+        w.evidence_hint = hints[w.id].to_json()
 
 
 def _llm_annotations(db: Session, rows: list[Transaction], r: AnalysisResult) -> None:
