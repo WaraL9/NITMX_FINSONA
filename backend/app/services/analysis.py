@@ -26,6 +26,7 @@ from app.models import (
     AltDataRecord,
     Analysis,
     Case,
+    Document,
     Invoice,
     TagOverride,
     TaxFiling,
@@ -256,6 +257,27 @@ def _llm_annotations(db: Session, rows: list[Transaction], r: AnalysisResult) ->
         t.tag_reason = f"{t.tag_reason} · AI แนะนำหมวด {s.tag} (ความเชื่อมั่น {s.confidence:.0%}): {s.rationale}"
 
 
+def _bank_mismatches(db: Session, case: Case) -> list[dict]:
+    """E3-04: uploaded statements that the bank's own record (dStatement) contradicts."""
+    out = []
+    for d in db.scalars(select(Document).where(Document.case_id == case.id, Document.parser.like("dstatement%"))):
+        v = (d.parse_report or {}).get("verification")
+        if not v or not (v["differs_count"] or v["case_only_count"] or v["bank_only_count"]):
+            continue
+        ids = [x["transaction_id"] for x in v["differs"]] + v["case_only"]
+        parts = [f"ยอดต่างจากธนาคาร {v['differs_count']} รายการ" if v["differs_count"] else "",
+                 f"ไม่มีในบันทึกธนาคาร {v['case_only_count']} รายการ" if v["case_only_count"] else "",
+                 f"ธนาคารมีแต่ไม่อยู่ในไฟล์ที่อัปโหลด {v['bank_only_count']} รายการ" if v["bank_only_count"] else ""]
+        amount = sum((Decimal(x["debit"]) + Decimal(x["credit"]) for x in v["bank_only"]), Decimal("0"))
+        out.append({
+            "kind": "bank_record_mismatch", "severity": "high",
+            "title": f"สเตทเมนต์ {d.parse_report.get('bank_code')} {d.parse_report.get('account_no')} ไม่ตรงกับข้อมูลธนาคาร (dStatement)",
+            "detail": " · ".join(p for p in parts if p) + " — ตรวจว่าไฟล์ถูกแก้ไขหรือ OCR อ่านผิด ก่อนใช้ตัวเลขนี้",
+            "amount": f"{amount:.2f}", "txn_ids": ids,
+        })
+    return out
+
+
 def _evidence(db: Session, case: Case, r: AnalysisResult, rows: list[Transaction], period: tuple[date, date],
               alt_sync: dict | None) -> dict:
     """Alt-data haircut (E6-06), cash-pattern evidence (E4-06) and decision drivers (E7-06)."""
@@ -297,8 +319,9 @@ def _evidence(db: Session, case: Case, r: AnalysisResult, rows: list[Transaction
             "top": [{"name": c.name, "amount": f"{c.amount:.2f}", "share": str(c.share), "receipts": c.receipts,
                      "months_active": c.months_active, "txn_ids": c.txn_ids} for c in conc.top],
         },
-        "anomalies": [{"kind": a.kind, "severity": a.severity, "title": a.title, "detail": a.detail,
-                       "amount": f"{a.amount:.2f}", "txn_ids": a.txn_ids} for a in found],
+        "anomalies": _bank_mismatches(db, case) + [
+            {"kind": a.kind, "severity": a.severity, "title": a.title, "detail": a.detail,
+             "amount": f"{a.amount:.2f}", "txn_ids": a.txn_ids} for a in found],
         "revenue_monthly": f"{wf['verified_operating_revenue'] / months:.2f}",
         "costs_monthly": f"{costs['business_operating'] / months:.2f}",
         "t1_monthly": f"{tiers['T1_golden'] / months:.2f}",

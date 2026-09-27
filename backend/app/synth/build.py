@@ -20,6 +20,7 @@ from app.synth.generator import generate
 from app.synth.statement_pdf import render_statement
 from app.synth.alt_data import make_alt_data
 from app.synth.bills import write_bills
+from app.synth.dstatement import make_feed
 from app.synth.scan import scan_statement
 from app.synth.etax_docs import make_etax_invoices, write_etax_files
 from app.synth.generator import REVENUE_T2
@@ -74,6 +75,8 @@ def build_case(name: str = "kitti", out_dir: Path | None = None, seed: int = 42,
                    ensure_ascii=False, indent=1),
         encoding="utf-8",
     )
+    (out_dir / "dstatement.json").write_text(json.dumps(make_feed(gen, period), ensure_ascii=False, indent=1),
+                                            encoding="utf-8")
     (out_dir / "alt_data.json").write_text(
         json.dumps({"tax_id": sc.case.tax_id, "scenarios": make_alt_data(gen)}, ensure_ascii=False, indent=1),
         encoding="utf-8",

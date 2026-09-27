@@ -46,7 +46,7 @@ class ParsedRow:
     debit: Decimal
     credit: Decimal
     balance: Decimal
-    bbox: BBox
+    bbox: BBox | None  # None for structured sources (dStatement) — no page to point at
     confidence: float = 1.0  # min over the key fields; 1.0 for a digital text layer
     field_confidence: dict[str, float] = field(default_factory=dict)  # OCR only (E2-09)
     counterparty_name: str | None = None

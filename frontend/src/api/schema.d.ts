@@ -89,6 +89,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sandbox/dstatement/v1/statements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dstatement Statements
+         * @description The source bank: returns the consenting business's account statement, signed.
+         */
+        post: operations["dstatement_statements_sandbox_dstatement_v1_statements_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sandbox/los/v1/applications": {
         parameters: {
             query?: never;
@@ -269,6 +289,27 @@ export interface paths {
         put?: never;
         /** Upload Document */
         post: operations["upload_document_api_cases__case_id__documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/dstatement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pull Dstatement
+         * @description E3-04: pull an account's statement from its bank (consent required). Imports dates no
+         *     uploaded statement covers; verifies the rest against the bank's record.
+         */
+        post: operations["pull_dstatement_api_cases__case_id__dstatement_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1196,7 +1237,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "pass_through" | "period_end" | "revenue_spike" | "round_cash";
+            kind: "pass_through" | "period_end" | "revenue_spike" | "round_cash" | "bank_record_mismatch";
             /**
              * Severity
              * @enum {string}
@@ -1637,6 +1678,17 @@ export interface components {
             months_active: number;
             /** Txn Ids */
             txn_ids: number[];
+        };
+        /** DStatementPullIn */
+        DStatementPullIn: {
+            /** Bank Code */
+            bank_code: string;
+            /** Account No */
+            account_no: string;
+            /** Period Start */
+            period_start?: string | null;
+            /** Period End */
+            period_end?: string | null;
         };
         /** DecisionIn */
         DecisionIn: {
@@ -2334,6 +2386,14 @@ export interface components {
              */
             duplicate_pages: number[];
             ocr?: components["schemas"]["OcrReport"] | null;
+            /**
+             * Source
+             * @description dStatement pulls: connector, mode, signature
+             */
+            source?: {
+                [key: string]: unknown;
+            } | null;
+            verification?: components["schemas"]["VerificationOut"] | null;
         };
         /** PolicyIn */
         PolicyIn: {
@@ -2702,6 +2762,32 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /**
+         * VerificationOut
+         * @description E3-04: an uploaded statement checked against the bank's own record.
+         */
+        VerificationOut: {
+            /** Compared */
+            compared: number;
+            /** Matched */
+            matched: number;
+            /** Differs */
+            differs: {
+                [key: string]: unknown;
+            }[];
+            /** Differs Count */
+            differs_count: number;
+            /** Case Only */
+            case_only: number[];
+            /** Case Only Count */
+            case_only_count: number;
+            /** Bank Only */
+            bank_only: {
+                [key: string]: string;
+            }[];
+            /** Bank Only Count */
+            bank_only_count: number;
+        };
         /** WatchlistOut */
         WatchlistOut: {
             /** Id */
@@ -2887,6 +2973,45 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dstatement_statements_sandbox_dstatement_v1_statements_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-consent-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -3391,6 +3516,88 @@ export interface operations {
             };
             /** @description Unprocessable Content */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    pull_dstatement_api_cases__case_id__dstatement_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DStatementPullIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
                 headers: {
                     [name: string]: unknown;
                 };

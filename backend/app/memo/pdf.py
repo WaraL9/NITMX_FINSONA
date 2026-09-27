@@ -300,6 +300,8 @@ def _appendix(c: Canvas, pkg: dict[str, Any], sign: dict[str, Any]) -> None:
     for d in ap["documents"]:
         if d["parser"].startswith("ocr"):
             how = "OCR" + (f" {d['ocr_confidence'] * 100:.0f}%" if d.get("ocr_confidence") else "")
+        elif d["parser"].startswith("dstatement"):
+            how = "dStatement (ธนาคาร)"
         elif d["kind"] == "pp30":
             how = "ภ.พ.30"
         elif d["kind"] == "utility_bill":

@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ChevronLeft, ChevronRight, FileSearch, ShieldCheck, ShieldX, X } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { api, documentFileUrl, unwrap } from "@/api/client";
+import { api, documentFileUrl, unwrap, isStatementReport } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { tagLabel, tierInfo } from "@/lib/labels";
@@ -201,13 +201,18 @@ export function TxnLineage({ txnId, compact }: { txnId: number; compact?: boolea
     <div className={cn("space-y-3", !compact && "p-5")}>
       {l.document && t.page_no ? (
         <PdfPage url={documentFileUrl(l.document.id)} page={t.page_no} bbox={bbox} className="max-h-[60vh] overflow-y-auto" />
+      ) : l.document && isStatementReport(l.document.parse_report) && l.document.parse_report.source ? (
+        <p data-testid="lineage-bank-record" className="rounded-md border border-verified/40 bg-verified-soft px-3 py-2 text-sm text-body">
+          รายการนี้มาจากธนาคารต้นทางโดยตรงผ่าน dStatement — ข้อมูลมีลายมือชื่อของธนาคาร ไม่มีหน้าเอกสารให้ไฮไลต์
+          (ไฟล์ต้นฉบับ: <span className="font-mono">{l.document.filename}</span>)
+        </p>
       ) : (
         <p className="text-sm text-muted">ไม่มีเอกสารต้นฉบับ</p>
       )}
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-md border border-line bg-surface p-3 sm:grid-cols-3">
         <Meta label="เอกสาร">{l.document?.filename ?? "—"}</Meta>
         <Meta label="หน้า / บรรทัด">
-          {t.page_no} / {t.row_index + 1}
+          {t.page_no ?? "—"} / {t.row_index + 1}
         </Meta>
         <Meta label="ลายนิ้วมือไฟล์">
           {l.sha256_verified ? (

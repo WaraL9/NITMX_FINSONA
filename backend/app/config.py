@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     llm_model: str = "claude-opus-5"
     llm_timeout_s: float = 30.0
     connector_mode: str = "sandbox"  # "sandbox" or "live"
+    # Signing key of the sandbox "source bank" for dStatement (E3-04). Not a secret: sandbox only.
+    dstatement_sandbox_key: str = "finsona-dstatement-sandbox"
     storage_key: str = ""  # Fernet key for files at rest; generated into backend/.storage_key when empty
     secret_key: str = ""  # token signing key; generated into backend/.secret when empty
     demo_password: str = "finsona-demo"  # seeded demo accounts only

@@ -17,6 +17,7 @@ const ACTION: Record<string, string> = {
   lineage_view: "เปิดดูพิกัดเอกสาร",
   ocr_review: "ตรวจทาน OCR",
   bill_review: "ตรวจทานบิล (OCR)",
+  dstatement_pull: "ดึงสเตทเมนต์จากธนาคาร (dStatement)",
   los_submitted: "ส่งเข้าระบบ LOS",
   login: "เข้าสู่ระบบ",
   policy_change: "เปลี่ยนนโยบายสินเชื่อ",

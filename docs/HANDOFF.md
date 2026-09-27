@@ -1,6 +1,6 @@
 # Handoff — where Finsona AI stands
 
-_Last updated: 2026-09-27, after E2-14 (utility & rent bill ingest)._
+_Last updated: 2026-09-27, after E3-04 (dStatement sandbox connector)._
 
 ## What it is
 Finsona AI turns an SME's messy bank statements into a verified cash-flow picture and a safe loan size a bank
@@ -31,6 +31,8 @@ Playwright e2e in `e2e/` (uses installed Chrome). Commands: see `README.md` (`np
   confidence → held for CA review), rent **receipt** PDF (printed paid date + lease end before loan maturity →
   signal). In Kitti the utility connector already has these months, so uploads show “ตรงกับข้อมูลผู้ให้บริการ”
   and the haircut is unchanged; in a case without connector data they drive the late-payment rules.
+- **dStatement feed** (E3-04): `data/generated/<case>/dstatement.json` — every account's statement as the source
+  bank holds it, served signed by the sandbox connector (consent purpose `dstatement_data`, granted in the seed).
 - Demo logins (password `finsona-demo`): `ca`, `rm`, `sme`, `auditor`. Header ↺ (CA, demo mode) resets
   everything in ~0.1 s from the snapshot `npm run seed` takes.
 
@@ -46,8 +48,16 @@ Playwright e2e in `e2e/` (uses installed Chrome). Commands: see `README.md` (`np
    “ยืนยันเงินเข้า … → ระดับ 1”.
 9. (after a reset) Case 1 documents tab: drop `bills/bill_water_2026-04.jpg` → วิเคราะห์ใหม่ → “รอตรวจทาน OCR” →
    ตรวจทาน → reason → “ตรงกับข้อมูลผู้ให้บริการ · CA ยืนยันแล้ว”, audit-logged.
+10. dStatement: Case 1 documents → “ดึงจากธนาคาร (dStatement)” → BBL → “ไฟล์ที่อัปโหลดตรงกับธนาคาร 581/581”.
+    Case 2 → SCB (the scan) → “ไม่ตรง 3 จุด” → วิเคราะห์ใหม่ → high anomaly “ไม่ตรงกับข้อมูลธนาคาร” (the OCR misreads).
 
-## Done (increments I0–I7 + P2 batch + E2-13 + E2-14)
+## Done (increments I0–I7 + P2 batch + E2-13 + E2-14 + E3-04)
+dStatement connector (E3-04: `connectors/dstatement.py` sandbox bank, HMAC-signed statement JSON, verified before
+use; `services/dstatement.py` imports dates no uploaded statement covers — rows identical to the PDF parse, no bbox,
+lineage shows the signed bank document — and *verifies* dates already covered: matched / differs / case_only /
+bank_only → high-severity `bank_record_mismatch` anomaly with the rows; never changes a figure. Catches edited
+PDFs, hidden transactions and OCR misreads. `POST /api/cases/{id}/dstatement`; HTTP stand-in at
+`/sandbox/dstatement/v1/statements`.)
 Utility/rent bill ingest (E2-14: PDF text layer, scanned PDF or JPEG/PNG photo → OCR with EXIF auto-rotate →
 `parsers/bill.py` → `AltDataRecord(source="bill_upload")`; `services/bills.py` reconciles at each analysis: paid date
 from a receipt or the matching statement debit, connector copy wins (conflicts flagged), no-payment-evidence is
@@ -68,11 +78,10 @@ case scoping, PDPA consents, hash-chained audit log + CSV, compliance/metrics/po
 portal, eval harness (`python -m app.eval.run`, 50 synthetic cases), instant demo reset, offline mode,
 Playwright e2e, single-process prod server (`npm start`) + Dockerfile.
 
-Test counts at handoff: 204 backend, 13 frontend, 5 e2e — all green.
+Test counts at handoff: 212 backend, 13 frontend, 6 e2e — all green.
 
 ## Next (remaining backlog, suggested order)
-1. **E3-04 dStatement sandbox connector** (bank-to-bank statement pull, same connector pattern as PromptBiz).
-2. E8-12 case comparison · E8-13 Thai/English toggle · E7-05 watchlist evidence hint · E0-07 background jobs.
+1. E8-12 case comparison · E8-13 Thai/English toggle · E7-05 watchlist evidence hint · E0-07 background jobs.
 
 Blocked on the team (not code): real-bank statement parsers need real sample statements (T-01); LINE integration
 needs a LINE Official Account; backup demo video needs `npx playwright install ffmpeg` then `npm run e2e:record`.
@@ -84,5 +93,7 @@ receipt. Scanned (image-only) invoices are rejected — no OCR path for invoices
 embedded-XML PDFs is not checked.
 Bills: the lease-end rule only raises a signal — sizing does not cap the tenor yet. OCR of *new* photos needs the
 live Azure provider (the sandbox only replays recorded responses for the generated samples).
+dStatement: the sandbox signs with a shared HMAC key; a live adapter would verify the source bank's certificate.
+Mismatches are flagged, not auto-corrected (the CA overrides/excludes the rows).
 Dockerfile never built (Docker Desktop was off). Azure OCR adapter never called live. Live LLM path only tested
 with injected fakes (no API key) — the demo runs in template/cache mode.

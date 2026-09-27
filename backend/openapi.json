@@ -242,6 +242,70 @@
         }
       }
     },
+    "/sandbox/dstatement/v1/statements": {
+      "post": {
+        "tags": [
+          "sandbox"
+        ],
+        "summary": "Dstatement Statements",
+        "description": "The source bank: returns the consenting business's account statement, signed.",
+        "operationId": "dstatement_statements_sandbox_dstatement_v1_statements_post",
+        "parameters": [
+          {
+            "name": "x-consent-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Consent-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Dstatement Statements Sandbox Dstatement V1 Statements Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/sandbox/los/v1/applications": {
       "post": {
         "tags": [
@@ -1048,6 +1112,125 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/dstatement": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Pull Dstatement",
+        "description": "E3-04: pull an account's statement from its bank (consent required). Imports dates no\nuploaded statement covers; verifies the rest against the bank's record.",
+        "operationId": "pull_dstatement_api_cases__case_id__dstatement_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DStatementPullIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bad Gateway"
           }
         }
       }
@@ -4476,7 +4659,8 @@
               "pass_through",
               "period_end",
               "revenue_spike",
-              "round_cash"
+              "round_cash",
+              "bank_record_mismatch"
             ],
             "title": "Kind"
           },
@@ -5805,6 +5989,52 @@
           "txn_ids"
         ],
         "title": "CustomerShareOut"
+      },
+      "DStatementPullIn": {
+        "properties": {
+          "bank_code": {
+            "type": "string",
+            "maxLength": 10,
+            "minLength": 2,
+            "title": "Bank Code"
+          },
+          "account_no": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 4,
+            "title": "Account No"
+          },
+          "period_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Start"
+          },
+          "period_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period End"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bank_code",
+          "account_no"
+        ],
+        "title": "DStatementPullIn"
       },
       "DecisionIn": {
         "properties": {
@@ -7849,6 +8079,29 @@
                 "type": "null"
               }
             ]
+          },
+          "source": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source",
+            "description": "dStatement pulls: connector, mode, signature"
+          },
+          "verification": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VerificationOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -9058,6 +9311,68 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "VerificationOut": {
+        "properties": {
+          "compared": {
+            "type": "integer",
+            "title": "Compared"
+          },
+          "matched": {
+            "type": "integer",
+            "title": "Matched"
+          },
+          "differs": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Differs"
+          },
+          "differs_count": {
+            "type": "integer",
+            "title": "Differs Count"
+          },
+          "case_only": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Case Only"
+          },
+          "case_only_count": {
+            "type": "integer",
+            "title": "Case Only Count"
+          },
+          "bank_only": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Bank Only"
+          },
+          "bank_only_count": {
+            "type": "integer",
+            "title": "Bank Only Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "compared",
+          "matched",
+          "differs",
+          "differs_count",
+          "case_only",
+          "case_only_count",
+          "bank_only",
+          "bank_only_count"
+        ],
+        "title": "VerificationOut",
+        "description": "E3-04: an uploaded statement checked against the bank's own record."
       },
       "WatchlistOut": {
         "properties": {

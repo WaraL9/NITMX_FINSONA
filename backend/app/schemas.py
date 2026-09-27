@@ -65,6 +65,18 @@ class Health(BaseModel):
     demo_mode: bool = False
 
 
+class VerificationOut(BaseModel):
+    """E3-04: an uploaded statement checked against the bank's own record."""
+    compared: int
+    matched: int
+    differs: list[dict[str, Any]]
+    differs_count: int
+    case_only: list[int]
+    case_only_count: int
+    bank_only: list[dict[str, str]]
+    bank_only_count: int
+
+
 class ParseReport(BaseModel):
     parser: str
     parser_version: str
@@ -87,6 +99,8 @@ class ParseReport(BaseModel):
     duplicate_rows_skipped: int = 0
     duplicate_pages: list[int] = []
     ocr: "OcrReport | None" = None
+    source: dict[str, Any] | None = Field(default=None, description="dStatement pulls: connector, mode, signature")
+    verification: VerificationOut | None = None
 
 
 class OcrReport(BaseModel):
@@ -162,6 +176,13 @@ class BillLinkOut(BaseModel):
     due_date: date
     paid_date: date | None = Field(default=None, description="printed on the receipt, else the matched bank payment")
     transaction_id: int | None = None
+
+
+class DStatementPullIn(BaseModel):
+    bank_code: str = Field(min_length=2, max_length=10)
+    account_no: str = Field(min_length=4, max_length=32)
+    period_start: date | None = None
+    period_end: date | None = None
 
 
 class BillReviewIn(BaseModel):
@@ -411,7 +432,7 @@ class ConcentrationOut(BaseModel):
 
 class AnomalyOut(BaseModel):
     """E4-09: informational pattern flags; they never change a figure."""
-    kind: Literal["pass_through", "period_end", "revenue_spike", "round_cash"]
+    kind: Literal["pass_through", "period_end", "revenue_spike", "round_cash", "bank_record_mismatch"]
     severity: Literal["info", "watch", "high"]
     title: str
     detail: str

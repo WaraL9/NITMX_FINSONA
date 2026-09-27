@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarCheck, CalendarX, CheckCircle2, Clock, FileCode2, FileLock2, FileText, Home, Loader2, Receipt, ScanLine, TriangleAlert, Upload, Zap } from "lucide-react";
+import { CalendarCheck, CalendarX, CheckCircle2, Clock, FileCode2, FileLock2, FileText, Home, Landmark, Loader2, Receipt, ScanLine, TriangleAlert, Upload, Zap } from "lucide-react";
 import { useRef, useState, type DragEvent, type ReactNode } from "react";
 import {
   api,
@@ -328,6 +328,104 @@ function BillReviewDialog({ caseId, doc, onClose }: { caseId: number; doc: Docum
   );
 }
 
+const BANKS = ["BBL", "KBANK", "SCB", "KTB", "BAY", "TTB", "GSB", "BAAC"];
+
+/** E3-04: ask the account holder's bank for the statement through dStatement (consent required). */
+function DStatementDialog({ caseId, accounts, open, onClose, onDone }: {
+  caseId: number; accounts: Account[]; open: boolean; onClose: () => void; onDone: (text: string) => void;
+}) {
+  const qc = useQueryClient();
+  const [choice, setChoice] = useState<string>(accounts[0] ? String(accounts[0].id) : "other");
+  const [bank, setBank] = useState("BBL");
+  const [number, setNumber] = useState("");
+  const picked = accounts.find((a) => String(a.id) === choice);
+  const pull = useMutation({
+    mutationFn: async () => {
+      const res = await api.POST("/api/cases/{case_id}/dstatement", {
+        params: { path: { case_id: caseId } },
+        body: picked ? { bank_code: picked.bank_code, account_no: picked.account_no_masked } : { bank_code: bank, account_no: number },
+      });
+      if (res.error) throw new Error(errorMessage(res.error));
+      return res.data!;
+    },
+    onSuccess: (doc) => {
+      const r = isStatementReport(doc.parse_report) ? doc.parse_report : null;
+      const v = r?.verification;
+      const imported = Number((r?.source as { imported?: number } | null)?.imported ?? 0);
+      const parts = [imported ? `นำเข้า ${imported.toLocaleString()} รายการ` : ""];
+      if (v) {
+        const issues = v.differs_count + v.case_only_count + v.bank_only_count;
+        parts.push(issues ? `ตรวจกับไฟล์ที่อัปโหลด: ไม่ตรง ${issues} จุด — ดูที่ “ความผิดปกติ”` : `ตรวจกับไฟล์ที่อัปโหลด: ตรงกับธนาคารทั้ง ${v.matched.toLocaleString()} รายการ`);
+      }
+      onDone(`ดึง ${r?.bank_code ?? ""} ${r?.account_no ?? ""} จากธนาคารแล้ว (ลายมือชื่อธนาคารถูกต้อง) — ${parts.filter(Boolean).join(" · ")}`);
+      for (const k of ["documents", "case", "transactions", "coverage", "audit"]) qc.invalidateQueries({ queryKey: [k, caseId] });
+      onClose();
+    },
+  });
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={<span className="flex items-center gap-2"><Landmark className="size-4 text-navy" /> ดึงสเตทเมนต์จากธนาคาร (dStatement)</span>}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>ยกเลิก</Button>
+          <Button data-testid="dstatement-submit" onClick={() => pull.mutate()} disabled={pull.isPending || (!picked && number.trim().length < 4)}>
+            {pull.isPending && <Loader2 className="size-4 animate-spin" />} ขอข้อมูลจากธนาคาร
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-3 text-sm">
+        <p className="text-body">
+          ธนาคารต้นทางส่งรายการเดินบัญชีมาโดยตรงพร้อมลายมือชื่อดิจิทัล จึงแก้ไขไม่ได้ ช่วงวันที่ที่ยังไม่มีสเตทเมนต์จะถูกนำเข้า
+          ส่วนช่วงที่อัปโหลดไฟล์ไว้แล้วจะใช้ <span className="font-medium text-ink">ตรวจความถูกต้องของไฟล์</span> กับบันทึกของธนาคาร
+        </p>
+        <select data-testid="dstatement-account" value={choice} onChange={(e) => setChoice(e.target.value)}
+          className="h-10 w-full rounded-md border border-line bg-surface px-3 text-ink outline-none focus:border-navy">
+          {accounts.map((a) => <option key={a.id} value={a.id}>{a.bank_code} {a.account_no_masked} · {a.account_name}</option>)}
+          <option value="other">บัญชีอื่น…</option>
+        </select>
+        {!picked && (
+          <div className="flex gap-2">
+            <select value={bank} onChange={(e) => setBank(e.target.value)}
+              className="h-10 rounded-md border border-line bg-surface px-3 text-ink outline-none focus:border-navy">
+              {BANKS.map((b) => <option key={b}>{b}</option>)}
+            </select>
+            <input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="เลขที่บัญชี"
+              className="h-10 flex-1 rounded-md border border-line bg-surface px-3 font-mono text-ink outline-none focus:border-navy" />
+          </div>
+        )}
+        {pull.isError && <p className="text-risk">{pull.error.message}</p>}
+        <p className="text-xs text-muted">ต้องได้รับความยินยอม “dStatement” จากเจ้าของบัญชี · การดึงข้อมูลถูกบันทึกใน Audit Log</p>
+      </div>
+    </Modal>
+  );
+}
+
+/** E3-04: badges for a statement pulled from the bank — signature, imported rows, verification of uploaded files. */
+function BankSourceBadges({ r }: { r: NonNullable<DocumentOut["parse_report"]> & { verification?: unknown } }) {
+  if (!isStatementReport(r) || !r.source) return null;
+  const v = r.verification;
+  const imported = Number((r.source as { imported?: number }).imported ?? 0);
+  const issues = v ? v.differs_count + v.case_only_count + v.bank_only_count : 0;
+  return (
+    <div className="mt-1 flex flex-wrap gap-1" data-testid="bank-source">
+      <Badge tone="navy"><Landmark className="size-3" /> dStatement · ลายมือชื่อธนาคารถูกต้อง</Badge>
+      {imported > 0 && <Badge tone="neutral">นำเข้า {imported.toLocaleString()} รายการ</Badge>}
+      {v && (issues === 0 ? (
+        <Badge tone="verified"><CheckCircle2 className="size-3" /> ไฟล์ที่อัปโหลดตรงกับธนาคาร {v.matched.toLocaleString()}/{v.compared.toLocaleString()}</Badge>
+      ) : (
+        <Badge tone="risk" title={[
+          v.differs_count && `ยอดต่าง ${v.differs_count}`, v.case_only_count && `ไม่มีในธนาคาร ${v.case_only_count}`,
+          v.bank_only_count && `หายจากไฟล์ ${v.bank_only_count}`].filter(Boolean).join(" · ")}>
+          <TriangleAlert className="size-3" /> ไฟล์ที่อัปโหลดไม่ตรงกับธนาคาร {issues} จุด
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
 function DocumentRow({ doc, account, onReview }: { doc: DocumentOut; account?: Account; onReview: (d: DocumentOut) => void }) {
   const report = doc.parse_report;
   if (isPP30Report(report)) return <PP30Row doc={doc} r={report} />;
@@ -345,13 +443,14 @@ function DocumentRow({ doc, account, onReview }: { doc: DocumentOut; account?: A
           }}
           className="flex items-center gap-2 font-medium text-ink hover:text-navy"
         >
-          <FileText className="size-4 shrink-0 text-muted" />
+          {r?.source ? <Landmark className="size-4 shrink-0 text-navy" /> : <FileText className="size-4 shrink-0 text-muted" />}
           <span className="truncate">{doc.filename}</span>
           {r?.was_encrypted && <FileLock2 className="size-3.5 shrink-0 text-judge" aria-label="password-protected" />}
         </a>
         <div className="mt-0.5 font-mono text-[11px] text-muted" title={doc.sha256}>
           SHA-256 {doc.sha256.slice(0, 12)}…
         </div>
+        {r && <BankSourceBadges r={r} />}
         {r && (r.duplicate_rows_skipped > 0 || r.duplicate_pages.length > 0) && (
           <div className="mt-1 flex flex-wrap gap-1">
             {r.duplicate_pages.length > 0 && <Badge tone="judge">หน้าซ้ำ {r.duplicate_pages.join(", ")} — ข้าม</Badge>}
@@ -406,6 +505,7 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
   const [locked, setLocked] = useState<File | null>(null);
   const [pwError, setPwError] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState<DocumentOut | null>(null);
+  const [pulling, setPulling] = useState(false);
 
   const { data: docs, isError: docsError } = useQuery({
     queryKey: ["documents", caseId],
@@ -499,10 +599,15 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
             <div className="text-xs text-muted">ระบบแยกประเภทเอกสารให้อัตโนมัติ · รองรับหลายไฟล์ · ไฟล์มีรหัสผ่านได้ · ตรวจลายนิ้วมือ SHA-256 ทุกไฟล์</div>
           </div>
         </div>
+        <div className="flex gap-2">
+        <Button variant="secondary" data-testid="dstatement-open" onClick={() => { setMessage(null); setPulling(true); }}>
+          <Landmark className="size-4" /> ดึงจากธนาคาร (dStatement)
+        </Button>
         <Button variant="secondary" onClick={() => input.current?.click()} disabled={upload.isPending}>
           {upload.isPending ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
           {upload.isPending ? "กำลังอ่านเอกสาร…" : "เลือกไฟล์"}
         </Button>
+        </div>
         <input
           ref={input}
           type="file"
@@ -542,6 +647,8 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
         </Table>
       )}
 
+      <DStatementDialog key={pulling ? "open" : "closed"} caseId={caseId} accounts={accounts} open={pulling}
+        onClose={() => setPulling(false)} onDone={(text) => setMessage({ tone: "verified", text })} />
       <BillReviewDialog key={reviewing?.id ?? 0} caseId={caseId} doc={reviewing} onClose={() => setReviewing(null)} />
       <PasswordDialog
         key={locked?.name}

@@ -174,7 +174,7 @@ function NewApplication({ onCreated, onBack }: { onCreated: (id: number) => void
   const [pq, setPq] = useState({ requested_amount: "2000000", industry: "contractor", monthly_revenue: "1500000", existing_debt_monthly: "0", annual_rate: "0.07", tenor_months: 24 });
   const [result, setResult] = useState<Prequal | null>(null);
   const [form, setForm] = useState({ company_name: "", tax_id: "", business_age_years: 3, purpose: "เงินทุนหมุนเวียน", contact_phone: "", mode: "fast_track" as ApplicationBody["mode"] });
-  const [consents, setConsents] = useState({ credit_assessment: true, promptbiz_data: true, utility_data: true });
+  const [consents, setConsents] = useState({ credit_assessment: true, promptbiz_data: true, utility_data: true, dstatement_data: true });
 
   const check = useMutation({
     mutationFn: async () => {
@@ -257,7 +257,8 @@ function NewApplication({ onCreated, onBack }: { onCreated: (id: number) => void
             <div className="text-xs font-medium text-ink">ความยินยอมตามวัตถุประสงค์ (PDPA)</div>
             {([["credit_assessment", "ใช้ข้อมูลเพื่อพิจารณาสินเชื่อ (จำเป็น)"],
                ["promptbiz_data", "ดึงข้อมูลใบแจ้งหนี้และการชำระเงินจากโครงข่าย PromptBiz"],
-               ["utility_data", "ดึงประวัติการชำระค่าไฟฟ้า ค่าน้ำ และค่าเช่า"]] as const).map(([k, label]) => (
+               ["utility_data", "ดึงประวัติการชำระค่าไฟฟ้า ค่าน้ำ และค่าเช่า"],
+               ["dstatement_data", "ให้ธนาคารต้นทางส่งรายการเดินบัญชีผ่าน dStatement (ไม่ต้องอัปโหลดไฟล์)"]] as const).map(([k, label]) => (
               <label key={k} className="flex items-center gap-2 text-sm text-body">
                 <input type="checkbox" className="accent-navy" checked={consents[k]} onChange={(e) => setConsents({ ...consents, [k]: e.target.checked })} />
                 {label}

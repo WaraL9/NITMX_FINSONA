@@ -14,8 +14,8 @@ from app.api.metrics import metric_filters
 from app.models import Account, AltDataRecord, Analysis, Case, Document, Invoice, Page, Transaction, User
 from app import storage
 from app.api.common import txn_out
-from app.schemas import (ApiError, BillLinkOut, CoverageOut, DocumentKind, DocumentOut, InvoiceLinkOut,
-                         TransactionPage)
+from app.schemas import (ApiError, BillLinkOut, CoverageOut, DocumentKind, DocumentOut, DStatementPullIn,
+                         InvoiceLinkOut, TransactionPage)
 from app.services.ingest import IngestError, ingest_document
 
 router = APIRouter(tags=["documents"])
@@ -64,6 +64,37 @@ async def upload_document(
     audit.log(db, "document_upload", case_id=case_id, user_id=user.id, ip=client_ip(request),
               target_type="document", target_id=doc.id,
               after={"filename": doc.filename, "sha256": doc.sha256, "kind": doc.kind, "pages": doc.page_count})
+    db.commit()
+    return doc
+
+
+@router.post(
+    "/api/cases/{case_id}/dstatement",
+    response_model=DocumentOut,
+    status_code=201,
+    responses={**ERROR_RESPONSES, 403: {"model": ApiError}, 404: {"model": ApiError}, 502: {"model": ApiError}},
+)
+def pull_dstatement(case_id: int, body: DStatementPullIn, request: Request, db: Session = Depends(get_db),
+                    user: User = Depends(require_role("CA", "RM", "SME"))):
+    """E3-04: pull an account's statement from its bank (consent required). Imports dates no
+    uploaded statement covers; verifies the rest against the bank's record."""
+    from app.services import dstatement
+
+    case = _require_case(db, case_id)
+    if user.role == "SME" and case.owner_user_id != user.id:
+        raise HTTPException(404, "case not found")
+    try:
+        result = dstatement.pull(db, case_id, body.bank_code, body.account_no, body.period_start, body.period_end,
+                                 user_id=user.id)
+    except IngestError as e:
+        db.rollback()
+        return JSONResponse(status_code=e.status, content={"code": e.code, "message": e.message, **e.extra})
+    doc = result.document
+    audit.log(db, "dstatement_pull", case_id=case_id, user_id=user.id, ip=client_ip(request), target_type="document",
+              target_id=doc.id, after={"bank_code": body.bank_code, "account": doc.parse_report.get("account_no"),
+                                       "sha256": doc.sha256, "imported": result.imported,
+                                       "verification": {k: v for k, v in (result.verification or {}).items()
+                                                        if k.endswith("count") or k in ("compared", "matched")}})
     db.commit()
     return doc
 

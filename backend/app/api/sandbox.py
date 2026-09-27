@@ -10,6 +10,7 @@ import time
 from fastapi import APIRouter, Header, HTTPException
 
 from app.connectors.base import ConnectorError
+from app.connectors.dstatement import AccountNotFound, sandbox_statement, sign
 from app.connectors.promptbiz import sandbox_invoices
 from app.connectors.utility import sandbox_bills
 
@@ -34,6 +35,25 @@ def promptbiz_invoices(seller_tax_id: str, x_consent_token: str | None = Header(
     time.sleep(0.15)  # a remote API is never instant
     invoices = sandbox_invoices(seller_tax_id)
     return {"seller_tax_id": seller_tax_id, "count": len(invoices), "invoices": invoices, "mode": "sandbox"}
+
+
+@router.post("/dstatement/v1/statements")
+def dstatement_statements(body: dict, x_consent_token: str | None = Header(None)) -> dict:
+    """The source bank: returns the consenting business's account statement, signed."""
+    if not x_consent_token:
+        raise HTTPException(401, "X-Consent-Token header required (account holder's consent)")
+    from datetime import date
+
+    try:
+        s = sandbox_statement(body["tax_id"], body["bank_code"], body["account_no"],
+                              date.fromisoformat(body["from"]) if body.get("from") else None,
+                              date.fromisoformat(body["to"]) if body.get("to") else None)
+    except AccountNotFound as e:
+        raise HTTPException(404, str(e)) from e
+    except (KeyError, ValueError) as e:
+        raise HTTPException(422, f"bad request: {e}") from e
+    time.sleep(0.2)  # a remote API is never instant
+    return {"statement": s.statement, "signature": sign(s.statement), "key_id": s.key_id, "mode": "sandbox"}
 
 
 @router.post("/los/v1/applications")

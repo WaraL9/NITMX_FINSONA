@@ -162,3 +162,17 @@ test("utility bill photo: OCR-uncertain amount is held until a CA confirms it", 
   await page.getByTestId("tab-audit").click();
   await expect(page.getByText("ตรวจทานบิล (OCR)").first()).toBeVisible();
 });
+
+test("dStatement: the bank's own record confirms an uploaded statement PDF", async ({ page, request }) => {
+  await resetDemo(request);
+  await page.goto("/login");
+  await page.getByRole("button", { name: "เจ้าหน้าที่วิเคราะห์สินเชื่อ (CA)" }).click();
+  await expect(page).toHaveURL("/");
+  await page.goto(`${CASE}?tab=documents`);
+  await page.getByTestId("dstatement-open").click();
+  await page.getByTestId("dstatement-submit").click();
+  await expect(page.getByText(/ตรงกับธนาคารทั้ง 581 รายการ/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("bank-source")).toContainText("ไฟล์ที่อัปโหลดตรงกับธนาคาร 581/581");
+  await page.getByTestId("tab-audit").click();
+  await expect(page.getByText("ดึงสเตทเมนต์จากธนาคาร (dStatement)").first()).toBeVisible();
+});

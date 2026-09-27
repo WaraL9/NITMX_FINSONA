@@ -97,7 +97,7 @@ def test_sme_application_lifecycle_and_consent(client, statement_path):
     app = client.post("/api/sme/applications", json=body, headers=SME).json()
     cid = app["case_id"]
     assert {c["purpose"]: c["granted"] for c in app["consents"]} == {
-        "credit_assessment": True, "promptbiz_data": False, "utility_data": True}
+        "credit_assessment": True, "promptbiz_data": False, "utility_data": True, "dstatement_data": False}
     assert client.post(f"/api/sme/applications/{cid}/submit", headers=SME).status_code == 422  # no statement yet
     # The portal endpoints are SME-only (bank staff use the workbench APIs).
     assert client.get(f"/api/sme/applications/{cid}", headers=CA).status_code == 403

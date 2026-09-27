@@ -31,8 +31,8 @@ from app.ocr.base import OcrResult, OcrUnavailable
 from app.ocr.images import BadImage, image_to_pdf, sniff_image
 from app.ocr.base import get_provider as get_ocr_provider
 from app.services import ocr_review
-from app.parsers.base import (NoTextLayer, ParsedStatement, ParseError, UnsupportedFormat, parse_statement,
-                               parse_statement_words)
+from app.parsers.base import (NoTextLayer, ParsedRow, ParsedStatement, ParseError, UnsupportedFormat,
+                               parse_statement, parse_statement_words)
 from app.parsers.etax import (ParsedETax, detect_etax_pdf, embedded_xml, looks_like_xml, parse_etax_pdf,
                               parse_etax_xml)
 from app.parsers.bill import ParsedBill, detect_bill, page_text, parse_bill_words, text_layer_words
@@ -334,58 +334,10 @@ def ingest_document(
             db.add(page)
             db.flush()
             page_ids[p.page_no] = page.id
-        db.add_all(
-            Transaction(
-                case_id=case_id,
-                account_id=account.id,
-                document_id=doc.id,
-                page_id=page_ids.get(r.page_no),
-                row_index=r.row_index,
-                posted_at=r.posted_at,
-                description=r.description,
-                code=r.code,
-                channel=r.channel,
-                debit=r.debit,
-                credit=r.credit,
-                balance=r.balance,
-                counterparty_name=r.counterparty_name,
-                counterparty_account=r.counterparty_account,
-                counterparty_bank=r.counterparty_bank,
-                bbox_x0=r.bbox.x0,
-                bbox_y0=r.bbox.top,
-                bbox_x1=r.bbox.x1,
-                bbox_y1=r.bbox.bottom,
-                confidence=r.confidence,
-                extractor_version=stmt.parser_version,
-                ocr_fields=r.field_confidence if ocr else None,
-            )
-            for r in new_rows
-        )
-        breaks = stmt.continuity_breaks()
+        add_rows(db, case_id, account.id, doc.id, new_rows, page_ids, stmt.parser_version, ocr=ocr is not None)
         doc.parser = f"ocr:{ocr.provider}+{stmt.parser}" if ocr else stmt.parser
-        doc.parse_report = {
-            "parser": stmt.parser,
-            "parser_version": stmt.parser_version,
-            "rows": len(stmt.rows),
-            "pages": len(stmt.pages),
-            "bank_code": stmt.bank_code,
-            "account_no": stmt.account_no,
-            "account_name": stmt.account_name,
-            "period_start": stmt.period_start.isoformat() if stmt.period_start else None,
-            "period_end": stmt.period_end.isoformat() if stmt.period_end else None,
-            "opening_balance": f"{stmt.opening_balance:.2f}" if stmt.opening_balance is not None else None,
-            "closing_balance": f"{stmt.rows[-1].balance:.2f}" if stmt.rows else None,
-            "total_debit": f"{stmt.total_debit:.2f}",
-            "total_credit": f"{stmt.total_credit:.2f}",
-            "continuity_ok": not breaks,
-            "continuity_breaks": breaks[:50],
-            "was_encrypted": encrypted,
-            "account_created": created,
-            "warnings": stmt.warnings + (
-                [f"{duplicates_skipped} รายการซ้ำกับสเตทเมนต์ที่อัปโหลดแล้ว — ไม่นับซ้ำ"] if duplicates_skipped else []),
-            "duplicate_rows_skipped": duplicates_skipped,
-            "duplicate_pages": stmt.duplicate_pages,
-        }
+        doc.parse_report = statement_report(stmt, encrypted=encrypted, created=created,
+                                            duplicates_skipped=duplicates_skipped)
         if ocr is not None:
             doc.parse_report["ocr"] = {"provider": ocr.provider, "model": ocr.model, "words": ocr.word_count,
                                        "mean_confidence": ocr.mean_confidence,
@@ -401,6 +353,64 @@ def ingest_document(
     db.commit()
     db.refresh(doc)
     return IngestResult(doc, stmt, created, pp30, etax, bill)
+
+
+def statement_report(stmt: ParsedStatement, *, encrypted: bool, created: bool, duplicates_skipped: int = 0) -> dict:
+    breaks = stmt.continuity_breaks()
+    return {
+        "parser": stmt.parser,
+        "parser_version": stmt.parser_version,
+        "rows": len(stmt.rows),
+        "pages": len(stmt.pages),
+        "bank_code": stmt.bank_code,
+        "account_no": stmt.account_no,
+        "account_name": stmt.account_name,
+        "period_start": stmt.period_start.isoformat() if stmt.period_start else None,
+        "period_end": stmt.period_end.isoformat() if stmt.period_end else None,
+        "opening_balance": f"{stmt.opening_balance:.2f}" if stmt.opening_balance is not None else None,
+        "closing_balance": f"{stmt.rows[-1].balance:.2f}" if stmt.rows else None,
+        "total_debit": f"{stmt.total_debit:.2f}",
+        "total_credit": f"{stmt.total_credit:.2f}",
+        "continuity_ok": not breaks,
+        "continuity_breaks": breaks[:50],
+        "was_encrypted": encrypted,
+        "account_created": created,
+        "warnings": stmt.warnings + (
+            [f"{duplicates_skipped} รายการซ้ำกับสเตทเมนต์ที่อัปโหลดแล้ว — ไม่นับซ้ำ"] if duplicates_skipped else []),
+        "duplicate_rows_skipped": duplicates_skipped,
+        "duplicate_pages": stmt.duplicate_pages,
+    }
+
+
+def add_rows(db: Session, case_id: int, account_id: int, document_id: int, rows: list[ParsedRow],
+             page_ids: dict[int, int], version: str, ocr: bool = False) -> None:
+    db.add_all(
+        Transaction(
+            case_id=case_id,
+            account_id=account_id,
+            document_id=document_id,
+            page_id=page_ids.get(r.page_no),
+            row_index=r.row_index,
+            posted_at=r.posted_at,
+            description=r.description,
+            code=r.code,
+            channel=r.channel,
+            debit=r.debit,
+            credit=r.credit,
+            balance=r.balance,
+            counterparty_name=r.counterparty_name,
+            counterparty_account=r.counterparty_account,
+            counterparty_bank=r.counterparty_bank,
+            bbox_x0=r.bbox.x0 if r.bbox else None,
+            bbox_y0=r.bbox.top if r.bbox else None,
+            bbox_x1=r.bbox.x1 if r.bbox else None,
+            bbox_y1=r.bbox.bottom if r.bbox else None,
+            confidence=r.confidence,
+            extractor_version=version,
+            ocr_fields=r.field_confidence if ocr else None,
+        )
+        for r in rows
+    )
 
 
 def _ocr(plain: bytes, digest: str) -> OcrResult:
