@@ -131,6 +131,8 @@ def _memo_out(m: CreditMemo, names: dict[int, str]) -> dict[str, Any]:
         "ca_reason": m.ca_reason, "signed_by": names.get(m.signed_by) if m.signed_by else None,
         "signed_at": m.signed_at.isoformat() if m.signed_at else None, "analysis_id": m.analysis_id,
         "pdf_sha256": m.pdf_sha256, "audit_head": m.audit_head, "has_pdf": bool(m.pdf_path),
+        "los_reference": m.los_reference,
+        "los_submitted_at": m.los_submitted_at.isoformat() if m.los_submitted_at else None,
     }
 
 
@@ -237,6 +239,7 @@ def reopen(db: Session, case_id: int, user: User, ip: str | None, reason: str) -
     audit.log(db, "memo_reopened", case_id=case_id, user_id=user.id, ip=ip, target_type="memo", target_id=m.id,
               before={"status": "signed", "pdf_sha256": m.pdf_sha256}, after={"status": "draft"}, reason=reason)
     m.status = "draft"
+    m.los_reference, m.los_submitted_at = None, None  # a revised decision must be sent again
     db.get(Case, case_id).status = "in_review"
     db.commit()
     return build_package(db, case_id)

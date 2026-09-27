@@ -89,6 +89,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sandbox/los/v1/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Los Applications
+         * @description Stand-in for the bank's loan origination system: validates and books the decision.
+         */
+        post: operations["los_applications_sandbox_los_v1_applications_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me": {
         parameters: {
             query?: never;
@@ -729,6 +749,46 @@ export interface paths {
         get: operations["llm_status_api_llm_status_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/los-export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Los Payload
+         * @description E3-06: the versioned decision package exactly as it is sent to the LOS.
+         */
+        get: operations["los_payload_api_cases__case_id__los_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/los-export/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Los Submit
+         * @description E3-06: hand the signed decision to the loan origination system (idempotent).
+         */
+        post: operations["los_submit_api_cases__case_id__los_export_submit_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1773,6 +1833,22 @@ export interface components {
             /** Legs */
             legs: components["schemas"]["LoopLegOut"][];
         };
+        /** LosSubmitOut */
+        LosSubmitOut: {
+            /** Reference */
+            reference: string;
+            /** Submitted At */
+            submitted_at: string;
+            /** Payload Sha256 */
+            payload_sha256: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "sandbox" | "live";
+            /** Already Submitted */
+            already_submitted: boolean;
+        };
         /** MemoCase */
         MemoCase: {
             /** Id */
@@ -1867,6 +1943,10 @@ export interface components {
             audit_head: string | null;
             /** Has Pdf */
             has_pdf: boolean;
+            /** Los Reference */
+            los_reference?: string | null;
+            /** Los Submitted At */
+            los_submitted_at?: string | null;
         };
         /** MemoStructure */
         MemoStructure: {
@@ -2591,6 +2671,45 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    los_applications_sandbox_los_v1_applications_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-api-key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -4002,6 +4121,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LlmStatusOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    los_payload_api_cases__case_id__los_export_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    los_submit_api_cases__case_id__los_export_submit_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LosSubmitOut"];
                 };
             };
             /** @description Validation Error */

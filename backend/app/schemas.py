@@ -532,6 +532,8 @@ class MemoState(BaseModel):
     pdf_sha256: str | None
     audit_head: str | None
     has_pdf: bool
+    los_reference: str | None = None
+    los_submitted_at: str | None = None
 
 
 class MemoPackageOut(BaseModel):
@@ -542,6 +544,14 @@ class MemoPackageOut(BaseModel):
     watchlist: list[MemoWatch]
     documents: int
     memo: MemoState
+
+
+class LosSubmitOut(BaseModel):
+    reference: str
+    submitted_at: str
+    payload_sha256: str
+    mode: Literal["sandbox", "live"]
+    already_submitted: bool
 
 
 class NarrativeIn(BaseModel):

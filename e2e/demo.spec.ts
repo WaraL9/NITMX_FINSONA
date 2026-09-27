@@ -15,7 +15,7 @@ test.beforeAll(async ({ request }) => {
   expect(reset.ok()).toBeTruthy();
 });
 
-test("demo run: pipeline → loops → lineage → sizing → judgement → memo", async ({ page, request }) => {
+test("demo run: pipeline → loops → lineage → sizing → judgement → memo → LOS", async ({ page, request }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
 
@@ -83,6 +83,8 @@ test("demo run: pipeline → loops → lineage → sizing → judgement → memo
     const pdf = await request.get(`/api/cases/1/memo/pdf`, { headers: { Authorization: `Bearer ${token}` } });
     expect(pdf.ok()).toBeTruthy();
     expect((await pdf.body()).subarray(0, 4).toString()).toBe("%PDF");
+    await page.getByTestId("los-submit").click();
+    await expect(page.getByTestId("los-reference")).toContainText(/LOS-\d{4}-\d{6}/);
     await beat(page);
   });
 

@@ -34,3 +34,20 @@ def promptbiz_invoices(seller_tax_id: str, x_consent_token: str | None = Header(
     time.sleep(0.15)  # a remote API is never instant
     invoices = sandbox_invoices(seller_tax_id)
     return {"seller_tax_id": seller_tax_id, "count": len(invoices), "invoices": invoices, "mode": "sandbox"}
+
+
+@router.post("/los/v1/applications")
+def los_applications(payload: dict, x_api_key: str | None = Header(None)) -> dict:
+    """Stand-in for the bank's loan origination system: validates and books the decision."""
+    if not x_api_key:
+        raise HTTPException(401, "X-Api-Key header required")
+    from app.connectors.los import get_los_target
+    from app.db import SessionLocal
+
+    with SessionLocal() as db:
+        try:
+            ref, again = get_los_target().submit(db, payload)
+        except ConnectorError as e:
+            raise HTTPException(422, str(e)) from e
+        db.commit()
+    return {"reference": ref, "status": "duplicate" if again else "received", "mode": "sandbox"}

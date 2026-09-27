@@ -35,6 +35,7 @@ CONTROLS = [
     ("Responsible lending sizing", "implemented", "วงเงินจาก DSCR/DSR ตามนโยบายที่ตั้งค่าได้และมีประวัติเวอร์ชัน"),
     ("OCR confidence gating", "implemented", "ตัวเลขจากเอกสารสแกนที่ความมั่นใจ < 50% หรือยอดคงเหลือไม่ต่อเนื่อง ไม่ถูกนับจนกว่า CA ตรวจทานกับภาพต้นฉบับ"),
     ("OCR provider (Azure AI Document Intelligence)", "sandbox", "Sandbox เล่นซ้ำผล OCR ที่บันทึกไว้ของเอกสารเดโม; adapter Azure พร้อมใช้เมื่อมีคีย์"),
+    ("LOS hand-off (loan origination)", "sandbox", "ส่งผลตัดสินที่ลงนามแล้วพร้อมลายนิ้วมือเอกสาร แบบ idempotent — ไม่มีข้อมูลรายธุรกรรมออกจากระบบ"),
     ("PromptBiz / utility / dStatement integration", "sandbox", "เชื่อมผ่าน Sandbox Connector ที่มี interface เดียวกับของจริง"),
     ("Encryption in transit (TLS 1.3)", "planned", "ต้องติดตั้งหลัง reverse proxy/Front Door บนคลาวด์ของธนาคาร"),
     ("Data residency — Azure Thailand region", "planned", "ขณะนี้รันบนเครื่องพัฒนา; เป้าหมายคือ tenant ของธนาคารในประเทศไทย"),

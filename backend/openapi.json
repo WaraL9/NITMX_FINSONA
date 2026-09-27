@@ -242,6 +242,70 @@
         }
       }
     },
+    "/sandbox/los/v1/applications": {
+      "post": {
+        "tags": [
+          "sandbox"
+        ],
+        "summary": "Los Applications",
+        "description": "Stand-in for the bank's loan origination system: validates and books the decision.",
+        "operationId": "los_applications_sandbox_los_v1_applications_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Los Applications Sandbox Los V1 Applications Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/me": {
       "get": {
         "tags": [
@@ -3007,6 +3071,126 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LlmStatusOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/los-export": {
+      "get": {
+        "tags": [
+          "memo"
+        ],
+        "summary": "Los Payload",
+        "description": "E3-06: the versioned decision package exactly as it is sent to the LOS.",
+        "operationId": "los_payload_api_cases__case_id__los_export_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Los Payload Api Cases  Case Id  Los Export Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/los-export/submit": {
+      "post": {
+        "tags": [
+          "memo"
+        ],
+        "summary": "Los Submit",
+        "description": "E3-06: hand the signed decision to the loan origination system (idempotent).",
+        "operationId": "los_submit_api_cases__case_id__los_export_submit_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LosSubmitOut"
                 }
               }
             }
@@ -6111,6 +6295,43 @@
         ],
         "title": "LoopOut"
       },
+      "LosSubmitOut": {
+        "properties": {
+          "reference": {
+            "type": "string",
+            "title": "Reference"
+          },
+          "submitted_at": {
+            "type": "string",
+            "title": "Submitted At"
+          },
+          "payload_sha256": {
+            "type": "string",
+            "title": "Payload Sha256"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "sandbox",
+              "live"
+            ],
+            "title": "Mode"
+          },
+          "already_submitted": {
+            "type": "boolean",
+            "title": "Already Submitted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reference",
+          "submitted_at",
+          "payload_sha256",
+          "mode",
+          "already_submitted"
+        ],
+        "title": "LosSubmitOut"
+      },
       "MemoCase": {
         "properties": {
           "id": {
@@ -6401,6 +6622,28 @@
           "has_pdf": {
             "type": "boolean",
             "title": "Has Pdf"
+          },
+          "los_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Los Reference"
+          },
+          "los_submitted_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Los Submitted At"
           }
         },
         "type": "object",

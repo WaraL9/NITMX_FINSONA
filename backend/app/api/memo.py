@@ -10,7 +10,8 @@ from app.ai import gateway
 from app.api.deps import client_ip, current_user, require_role
 from app.db import get_db
 from app.models import CreditMemo, LlmCall, User
-from app.schemas import LlmCallOut, LlmStatusOut, MemoPackageOut, NarrativeIn, ReasonIn, SignIn
+from app.schemas import LlmCallOut, LlmStatusOut, LosSubmitOut, MemoPackageOut, NarrativeIn, ReasonIn, SignIn
+from app.services import los_export
 from app.services import memo as svc
 
 router = APIRouter(tags=["memo"])
@@ -70,3 +71,22 @@ def llm_calls(case_id: int, db: Session = Depends(get_db)):
 @router.get("/api/llm/status", response_model=LlmStatusOut)
 def llm_status():
     return gateway.status()
+
+
+def _los(fn, *args):
+    try:
+        return fn(*args)
+    except los_export.LosError as e:
+        raise HTTPException(e.status, str(e)) from e
+
+
+@router.get("/api/cases/{case_id}/los-export")
+def los_payload(case_id: int, db: Session = Depends(get_db), _: User = Depends(require_role("CA", "AUDITOR"))) -> dict:
+    """E3-06: the versioned decision package exactly as it is sent to the LOS."""
+    return _los(los_export.build, db, case_id)
+
+
+@router.post("/api/cases/{case_id}/los-export/submit", response_model=LosSubmitOut)
+def los_submit(case_id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(require_role("CA"))):
+    """E3-06: hand the signed decision to the loan origination system (idempotent)."""
+    return _los(los_export.submit, db, case_id, user, client_ip(request))

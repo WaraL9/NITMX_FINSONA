@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, FileSignature, Loader2, PencilLine, RefreshCw, RotateCcw, ShieldCheck, Sparkles } from "lucide-react";
+import { CheckCircle2, Download, FileJson, FileSignature, Loader2, PencilLine, RefreshCw, RotateCcw, Send, ShieldCheck, Sparkles } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { api, errorMessage, unwrap, type MemoPackage, type SignBody } from "@/api/client";
-import { Badge } from "@/components/ui/badge";
+import { Badge, SourceBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { openProtected } from "@/lib/auth";
+import { authHeaders, openProtected, useSession } from "@/lib/auth";
 import { tierInfo } from "@/lib/labels";
 import { formatMillions, formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -240,6 +240,7 @@ function SignOff({ p, caseId }: { p: MemoPackage; caseId: number }) {
             <Download className="size-4" /> ดาวน์โหลด Credit Memo (PDF)
           </Button>
         </div>
+        <LosHandoff caseId={caseId} reference={m.los_reference ?? null} at={m.los_submitted_at ?? null} />
         <div className="mt-4 border-t border-line pt-3">
           <input value={reopenReason} onChange={(e) => setReopenReason(e.target.value)} placeholder="เหตุผลในการเปิดแก้ไข (บันทึกใน Audit Log)"
             className="h-9 w-full rounded-md border border-line bg-surface px-3 text-sm text-ink outline-none focus:border-navy" />
@@ -338,6 +339,64 @@ export function MemoPanel({ caseId }: { caseId: number }) {
         <SignOff key={p.memo.status} p={p} caseId={caseId} />
         <NarrativeEditor p={p} caseId={caseId} />
         <WhatTheAiSaw caseId={caseId} version={`${p.memo.id}-${p.memo.narrative_source}-${p.memo.narrative.length}`} />
+      </div>
+    </div>
+  );
+}
+
+
+async function downloadLosJson(caseId: number) {
+  const res = await fetch(`/api/cases/${caseId}/los-export`, { headers: authHeaders() });
+  if (!res.ok) return;
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `finsona_los_case_${caseId}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+/** E3-06: hand the signed decision to the bank's loan origination system (sandbox connector). */
+function LosHandoff({ caseId, reference, at }: { caseId: number; reference: string | null; at: string | null }) {
+  const qc = useQueryClient();
+  const isCa = useSession()?.user.role === "CA";
+  const send = useMutation({
+    mutationFn: async () => {
+      const r = await api.POST("/api/cases/{case_id}/los-export/submit", { params: { path: { case_id: caseId } } });
+      if (r.error) throw new Error(errorMessage(r.error));
+      return r.data!;
+    },
+    onSuccess: () => {
+      for (const k of ["memo", "audit"]) qc.invalidateQueries({ queryKey: [k, caseId] });
+    },
+  });
+  return (
+    <div className="mt-4 rounded-md border border-line bg-surface p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm font-medium text-ink">
+          <Send className="size-4 text-navy" /> ส่งต่อระบบอนุมัติสินเชื่อของธนาคาร (LOS)
+        </div>
+        <SourceBadge mode="sandbox" source="LOS" />
+      </div>
+      {reference ? (
+        <div data-testid="los-reference" className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+          <Badge tone="verified"><CheckCircle2 className="size-3" /> ส่งแล้ว</Badge>
+          <span className="font-mono text-ink">{reference}</span>
+          {at && <span className="text-xs text-muted">{at.slice(0, 19).replace("T", " ")} UTC</span>}
+        </div>
+      ) : (
+        <p className="mt-1 text-xs text-muted">ส่งผลการตัดสินใจ ตัวเลขประกอบ และลายนิ้วมือเอกสาร (ไม่มีข้อมูลรายธุรกรรม) — ส่งซ้ำได้โดยไม่จองสินเชื่อซ้ำ</p>
+      )}
+      {send.isError && <p className="mt-1 text-sm text-risk">{send.error.message}</p>}
+      <div className="mt-2 flex flex-wrap gap-2">
+        {isCa && !reference && (
+          <Button size="sm" data-testid="los-submit" disabled={send.isPending} onClick={() => send.mutate()}>
+            {send.isPending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} ส่งเข้า LOS
+          </Button>
+        )}
+        <Button size="sm" variant="ghost" onClick={() => void downloadLosJson(caseId)}>
+          <FileJson className="size-4" /> ดูข้อมูลที่ส่ง (JSON)
+        </Button>
       </div>
     </div>
   );

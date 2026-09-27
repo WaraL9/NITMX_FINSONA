@@ -289,7 +289,21 @@ class CreditMemo(Base):
     pdf_path: Mapped[str | None] = mapped_column(String(500))
     pdf_sha256: Mapped[str | None] = mapped_column(String(64))
     audit_head: Mapped[str | None] = mapped_column(String(64))
+    # E3-06: hand-off to the bank's loan origination system
+    los_reference: Mapped[str | None] = mapped_column(String(32))
+    los_submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class LosInbox(Base):
+    """The sandbox LOS's own store — stands in for the bank's loan origination system (E3-06)."""
+
+    __tablename__ = "los_inbox"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    reference: Mapped[str] = mapped_column(String(32), unique=True)
+    payload_sha256: Mapped[str] = mapped_column(String(64), unique=True)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class Consent(Base):
