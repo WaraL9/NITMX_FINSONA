@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarCheck, CalendarX, CheckCircle2, Clock, FileCode2, FileLock2, FileText, Loader2, Receipt, ScanLine, TriangleAlert, Upload } from "lucide-react";
-import { useRef, useState, type DragEvent } from "react";
+import { CalendarCheck, CalendarX, CheckCircle2, Clock, FileCode2, FileLock2, FileText, Home, Loader2, Receipt, ScanLine, TriangleAlert, Upload, Zap } from "lucide-react";
+import { useRef, useState, type DragEvent, type ReactNode } from "react";
 import {
   api,
   documentFileUrl,
+  errorMessage,
+  isBillReport,
   isETaxReport,
   isPP30Report,
   isStatementReport,
@@ -11,6 +13,8 @@ import {
   uploadDocument,
   UploadError,
   type Account,
+  type BillLink,
+  type BillReport,
   type DocumentOut,
   type ETaxReport,
   type PP30Report,
@@ -20,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
-import { openProtected } from "@/lib/auth";
+import { openProtected, useSession } from "@/lib/auth";
 import { formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
@@ -192,10 +196,143 @@ function ETaxRow({ doc, r }: { doc: DocumentOut; r: ETaxReport }) {
   );
 }
 
-function DocumentRow({ doc, account }: { doc: DocumentOut; account?: Account }) {
+const BILL_KIND: Record<BillReport["bill_kind"], { label: string; icon: ReactNode }> = {
+  electricity: { label: "ค่าไฟฟ้า", icon: <Zap className="size-4 shrink-0 text-judge" /> },
+  water: { label: "ค่าน้ำประปา", icon: <Zap className="size-4 shrink-0 text-navy" /> },
+  rent: { label: "ค่าเช่า", icon: <Home className="size-4 shrink-0 text-tax" /> },
+};
+
+const BILL_STATUS: Record<BillLink["status"], { tone: "verified" | "judge" | "neutral" | "risk"; label: string }> = {
+  pending_analysis: { tone: "neutral", label: "รอวิเคราะห์ใหม่" },
+  used: { tone: "verified", label: "ใช้ประเมินวินัยการชำระ" },
+  corroborated: { tone: "verified", label: "ตรงกับข้อมูลผู้ให้บริการ" },
+  conflict: { tone: "risk", label: "ขัดแย้งกับข้อมูลผู้ให้บริการ" },
+  payment_not_found: { tone: "judge", label: "ไม่พบการชำระ — ควรสอบถาม" },
+  held_review: { tone: "judge", label: "รอตรวจทาน OCR" },
+};
+
+/** E2-14: an uploaded utility/rent bill — what was read, how it was paid, and how the rules used it. */
+function BillRow({ doc, r, onReview }: { doc: DocumentOut; r: BillReport; onReview: (d: DocumentOut) => void }) {
+  const link = doc.bill;
+  const isCa = useSession()?.user.role === "CA";
+  const status = link ? BILL_STATUS[link.status] : null;
+  const [y, m] = r.period.split("-");
+  return (
+    <TR data-testid="bill-row">
+      <TD>
+        <a href="#" onClick={(e) => { e.preventDefault(); void openProtected(documentFileUrl(doc.id)); }}
+          className="flex items-center gap-2 font-medium text-ink hover:text-navy">
+          {BILL_KIND[r.bill_kind].icon}
+          <span className="truncate">{doc.filename}</span>
+        </a>
+        <div className="mt-0.5 font-mono text-[11px] text-muted" title={doc.sha256}>
+          SHA-256 {doc.sha256.slice(0, 12)}…
+        </div>
+      </TD>
+      <TD>
+        <Badge tone="navy">{BILL_KIND[r.bill_kind].label} {m}/{Number(y) + 543}</Badge>
+        <div className="mt-1 text-xs text-body">
+          {r.provider ?? "—"} · กำหนดชำระ {thDate(link?.due_date ?? r.due_date)}
+          {link?.paid_date && ` · ชำระ ${thDate(link.paid_date)}${link.transaction_id ? " (สเตทเมนต์)" : ""}`}
+        </div>
+      </TD>
+      <TD numeric>{doc.page_count}</TD>
+      <TD numeric className="text-muted">—</TD>
+      <TD numeric className="text-muted">—</TD>
+      <TD numeric title={r.is_receipt ? "ยอดที่ชำระ" : "ยอดที่ต้องชำระ"}>{formatTHB(link?.amount ?? r.amount, 2)}</TD>
+      <TD>
+        <div className="flex flex-wrap gap-1">
+          {status && link && (
+            <Badge tone={status.tone} title={link.note ?? undefined}>
+              {link.status === "pending_analysis" ? <Clock className="size-3" /> : link.status === "held_review" || link.status === "payment_not_found" || link.status === "conflict" ? <TriangleAlert className="size-3" /> : <CheckCircle2 className="size-3" />}
+              {status.label}
+            </Badge>
+          )}
+          {link?.review_status && link.review_status !== "pending" && (
+            <Badge tone="neutral">{link.review_status === "corrected" ? "CA แก้ไขแล้ว" : "CA ยืนยันแล้ว"}</Badge>
+          )}
+          {r.ocr && (
+            <Badge tone="navy" title={String(r.ocr.provider)}>
+              <ScanLine className="size-3" /> OCR {(Number(r.ocr.mean_confidence) * 100).toFixed(1)}%
+            </Badge>
+          )}
+          {link?.review_status === "pending" && isCa && (
+            <Button size="sm" variant="secondary" data-testid="bill-review" onClick={() => onReview(doc)}>ตรวจทาน</Button>
+          )}
+        </div>
+        {link?.note && link.status !== "held_review" && link.status !== "corroborated" && <div className="mt-1 text-xs text-muted">{link.note}</div>}
+      </TD>
+    </TR>
+  );
+}
+
+const FIELD_TH: Record<string, string> = { amount: "จำนวนเงิน", due_date: "กำหนดชำระ", paid_date: "วันที่ชำระ" };
+
+/** A CA checks an OCR'd bill against the photo: confirm as read, or correct it (reason required, audit-logged). */
+function BillReviewDialog({ caseId, doc, onClose }: { caseId: number; doc: DocumentOut | null; onClose: () => void }) {
+  const qc = useQueryClient();
+  const r = doc && isBillReport(doc.parse_report) ? doc.parse_report : null;
+  const link = doc?.bill;
+  const [amount, setAmount] = useState(link?.amount ?? "");
+  const [reason, setReason] = useState("");
+  const review = useMutation({
+    mutationFn: async (action: "confirm" | "correct") => {
+      const res = await api.POST("/api/cases/{case_id}/bills/{record_id}/review", {
+        params: { path: { case_id: caseId, record_id: link!.record_id } },
+        body: action === "correct" ? { action, amount, reason } : { action, reason },
+      });
+      if (res.error) throw new Error(errorMessage(res.error));
+      return res.data!;
+    },
+    onSuccess: (data) => {
+      qc.setQueryData(["analysis", caseId], data);
+      for (const k of ["documents", "sizing", "sizing-safe", "audit", "memo"]) qc.invalidateQueries({ queryKey: [k, caseId] });
+      onClose();
+    },
+  });
+  const changed = !!link && amount !== link.amount;
+  return (
+    <Modal
+      open={doc !== null}
+      onClose={onClose}
+      title={<span className="flex items-center gap-2"><ScanLine className="size-4 text-judge" /> ตรวจทานบิลจากภาพถ่าย</span>}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>ยกเลิก</Button>
+          <Button data-testid="bill-review-submit" disabled={reason.trim().length < 10 || review.isPending || !amount}
+            onClick={() => review.mutate(changed ? "correct" : "confirm")}>
+            {review.isPending && <Loader2 className="size-4 animate-spin" />} {changed ? "บันทึกการแก้ไข" : "ยืนยันตามที่อ่านได้"}
+          </Button>
+        </>
+      }
+    >
+      {r && link && (
+        <div className="space-y-3 text-sm">
+          <p>
+            OCR อ่าน <span className="font-medium text-ink">{r.low_confidence.map((f) => FIELD_TH[f] ?? f).join(", ")}</span> ได้ไม่มั่นใจ
+            — เปิด <a href="#" className="text-navy underline" onClick={(e) => { e.preventDefault(); void openProtected(documentFileUrl(doc!.id)); }}>ภาพบิล</a> แล้วเทียบตัวเลข
+          </p>
+          <label className="block">
+            <span className="text-xs text-muted">จำนวนเงิน (บาท) · ความเชื่อมั่น OCR {((r.field_confidence.amount ?? 1) * 100).toFixed(0)}%</span>
+            <input data-testid="bill-amount" value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal"
+              className="mt-1 h-10 w-full rounded-md border border-line bg-surface px-3 font-mono text-ink outline-none focus:border-navy" />
+          </label>
+          <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2}
+            placeholder="เหตุผล (อย่างน้อย 10 ตัวอักษร) เช่น ตรวจภาพถ่ายแล้ว ยอดเงินชัดเจน"
+            className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-navy" />
+          {review.isError && <p className="text-risk">{review.error.message}</p>}
+          <p className="text-xs text-muted">การตรวจทานถูกบันทึกใน Audit Log พร้อมค่าก่อน/หลังและเหตุผล แล้วระบบคำนวณใหม่ทันที</p>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+function DocumentRow({ doc, account, onReview }: { doc: DocumentOut; account?: Account; onReview: (d: DocumentOut) => void }) {
   const report = doc.parse_report;
   if (isPP30Report(report)) return <PP30Row doc={doc} r={report} />;
   if (isETaxReport(report)) return <ETaxRow doc={doc} r={report} />;
+  if (isBillReport(report)) return <BillRow doc={doc} r={report} onReview={onReview} />;
   const r = isStatementReport(report) ? report : null;
   return (
     <TR>
@@ -268,6 +405,7 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
   const [message, setMessage] = useState<{ tone: "risk" | "verified"; text: string } | null>(null);
   const [locked, setLocked] = useState<File | null>(null);
   const [pwError, setPwError] = useState<string | null>(null);
+  const [reviewing, setReviewing] = useState<DocumentOut | null>(null);
 
   const { data: docs, isError: docsError } = useQuery({
     queryKey: ["documents", caseId],
@@ -284,6 +422,8 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
         tone: "verified",
         text: isPP30Report(doc.parse_report)
           ? `อัปโหลด ${doc.filename} แล้ว — ภ.พ.30 เดือน ${doc.parse_report.period}`
+          : isBillReport(doc.parse_report)
+            ? `อัปโหลด ${doc.filename} แล้ว — บิลงวด ${doc.parse_report.period} ยอด ${formatTHB(doc.parse_report.amount, 2)} บาท${doc.parse_report.low_confidence.length ? " (OCR ไม่มั่นใจบางช่อง — รอเจ้าหน้าที่ตรวจทาน)" : ""}`
           : isETaxReport(doc.parse_report)
             ? `อัปโหลด ${doc.filename} แล้ว — ใบกำกับภาษีเลขที่ ${doc.parse_report.invoice_no} ยอด ${formatTHB(doc.parse_report.amounts.total, 2)} บาท (กดวิเคราะห์ใหม่เพื่อจับคู่กับเงินเข้า)`
             : `อัปโหลด ${doc.filename} แล้ว — อ่านได้ ${isStatementReport(doc.parse_report) ? doc.parse_report.rows : 0} รายการจาก ${doc.page_count} หน้า`,
@@ -355,7 +495,7 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
         <div className="flex items-center gap-3 text-sm">
           <Upload className="size-5 text-muted" />
           <div>
-            <div className="text-ink">ลากไฟล์สเตทเมนต์ ภ.พ.30 หรือใบกำกับภาษีอิเล็กทรอนิกส์ (PDF / XML) มาวางที่นี่</div>
+            <div className="text-ink">ลากไฟล์สเตทเมนต์ ภ.พ.30 ใบกำกับภาษีอิเล็กทรอนิกส์ หรือบิลค่าไฟ/ค่าน้ำ/ค่าเช่า (PDF / XML / รูปถ่าย) มาวางที่นี่</div>
             <div className="text-xs text-muted">ระบบแยกประเภทเอกสารให้อัตโนมัติ · รองรับหลายไฟล์ · ไฟล์มีรหัสผ่านได้ · ตรวจลายนิ้วมือ SHA-256 ทุกไฟล์</div>
           </div>
         </div>
@@ -366,7 +506,7 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
         <input
           ref={input}
           type="file"
-          accept="application/pdf,.xml,application/xml,text/xml"
+          accept="application/pdf,.xml,application/xml,text/xml,image/jpeg,image/png"
           multiple
           hidden
           onChange={(e) => {
@@ -396,12 +536,13 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
           </THead>
           <TBody>
             {docs.map((d) => (
-              <DocumentRow key={d.id} doc={d} account={d.account_id ? byId.get(d.account_id) : undefined} />
+              <DocumentRow key={d.id} doc={d} account={d.account_id ? byId.get(d.account_id) : undefined} onReview={setReviewing} />
             ))}
           </TBody>
         </Table>
       )}
 
+      <BillReviewDialog key={reviewing?.id ?? 0} caseId={caseId} doc={reviewing} onClose={() => setReviewing(null)} />
       <PasswordDialog
         key={locked?.name}
         file={locked}

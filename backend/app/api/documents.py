@@ -11,10 +11,11 @@ from app.api.deps import client_ip, require_role
 from app.db import get_db
 from app.services import audit, coverage
 from app.api.metrics import metric_filters
-from app.models import Account, Analysis, Case, Document, Invoice, Page, Transaction, User
+from app.models import Account, AltDataRecord, Analysis, Case, Document, Invoice, Page, Transaction, User
 from app import storage
 from app.api.common import txn_out
-from app.schemas import ApiError, CoverageOut, DocumentKind, DocumentOut, InvoiceLinkOut, TransactionPage
+from app.schemas import (ApiError, BillLinkOut, CoverageOut, DocumentKind, DocumentOut, InvoiceLinkOut,
+                         TransactionPage)
 from app.services.ingest import IngestError, ingest_document
 
 router = APIRouter(tags=["documents"])
@@ -77,8 +78,26 @@ def case_coverage(case_id: int, db: Session = Depends(get_db)):
 def list_documents(case_id: int, db: Session = Depends(get_db)):
     _require_case(db, case_id)
     docs = list(db.scalars(select(Document).where(Document.case_id == case_id).order_by(Document.uploaded_at)))
-    links = _invoice_links(db, case_id)
-    return [DocumentOut.model_validate(d).model_copy(update={"invoice": links.get(d.id)}) for d in docs]
+    links, bills = _invoice_links(db, case_id), _bill_links(db, case_id)
+    return [DocumentOut.model_validate(d).model_copy(update={"invoice": links.get(d.id), "bill": bills.get(d.id)})
+            for d in docs]
+
+
+def _bill_links(db: Session, case_id: int) -> dict[int, BillLinkOut]:
+    """E2-14: each uploaded bill's standing in the alt-data rules (as of the last analysis)."""
+    rows = db.execute(select(AltDataRecord, Transaction, Document.uploaded_at)
+                      .outerjoin(Transaction, Transaction.id == AltDataRecord.matched_transaction_id)
+                      .join(Document, Document.id == AltDataRecord.document_id)
+                      .where(AltDataRecord.case_id == case_id)).all()
+    analysed_at = db.scalar(select(func.max(Analysis.created_at)).where(Analysis.case_id == case_id))
+    out = {}
+    for r, txn, uploaded_at in rows:
+        fresh = analysed_at is not None and analysed_at >= uploaded_at and r.status is not None
+        out[r.document_id] = BillLinkOut(
+            record_id=r.id, status=r.status if fresh else "pending_analysis", note=r.status_note if fresh else None,
+            review_status=r.review_status, amount=r.amount, due_date=r.due_date,
+            paid_date=r.paid_date or (txn.posted_at.date() if txn else None), transaction_id=txn.id if txn else None)
+    return out
 
 
 def _invoice_links(db: Session, case_id: int) -> dict[int, InvoiceLinkOut]:
@@ -104,14 +123,18 @@ def _invoice_links(db: Session, case_id: int) -> dict[int, InvoiceLinkOut]:
 
 
 @router.get("/api/documents/{document_id}/file", response_class=FileResponse)
-def document_file(document_id: int, db: Session = Depends(get_db)):
-    """The document for viewing: the decrypted copy if the original was password-protected."""
+def document_file(document_id: int, original: bool = False, db: Session = Depends(get_db)):
+    """The document for viewing: the decrypted copy if the original was password-protected, or
+    the upright PDF made from a photo. `original=true` returns the bytes exactly as uploaded."""
     doc = db.get(Document, document_id)
     if doc is None:
         raise HTTPException(404, "document not found")
-    path = Path(doc.view_path or doc.storage_path)
+    use_view = bool(doc.view_path) and not original
+    path = Path(doc.view_path if use_view else doc.storage_path)
     if not path.exists():
         raise HTTPException(410, "file missing from storage")
+    if use_view:
+        return storage.response(path, "application/pdf", Path(doc.filename).with_suffix(".pdf").name)
     return storage.response(path, doc.mime, doc.filename)
 
 

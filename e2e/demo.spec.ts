@@ -141,3 +141,24 @@ test("e-Tax invoice: an uploaded ETDA XML verifies a receipt as Tier 1", async (
   await expect(row).toContainText("→ ระดับ 1", { timeout: 30_000 });
   await expect(row).toContainText("XML (ETDA)");
 });
+
+test("utility bill photo: OCR-uncertain amount is held until a CA confirms it", async ({ page, request }) => {
+  await resetDemo(request);
+  const photo = path.join(__dirname, "..", "data", "generated", "kitti", "bills", "bill_water_2026-04.jpg");
+  await page.goto("/login");
+  await page.getByRole("button", { name: "เจ้าหน้าที่วิเคราะห์สินเชื่อ (CA)" }).click();
+  await expect(page).toHaveURL("/");
+  await page.goto(`${CASE}?tab=documents`);
+  await page.locator('input[type="file"]').setInputFiles(photo);
+  await expect(page.getByText(/บิลงวด 2026-04 .*รอเจ้าหน้าที่ตรวจทาน/)).toBeVisible();
+  const row = page.getByTestId("bill-row");
+  await page.getByTestId("run-analysis").click();
+  await expect(row).toContainText("รอตรวจทาน OCR", { timeout: 30_000 });
+  await page.getByTestId("bill-review").click();
+  await page.getByPlaceholder(/เหตุผล \(อย่างน้อย 10 ตัวอักษร\)/).fill("ตรวจภาพถ่ายแล้ว ยอดเงินชัดเจนตรงกับที่อ่านได้");
+  await page.getByTestId("bill-review-submit").click();
+  await expect(row).toContainText("ตรงกับข้อมูลผู้ให้บริการ", { timeout: 30_000 });
+  await expect(row).toContainText("CA ยืนยันแล้ว");
+  await page.getByTestId("tab-audit").click();
+  await expect(page.getByText("ตรวจทานบิล (OCR)").first()).toBeVisible();
+});

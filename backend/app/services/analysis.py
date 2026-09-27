@@ -35,7 +35,7 @@ from app.models import (
 
 # Fallback when no policy row exists yet; the live policy comes from services.policy.
 DEFAULT_POLICY = Policy()
-from app.services import audit, consent, ocr_review
+from app.services import audit, bills as bills_svc, consent, ocr_review
 from app.services import policy as policy_svc
 
 
@@ -71,13 +71,13 @@ def sync_alt_data(db: Session, case: Case) -> dict:
     source = get_utility_source()
     grant = consent.has(db, case.id, "utility_data")
     if grant is None:
-        db.execute(delete(AltDataRecord).where(AltDataRecord.case_id == case.id))
+        db.execute(delete(AltDataRecord).where(AltDataRecord.case_id == case.id, AltDataRecord.source.like("utility_%")))
         return {"source": source.name, "mode": source.mode, "fetched": 0, "consent": False,
                 "note": "ไม่มีความยินยอมให้ดึงประวัติค่าสาธารณูปโภค/ค่าเช่า"}
     if not case.tax_id:
         return {"source": source.name, "mode": source.mode, "fetched": 0, "note": "case has no tax ID"}
     bills = source.fetch_bills(case.tax_id, consent_token=f"consent-{grant.id}", scenario=case.sandbox_alt_scenario)
-    db.execute(delete(AltDataRecord).where(AltDataRecord.case_id == case.id))
+    db.execute(delete(AltDataRecord).where(AltDataRecord.case_id == case.id, AltDataRecord.source.like("utility_%")))
     db.add_all(AltDataRecord(
         case_id=case.id, kind=b["kind"], period=b["period"], due_date=date.fromisoformat(b["due_date"]),
         paid_date=date.fromisoformat(b["paid_date"]) if b.get("paid_date") else None,
@@ -259,9 +259,9 @@ def _llm_annotations(db: Session, rows: list[Transaction], r: AnalysisResult) ->
 def _evidence(db: Session, case: Case, r: AnalysisResult, rows: list[Transaction], period: tuple[date, date],
               alt_sync: dict | None) -> dict:
     """Alt-data haircut (E6-06), cash-pattern evidence (E4-06) and decision drivers (E7-06)."""
-    bills = [altdata.EBill(b.kind, b.period, b.due_date, b.paid_date, b.amount)
-             for b in db.scalars(select(AltDataRecord).where(AltDataRecord.case_id == case.id))]
-    alt = altdata.evaluate(bills, as_of=period[1])
+    uploaded = bills_svc.reconcile(db, case, rows, as_of=period[1])
+    alt = altdata.evaluate(uploaded.bills, as_of=period[1])
+    alt.signals += uploaded.signals
     months = r.months
     cfo_m = r.clean_cash_flow_monthly
     sizing_cfo = (cfo_m * (1 - alt.haircut)).quantize(Decimal("0.01"))
@@ -307,6 +307,7 @@ def _evidence(db: Session, case: Case, r: AnalysisResult, rows: list[Transaction
             "months_covered": alt.months_covered, "bills": alt.bills, "on_time": alt.on_time,
             "late_30": alt.late_30, "late_60_or_unpaid": alt.late_60_or_unpaid, "haircut": str(alt.haircut),
             "ews": alt.ews, "liveness_confirmed": alt.liveness_confirmed, "signals": alt.signals,
+            "uploads": uploaded.counts,
         },
         "alt_connector": alt_sync,
         "cash_pattern": {

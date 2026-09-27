@@ -195,7 +195,20 @@ class AltDataRecord(Base):
     due_date: Mapped[date] = mapped_column(Date)
     paid_date: Mapped[date | None] = mapped_column(Date)
     amount: Mapped[Decimal] = mapped_column(Money)
-    source: Mapped[str] = mapped_column(String(32), default="sandbox")
+    source: Mapped[str] = mapped_column(String(32), default="sandbox")  # utility_<mode> | bill_upload
+    # E2-14: uploaded bills. paid_date above is only what the document prints (receipts);
+    # a payment found on the statement is linked at analysis time instead.
+    document_id: Mapped[int | None] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"), index=True)
+    provider: Mapped[str | None] = mapped_column(String(200))
+    customer_no: Mapped[str | None] = mapped_column(String(64))
+    lease_end: Mapped[date | None] = mapped_column(Date)
+    matched_transaction_id: Mapped[int | None] = mapped_column(ForeignKey("transactions.id", ondelete="SET NULL"))
+    # set by each analysis: used | corroborated | conflict | payment_not_found | held_review
+    status: Mapped[str | None] = mapped_column(String(24))
+    status_note: Mapped[str | None] = mapped_column(Text)
+    # OCR gating (E2-09): pending while a key field is below the threshold, then confirmed/corrected by a CA.
+    review_status: Mapped[str | None] = mapped_column(String(16))
+    field_confidence: Mapped[dict[str, float] | None] = mapped_column(JSON)
 
 
 class WatchlistItem(Base):

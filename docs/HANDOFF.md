@@ -1,6 +1,6 @@
 # Handoff — where Finsona AI stands
 
-_Last updated: 2026-09-27, after E2-13 (e-Tax invoice ingest)._
+_Last updated: 2026-09-27, after E2-14 (utility & rent bill ingest)._
 
 ## What it is
 Finsona AI turns an SME's messy bank statements into a verified cash-flow picture and a safe loan size a bank
@@ -26,6 +26,11 @@ Playwright e2e in `e2e/` (uses installed Chrome). Commands: see `README.md` (`np
   Uploading one moves its receipt from T2 to T1 after “วิเคราะห์ใหม่” (Kitti: `etax_ETX-2512-0001.xml`).
   Revenue total is unchanged (T2→T1); T1 share and the T1-based Trade Line rise. Canonical figures unaffected
   until something is uploaded.
+- **Bill samples** (E2-14, not seeded): `data/generated/<case>/bills/` — electricity e-bill PDF (paid via the
+  statement), water bill **phone photo** (JPEG stored sideways + EXIF flag; recorded OCR reads the amount at 41%
+  confidence → held for CA review), rent **receipt** PDF (printed paid date + lease end before loan maturity →
+  signal). In Kitti the utility connector already has these months, so uploads show “ตรงกับข้อมูลผู้ให้บริการ”
+  and the haircut is unchanged; in a case without connector data they drive the late-payment rules.
 - Demo logins (password `finsona-demo`): `ca`, `rm`, `sme`, `auditor`. Header ↺ (CA, demo mode) resets
   everything in ~0.1 s from the snapshot `npm run seed` takes.
 
@@ -39,8 +44,15 @@ Playwright e2e in `e2e/` (uses installed Chrome). Commands: see `README.md` (`np
 7. Case 2: OCR tab — OCR read 2,954.19 where the scan shows 2,954.79; correct it against the image.
 8. (after a reset) Case 1 documents tab: drop `etax_ETX-2512-0001.xml` → “รอวิเคราะห์ใหม่” → วิเคราะห์ใหม่ →
    “ยืนยันเงินเข้า … → ระดับ 1”.
+9. (after a reset) Case 1 documents tab: drop `bills/bill_water_2026-04.jpg` → วิเคราะห์ใหม่ → “รอตรวจทาน OCR” →
+   ตรวจทาน → reason → “ตรงกับข้อมูลผู้ให้บริการ · CA ยืนยันแล้ว”, audit-logged.
 
-## Done (increments I0–I7 + P2 batch + E2-13)
+## Done (increments I0–I7 + P2 batch + E2-13 + E2-14)
+Utility/rent bill ingest (E2-14: PDF text layer, scanned PDF or JPEG/PNG photo → OCR with EXIF auto-rotate →
+`parsers/bill.py` → `AltDataRecord(source="bill_upload")`; `services/bills.py` reconciles at each analysis: paid date
+from a receipt or the matching statement debit, connector copy wins (conflicts flagged), no-payment-evidence is
+asked about rather than counted unpaid, OCR-uncertain fields held until `POST /api/cases/{id}/bills/{rid}/review`;
+lease end before maturity → signal. Photos are served as an upright PDF; `?original=true` gives the uploaded bytes.)
 Ingest (auto-detect, passwords, SHA-256, encrypted at rest), e-Tax invoice ingest (E2-13: ETDA XML / PDF with
 embedded XML / PDF text fallback → `Invoice(source="etax_upload", document_id)` → T1 matching; seller must be the
 applicant; same invoice twice rejected; a PromptBiz copy of the same invoice wins so one sale never verifies two
@@ -56,13 +68,11 @@ case scoping, PDPA consents, hash-chained audit log + CSV, compliance/metrics/po
 portal, eval harness (`python -m app.eval.run`, 50 synthetic cases), instant demo reset, offline mode,
 Playwright e2e, single-process prod server (`npm start`) + Dockerfile.
 
-Test counts at handoff: 194 backend, 13 frontend, 4 e2e — all green.
+Test counts at handoff: 204 backend, 13 frontend, 5 e2e — all green.
 
 ## Next (remaining backlog, suggested order)
-1. **E2-14 utility bill ingest** (PDF/photo) — feeds the alt-data rules; reuse the OCR path and the e-Tax
-   pattern (parser module + `_store_*` in `services/ingest.py` + report schema + a row in `DocumentsPanel`).
-2. E3-04 dStatement sandbox connector (bank-to-bank statement pull, same connector pattern as PromptBiz).
-3. E8-12 case comparison · E8-13 Thai/English toggle · E7-05 watchlist evidence hint · E0-07 background jobs.
+1. **E3-04 dStatement sandbox connector** (bank-to-bank statement pull, same connector pattern as PromptBiz).
+2. E8-12 case comparison · E8-13 Thai/English toggle · E7-05 watchlist evidence hint · E0-07 background jobs.
 
 Blocked on the team (not code): real-bank statement parsers need real sample statements (T-01); LINE integration
 needs a LINE Official Account; backup demo video needs `npx playwright install ffmpeg` then `npm run e2e:record`.
@@ -72,5 +82,7 @@ e-Tax: digital signatures are detected but not cryptographically verified (needs
 chain); an unsigned upload is flagged as SME-provided evidence and still counts as T1 once it matches a real
 receipt. Scanned (image-only) invoices are rejected — no OCR path for invoices yet. PDF/A-3 conformance of
 embedded-XML PDFs is not checked.
+Bills: the lease-end rule only raises a signal — sizing does not cap the tenor yet. OCR of *new* photos needs the
+live Azure provider (the sandbox only replays recorded responses for the generated samples).
 Dockerfile never built (Docker Desktop was off). Azure OCR adapter never called live. Live LLM path only tested
 with injected fakes (no API key) — the demo runs in template/cache mode.

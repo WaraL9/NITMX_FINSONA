@@ -304,7 +304,8 @@ export interface paths {
         };
         /**
          * Document File
-         * @description The document for viewing: the decrypted copy if the original was password-protected.
+         * @description The document for viewing: the decrypted copy if the original was password-protected, or
+         *     the upright PDF made from a photo. `original=true` returns the bytes exactly as uploaded.
          */
         get: operations["document_file_api_documents__document_id__file_get"];
         put?: never;
@@ -405,6 +406,27 @@ export interface paths {
          */
         put: operations["set_alt_scenario_api_cases__case_id__sandbox_alt_scenario_put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{case_id}/bills/{record_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Review Bill
+         * @description E2-14: a CA checks an OCR'd bill against its image — confirm as read, or correct the
+         *     amount/dates. Audit-logged with before/after and the reason; the engine re-runs.
+         */
+        post: operations["review_bill_api_cases__case_id__bills__record_id__review_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1059,6 +1081,13 @@ export interface components {
             liveness_confirmed: boolean;
             /** Signals */
             signals: string[];
+            /**
+             * Uploads
+             * @description E2-14 uploaded bills by status: uploaded, used, corroborated, conflict, payment_not_found, held_review
+             */
+            uploads?: {
+                [key: string]: number;
+            } | null;
         };
         /** AltScenarioIn */
         AltScenarioIn: {
@@ -1290,6 +1319,105 @@ export interface components {
             prev_hash: string;
             /** Hash */
             hash: string;
+        };
+        /**
+         * BillLinkOut
+         * @description Where an uploaded bill stands after the last analysis (and its current values after any CA review).
+         */
+        BillLinkOut: {
+            /** Record Id */
+            record_id: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending_analysis" | "used" | "corroborated" | "conflict" | "payment_not_found" | "held_review";
+            /** Note */
+            note?: string | null;
+            /** Review Status */
+            review_status?: ("pending" | "confirmed" | "corrected") | null;
+            /** Amount */
+            amount: string;
+            /**
+             * Due Date
+             * Format: date
+             */
+            due_date: string;
+            /**
+             * Paid Date
+             * @description printed on the receipt, else the matched bank payment
+             */
+            paid_date?: string | null;
+            /** Transaction Id */
+            transaction_id?: number | null;
+        };
+        /**
+         * BillReport
+         * @description E2-14: what was read from a utility or rent bill (PDF text layer, scan or photo).
+         */
+        BillReport: {
+            /** Parser */
+            parser: string;
+            /** Parser Version */
+            parser_version: string;
+            /**
+             * Bill Kind
+             * @enum {string}
+             */
+            bill_kind: "electricity" | "water" | "rent";
+            /** Is Receipt */
+            is_receipt: boolean;
+            /** Provider */
+            provider: string | null;
+            /** Customer Name */
+            customer_name: string | null;
+            /** Customer No */
+            customer_no: string | null;
+            /** Period */
+            period: string;
+            /**
+             * Due Date
+             * Format: date
+             */
+            due_date: string;
+            /** Paid Date */
+            paid_date: string | null;
+            /** Lease End */
+            lease_end: string | null;
+            /** Amount */
+            amount: string;
+            /** Bboxes */
+            bboxes: {
+                [key: string]: number[];
+            };
+            /** Field Confidence */
+            field_confidence: {
+                [key: string]: number;
+            };
+            /** Low Confidence */
+            low_confidence: string[];
+            /** Ocr */
+            ocr?: {
+                [key: string]: unknown;
+            } | null;
+            /** Warnings */
+            warnings: string[];
+        };
+        /** BillReviewIn */
+        BillReviewIn: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "confirm" | "correct";
+            /** Amount */
+            amount?: number | string | null;
+            /** Due Date */
+            due_date?: string | null;
+            /** Paid Date */
+            paid_date?: string | null;
+            /** Reason */
+            reason: string;
         };
         /** Body_answer_api_queries__query_id__answer_post */
         Body_answer_api_queries__query_id__answer_post: {
@@ -1560,8 +1688,9 @@ export interface components {
              */
             uploaded_at: string;
             /** Parse Report */
-            parse_report: components["schemas"]["ParseReport"] | components["schemas"]["PP30ParseReport"] | components["schemas"]["ETaxParseReport"] | null;
+            parse_report: components["schemas"]["ParseReport"] | components["schemas"]["PP30ParseReport"] | components["schemas"]["ETaxParseReport"] | components["schemas"]["BillReport"] | null;
             invoice?: components["schemas"]["InvoiceLinkOut"] | null;
+            bill?: components["schemas"]["BillLinkOut"] | null;
         };
         /** DocumentVerifyOut */
         DocumentVerifyOut: {
@@ -3306,7 +3435,9 @@ export interface operations {
     };
     document_file_api_documents__document_id__file_get: {
         parameters: {
-            query?: never;
+            query?: {
+                original?: boolean;
+            };
             header?: {
                 authorization?: string | null;
             };
@@ -3540,6 +3671,44 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["AltScenarioIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalysisOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_bill_api_cases__case_id__bills__record_id__review_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                case_id: number;
+                record_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BillReviewIn"];
             };
         };
         responses: {

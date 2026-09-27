@@ -74,11 +74,14 @@ export type PP30Report = components["schemas"]["PP30ParseReport"];
 
 export type ETaxReport = components["schemas"]["ETaxParseReport"];
 export type InvoiceLink = components["schemas"]["InvoiceLinkOut"];
-type AnyReport = StatementReport | PP30Report | ETaxReport | null | undefined;
+export type BillReport = components["schemas"]["BillReport"];
+export type BillLink = components["schemas"]["BillLinkOut"];
+type AnyReport = StatementReport | PP30Report | ETaxReport | BillReport | null | undefined;
 
 export const isPP30Report = (r: AnyReport): r is PP30Report => !!r && "period" in r && "amounts" in r;
 export const isETaxReport = (r: AnyReport): r is ETaxReport => !!r && "invoice_no" in r;
 export const isStatementReport = (r: AnyReport): r is StatementReport => !!r && "rows" in r;
+export const isBillReport = (r: AnyReport): r is BillReport => !!r && "bill_kind" in r;
 
 export type User = components["schemas"]["UserOut"];
 export type AuditEntry = components["schemas"]["AuditEntryOut"];

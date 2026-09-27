@@ -96,6 +96,15 @@ export function AltDataPanel({ caseId, a }: { caseId: number; a: Analysis }) {
           </ul>
         </div>
       </div>
+      {alt.uploads && alt.uploads.uploaded > 0 && (
+        <p data-testid="alt-uploads" className="mt-2 text-xs text-muted">
+          บิลที่ผู้กู้อัปโหลด {alt.uploads.uploaded} ใบ · ใช้คำนวณ {alt.uploads.used}
+          {alt.uploads.corroborated > 0 && ` · ตรงกับข้อมูลผู้ให้บริการ ${alt.uploads.corroborated}`}
+          {alt.uploads.conflict > 0 && ` · ขัดแย้ง ${alt.uploads.conflict}`}
+          {alt.uploads.payment_not_found > 0 && ` · ไม่พบการชำระ ${alt.uploads.payment_not_found}`}
+          {alt.uploads.held_review > 0 && ` · รอตรวจทาน ${alt.uploads.held_review}`}
+        </p>
+      )}
       <div className="mt-3 flex items-center justify-between rounded-md border border-dashed border-judge/50 px-3 py-2 text-xs">
         <span className="flex items-center gap-1.5 text-muted">
           <PlugZap className="size-3.5 text-judge" /> Sandbox what-if: จำลองว่าค่าไฟฟ้าชำระล่าช้า 2 งวด (มี.ค.–เม.ย.)

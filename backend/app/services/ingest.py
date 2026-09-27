@@ -26,14 +26,16 @@ from app.config import settings
 from app.core.money import to_money
 import pdfplumber
 
-from app.models import Account, Case, Document, Invoice, Page, TaxFiling, Transaction
+from app.models import Account, AltDataRecord, Case, Document, Invoice, Page, TaxFiling, Transaction
 from app.ocr.base import OcrResult, OcrUnavailable
+from app.ocr.images import BadImage, image_to_pdf, sniff_image
 from app.ocr.base import get_provider as get_ocr_provider
 from app.services import ocr_review
 from app.parsers.base import (NoTextLayer, ParsedStatement, ParseError, UnsupportedFormat, parse_statement,
                                parse_statement_words)
 from app.parsers.etax import (ParsedETax, detect_etax_pdf, embedded_xml, looks_like_xml, parse_etax_pdf,
                               parse_etax_xml)
+from app.parsers.bill import ParsedBill, detect_bill, page_text, parse_bill_words, text_layer_words
 from app.parsers.pp30 import ParsedPP30, detect_pp30, parse_pp30
 
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
@@ -103,6 +105,7 @@ class IngestResult:
     account_created: bool
     pp30: ParsedPP30 | None = None
     etax: ParsedETax | None = None
+    bill: ParsedBill | None = None
 
 
 def detect_kind(plain: bytes) -> str:
@@ -116,7 +119,11 @@ def detect_kind(plain: bytes) -> str:
         return "statement"
     if detect_pp30(first):
         return "pp30"
-    return "etax_invoice" if detect_etax_pdf(first) else "statement"
+    if detect_etax_pdf(first):
+        return "etax_invoice"
+    if detect_bill(first):
+        return "utility_bill"
+    return "statement" if first.strip() else "scan"  # no text layer: decide after OCR
 
 
 def sha256_hex(data: bytes) -> str:
@@ -205,19 +212,44 @@ def ingest_document(
         raise DuplicateDocument("this exact file is already in the case", existing_document_id=existing.id)
 
     is_xml = looks_like_xml(data)
+    image_mime = sniff_image(data)
     if is_xml:
         if kind not in ("auto", "etax_invoice"):
             raise NotAPdf("XML is only accepted for e-Tax invoices")
         plain, encrypted, kind = data, False, "etax_invoice"
+    elif image_mime:
+        # Phone photo or image scan: an upright one-page PDF for OCR and the viewer (E2-08).
+        try:
+            plain, encrypted = image_to_pdf(data), False
+        except BadImage as e:
+            raise NotAPdf(str(e)) from e
     else:
         plain, encrypted = _decrypt(data, password)
+    ocr: OcrResult | None = None
     if kind == "auto":
-        kind = detect_kind(plain)
+        kind = "scan" if image_mime else detect_kind(plain)
+    if kind == "scan" or (image_mime and kind in ("statement", "utility_bill")):
+        ocr = _ocr(plain, digest)
+        if kind == "scan":
+            kind = "utility_bill" if detect_bill(page_text(ocr.pages)) else "statement"
 
     stmt: ParsedStatement | None = None
     pp30: ParsedPP30 | None = None
     etax: ParsedETax | None = None
-    ocr: OcrResult | None = None
+    bill: ParsedBill | None = None
+    if image_mime and kind not in ("statement", "utility_bill", "evidence"):
+        raise UnsupportedDocument("รูปภาพรับเฉพาะสเตทเมนต์ บิลค่าสาธารณูปโภค/ค่าเช่า และเอกสารประกอบ")
+    if kind == "utility_bill":
+        try:
+            if ocr is None:
+                words = text_layer_words(plain)
+                if not any(p.words for p in words):
+                    ocr = _ocr(plain, digest)
+            bill = parse_bill_words(ocr.pages if ocr else words)
+        except UnsupportedFormat as e:
+            raise UnsupportedDocument(str(e)) from e
+        except ParseError as e:
+            raise ParseFailed(str(e)) from e
     if kind == "etax_invoice":
         try:
             etax = parse_etax_xml(plain) if is_xml else parse_etax_pdf(plain)
@@ -233,14 +265,14 @@ def ingest_document(
             raise ParseFailed(str(e)) from e
     if kind == "statement":
         try:
+            if ocr is not None:
+                raise NoTextLayer("already OCR'd")
             stmt = parse_statement(io.BytesIO(plain))
         except NoTextLayer:
             # Scanned/photographed statement: OCR, then the same layout parser (E2-08).
             try:
-                ocr = get_ocr_provider().analyze(plain, digest)
+                ocr = ocr or _ocr(plain, digest)
                 stmt = parse_statement_words(ocr.pages)
-            except OcrUnavailable as e:
-                raise UnsupportedDocument(str(e)) from e
             except UnsupportedFormat as e:
                 raise UnsupportedDocument(f"OCR read the file but the layout is not recognised: {e}") from e
             except ParseError as e:
@@ -272,10 +304,11 @@ def ingest_document(
 
     folder: Path = settings.storage_dir / f"case_{case_id}"
     folder.mkdir(parents=True, exist_ok=True)
-    original = folder / f"{digest}.{'xml' if is_xml else 'pdf'}"
+    ext = "xml" if is_xml else {"image/jpeg": "jpg", "image/png": "png"}.get(image_mime or "", "pdf")
+    original = folder / f"{digest}.{ext}"
     storage.write(original, data)
     view = None
-    if encrypted:
+    if encrypted or image_mime:
         view = folder / f"{digest}.view.pdf"
         storage.write(view, plain)
 
@@ -283,11 +316,11 @@ def ingest_document(
         case_id=case_id,
         account_id=account.id if account else account_id,
         kind=kind,
-        filename=Path(filename).name[:255] or ("upload.xml" if is_xml else "upload.pdf"),
+        filename=Path(filename).name[:255] or f"upload.{ext}",
         sha256=digest,
         storage_path=str(original),
         view_path=str(view) if view else None,
-        mime="application/xml" if is_xml else "application/pdf",
+        mime="application/xml" if is_xml else (image_mime or "application/pdf"),
         page_count=0 if is_xml else len(PdfReader(io.BytesIO(plain)).pages),
         uploaded_by=user_id,
     )
@@ -363,9 +396,49 @@ def ingest_document(
         _store_pp30(db, case, doc, pp30)
     if etax is not None:
         _store_etax(db, case, doc, etax)
+    if bill is not None:
+        _store_bill(db, doc, bill, ocr)
     db.commit()
     db.refresh(doc)
-    return IngestResult(doc, stmt, created, pp30, etax)
+    return IngestResult(doc, stmt, created, pp30, etax, bill)
+
+
+def _ocr(plain: bytes, digest: str) -> OcrResult:
+    try:
+        return get_ocr_provider().analyze(plain, digest)
+    except OcrUnavailable as e:
+        raise UnsupportedDocument(str(e)) from e
+
+
+def _store_bill(db: Session, doc: Document, b: ParsedBill, ocr: OcrResult | None) -> None:
+    db.add(Page(document_id=doc.id, page_no=1, width=b.page_width, height=b.page_height))
+    low = sorted(f for f, c in b.confidence.items() if c < settings.ocr_review_threshold)
+    db.add(AltDataRecord(
+        case_id=doc.case_id, kind=b.kind, period=b.period, due_date=b.due_date, paid_date=b.paid_date,
+        amount=b.amount, source="bill_upload", document_id=doc.id, provider=b.provider,
+        customer_no=b.customer_no, lease_end=b.lease_end, review_status="pending" if low else None,
+        field_confidence=b.confidence or None,
+    ))
+    doc.parser = f"ocr:{ocr.provider}+{b.parser}" if ocr else b.parser
+    doc.parse_report = {
+        "parser": b.parser,
+        "parser_version": b.parser_version,
+        "bill_kind": b.kind,
+        "is_receipt": b.is_receipt,
+        "provider": b.provider,
+        "customer_name": b.customer_name,
+        "customer_no": b.customer_no,
+        "period": b.period,
+        "due_date": b.due_date.isoformat(),
+        "paid_date": b.paid_date.isoformat() if b.paid_date else None,
+        "lease_end": b.lease_end.isoformat() if b.lease_end else None,
+        "amount": f"{b.amount:.2f}",
+        "bboxes": {k: [v.x0, v.top, v.x1, v.bottom] for k, v in b.bboxes.items()},
+        "field_confidence": b.confidence,
+        "low_confidence": low,
+        "ocr": {"provider": ocr.provider, "mean_confidence": ocr.mean_confidence} if ocr else None,
+        "warnings": b.warnings + ([f"OCR อ่าน {', '.join(low)} ไม่มั่นใจ — รอเจ้าหน้าที่ตรวจทานก่อนนำมาใช้"] if low else []),
+    }
 
 
 def _check_etax(db: Session, case: Case, inv: ParsedETax) -> None:

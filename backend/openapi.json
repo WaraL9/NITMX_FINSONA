@@ -1117,7 +1117,7 @@
           "documents"
         ],
         "summary": "Document File",
-        "description": "The document for viewing: the decrypted copy if the original was password-protected.",
+        "description": "The document for viewing: the decrypted copy if the original was password-protected, or\nthe upright PDF made from a photo. `original=true` returns the bytes exactly as uploaded.",
         "operationId": "document_file_api_documents__document_id__file_get",
         "parameters": [
           {
@@ -1127,6 +1127,16 @@
             "schema": {
               "type": "integer",
               "title": "Document Id"
+            }
+          },
+          {
+            "name": "original",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Original"
             }
           },
           {
@@ -1760,6 +1770,84 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AltScenarioIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_id}/bills/{record_id}/review": {
+      "post": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Review Bill",
+        "description": "E2-14: a CA checks an OCR'd bill against its image — confirm as read, or correct the\namount/dates. Audit-logged with before/after and the reason; the engine re-runs.",
+        "operationId": "review_bill_api_cases__case_id__bills__record_id__review_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Record Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillReviewIn"
               }
             }
           }
@@ -4083,6 +4171,21 @@
             },
             "type": "array",
             "title": "Signals"
+          },
+          "uploads": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uploads",
+            "description": "E2-14 uploaded bills by status: uploaded, used, corroborated, conflict, payment_not_found, held_review"
           }
         },
         "type": "object",
@@ -4766,6 +4869,318 @@
           "hash"
         ],
         "title": "AuditEntryOut"
+      },
+      "BillLinkOut": {
+        "properties": {
+          "record_id": {
+            "type": "integer",
+            "title": "Record Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending_analysis",
+              "used",
+              "corroborated",
+              "conflict",
+              "payment_not_found",
+              "held_review"
+            ],
+            "title": "Status"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "review_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "confirmed",
+                  "corrected"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Status"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Due Date"
+          },
+          "paid_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid Date",
+            "description": "printed on the receipt, else the matched bank payment"
+          },
+          "transaction_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transaction Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "record_id",
+          "status",
+          "amount",
+          "due_date"
+        ],
+        "title": "BillLinkOut",
+        "description": "Where an uploaded bill stands after the last analysis (and its current values after any CA review)."
+      },
+      "BillReport": {
+        "properties": {
+          "parser": {
+            "type": "string",
+            "title": "Parser"
+          },
+          "parser_version": {
+            "type": "string",
+            "title": "Parser Version"
+          },
+          "bill_kind": {
+            "type": "string",
+            "enum": [
+              "electricity",
+              "water",
+              "rent"
+            ],
+            "title": "Bill Kind"
+          },
+          "is_receipt": {
+            "type": "boolean",
+            "title": "Is Receipt"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "customer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Name"
+          },
+          "customer_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer No"
+          },
+          "period": {
+            "type": "string",
+            "title": "Period"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Due Date"
+          },
+          "paid_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid Date"
+          },
+          "lease_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lease End"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          },
+          "bboxes": {
+            "additionalProperties": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Bboxes"
+          },
+          "field_confidence": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Field Confidence"
+          },
+          "low_confidence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Low Confidence"
+          },
+          "ocr": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "parser",
+          "parser_version",
+          "bill_kind",
+          "is_receipt",
+          "provider",
+          "customer_name",
+          "customer_no",
+          "period",
+          "due_date",
+          "paid_date",
+          "lease_end",
+          "amount",
+          "bboxes",
+          "field_confidence",
+          "low_confidence",
+          "warnings"
+        ],
+        "title": "BillReport",
+        "description": "E2-14: what was read from a utility or rent bill (PDF text layer, scan or photo)."
+      },
+      "BillReviewIn": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "confirm",
+              "correct"
+            ],
+            "title": "Action"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,13}|(?=[\\d.]{1,16}0*$)\\d{0,13}\\.\\d{0,2}0*$)"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "paid_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid Date"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 10,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action",
+          "reason"
+        ],
+        "title": "BillReviewIn"
       },
       "Body_answer_api_queries__query_id__answer_post": {
         "properties": {
@@ -5513,6 +5928,9 @@
                 "$ref": "#/components/schemas/ETaxParseReport"
               },
               {
+                "$ref": "#/components/schemas/BillReport"
+              },
+              {
                 "type": "null"
               }
             ],
@@ -5522,6 +5940,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/InvoiceLinkOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bill": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BillLinkOut"
               },
               {
                 "type": "null"

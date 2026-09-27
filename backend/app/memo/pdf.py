@@ -302,6 +302,8 @@ def _appendix(c: Canvas, pkg: dict[str, Any], sign: dict[str, Any]) -> None:
             how = "OCR" + (f" {d['ocr_confidence'] * 100:.0f}%" if d.get("ocr_confidence") else "")
         elif d["kind"] == "pp30":
             how = "ภ.พ.30"
+        elif d["kind"] == "utility_bill":
+            how = "บิล PDF text"
         elif d["kind"] == "etax_invoice":
             how = "e-Tax XML" if d["parser"] == "etda-etax-xml" else "e-Tax PDF text"
         else:

@@ -19,6 +19,7 @@ from app.scenario import Scenario, load_scenario
 from app.synth.generator import generate
 from app.synth.statement_pdf import render_statement
 from app.synth.alt_data import make_alt_data
+from app.synth.bills import write_bills
 from app.synth.scan import scan_statement
 from app.synth.etax_docs import make_etax_invoices, write_etax_files
 from app.synth.generator import REVENUE_T2
@@ -100,6 +101,9 @@ def build_case(name: str = "kitti", out_dir: Path | None = None, seed: int = 42,
                                   "vat": f"{inv.vat:.2f}", "total": f"{inv.total:.2f}",
                                   "account": inv.account_key, "paid_at": inv.paid_at,
                                   "paid_amount": f"{inv.paid_amount:.2f}", **files})
+
+    # Utility / rent bills (E2-14) to upload; the photo's OCR response is recorded alongside the scans.
+    truth["bills"] = write_bills(gen, out_dir / "bills", settings.data_dir / "generated" / "ocr_recorded")
 
     (out_dir / "truth.json").write_text(json.dumps(truth, ensure_ascii=False, indent=1), encoding="utf-8")
     return built

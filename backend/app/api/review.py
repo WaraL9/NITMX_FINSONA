@@ -19,9 +19,12 @@ from app.api.common import txn_out
 from app.api.deps import client_ip, current_user, require_role
 from app.db import get_db
 from app.engine.types import CREDIT_OVERRIDES, DEBIT_OVERRIDES
-from app.models import Account, AuditEntry, Document, Page, TagOverride, Transaction, User, WatchlistItem
+from app.models import (Account, AltDataRecord, AuditEntry, Document, Page, TagOverride, Transaction, User,
+                        WatchlistItem)
 from app.schemas import (
+    AnalysisOut,
     AuditEntryOut,
+    BillReviewIn,
     ChainStatusOut,
     DecisionIn,
     DecisionOut,
@@ -60,6 +63,31 @@ def _rerun(db: Session, case_id: int, user: User, request: Request, trigger: str
     except AnalysisError as e:
         db.rollback()
         raise HTTPException(422, str(e)) from e
+
+
+@router.post("/api/cases/{case_id}/bills/{record_id}/review", response_model=AnalysisOut)
+def review_bill(case_id: int, record_id: int, body: BillReviewIn, request: Request, db: Session = Depends(get_db),
+                user: User = Depends(require_role("CA"))):
+    """E2-14: a CA checks an OCR'd bill against its image — confirm as read, or correct the
+    amount/dates. Audit-logged with before/after and the reason; the engine re-runs."""
+    r = db.get(AltDataRecord, record_id)
+    if r is None or r.case_id != case_id or r.source != "bill_upload":
+        raise HTTPException(404, "bill not found")
+    before = {"amount": f"{r.amount:.2f}", "due_date": r.due_date.isoformat(),
+              "paid_date": r.paid_date.isoformat() if r.paid_date else None, "review_status": r.review_status}
+    if body.action == "correct":
+        if body.amount is None and body.due_date is None and body.paid_date is None:
+            raise HTTPException(422, "a correction needs at least one of amount, due_date, paid_date")
+        r.amount = body.amount if body.amount is not None else r.amount
+        r.due_date = body.due_date or r.due_date
+        r.paid_date = body.paid_date or r.paid_date
+    r.review_status = "corrected" if body.action == "correct" else "confirmed"
+    audit.log(db, "bill_review", case_id=case_id, user_id=user.id, ip=client_ip(request), target_type="alt_data",
+              target_id=r.id, before=before, reason=body.reason.strip(), after={
+                  "action": body.action, "amount": f"{r.amount:.2f}", "due_date": r.due_date.isoformat(),
+                  "paid_date": r.paid_date.isoformat() if r.paid_date else None, "review_status": r.review_status})
+    db.flush()
+    return analysis_out(_rerun(db, case_id, user, request, trigger="bill_review"))
 
 
 @router.post("/api/cases/{case_id}/watchlist/{item_id}/decision", response_model=DecisionOut)

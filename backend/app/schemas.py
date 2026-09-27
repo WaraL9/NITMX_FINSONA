@@ -131,6 +131,47 @@ class ETaxParseReport(BaseModel):
     warnings: list[str]
 
 
+class BillReport(BaseModel):
+    """E2-14: what was read from a utility or rent bill (PDF text layer, scan or photo)."""
+    parser: str
+    parser_version: str
+    bill_kind: Literal["electricity", "water", "rent"]
+    is_receipt: bool
+    provider: str | None
+    customer_name: str | None
+    customer_no: str | None
+    period: str
+    due_date: date
+    paid_date: date | None
+    lease_end: date | None
+    amount: MoneyStr
+    bboxes: dict[str, list[float]]
+    field_confidence: dict[str, float]
+    low_confidence: list[str]
+    ocr: dict[str, Any] | None = None
+    warnings: list[str]
+
+
+class BillLinkOut(BaseModel):
+    """Where an uploaded bill stands after the last analysis (and its current values after any CA review)."""
+    record_id: int
+    status: Literal["pending_analysis", "used", "corroborated", "conflict", "payment_not_found", "held_review"]
+    note: str | None = None
+    review_status: Literal["pending", "confirmed", "corrected"] | None = None
+    amount: MoneyStr
+    due_date: date
+    paid_date: date | None = Field(default=None, description="printed on the receipt, else the matched bank payment")
+    transaction_id: int | None = None
+
+
+class BillReviewIn(BaseModel):
+    action: Literal["confirm", "correct"]
+    amount: Decimal | None = Field(default=None, gt=0, max_digits=15, decimal_places=2)
+    due_date: date | None = None
+    paid_date: date | None = None
+    reason: str = Field(min_length=10, max_length=2000)
+
+
 class InvoiceLinkOut(BaseModel):
     """Where an uploaded e-Tax invoice ended up after the last analysis."""
     invoice_no: str
@@ -150,8 +191,9 @@ class DocumentOut(BaseModel):
     sha256: str
     page_count: int
     uploaded_at: datetime
-    parse_report: ParseReport | PP30ParseReport | ETaxParseReport | None
+    parse_report: ParseReport | PP30ParseReport | ETaxParseReport | BillReport | None
     invoice: InvoiceLinkOut | None = None
+    bill: BillLinkOut | None = None
 
 
 class TransactionOut(BaseModel):
@@ -480,6 +522,8 @@ class AltDataOut(BaseModel):
     ews: bool
     liveness_confirmed: bool
     signals: list[str]
+    uploads: dict[str, int] | None = Field(default=None, description="E2-14 uploaded bills by status: uploaded, used, "
+                                           "corroborated, conflict, payment_not_found, held_review")
 
 
 class CashPatternOut(BaseModel):
