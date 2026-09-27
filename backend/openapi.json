@@ -1850,6 +1850,65 @@
         }
       }
     },
+    "/api/cases/{case_id}/comparison": {
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Comparison",
+        "description": "E8-12: the case sized four ways side by side — as requested, engine-only safe limit,\nafter the CA's Watchlist decisions, and if every open item were accepted.",
+        "operationId": "comparison_api_cases__case_id__comparison_get",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/cases/{case_id}/watchlist": {
       "get": {
         "tags": [
@@ -5801,6 +5860,48 @@
         ],
         "title": "ChainStatusOut"
       },
+      "ComparisonOut": {
+        "properties": {
+          "analysis_id": {
+            "type": "integer",
+            "title": "Analysis Id"
+          },
+          "haircut": {
+            "type": "string",
+            "title": "Haircut"
+          },
+          "requested": {
+            "type": "string",
+            "title": "Requested"
+          },
+          "min_dscr": {
+            "type": "string",
+            "title": "Min Dscr"
+          },
+          "target_dscr": {
+            "type": "string",
+            "title": "Target Dscr"
+          },
+          "scenarios": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioOut"
+            },
+            "type": "array",
+            "title": "Scenarios"
+          }
+        },
+        "type": "object",
+        "required": [
+          "analysis_id",
+          "haircut",
+          "requested",
+          "min_dscr",
+          "target_dscr",
+          "scenarios"
+        ],
+        "title": "ComparisonOut",
+        "description": "E8-12: request vs safe limit vs after Watchlist decisions (+ an upper-bound what-if)."
+      },
       "ConcentrationOut": {
         "properties": {
           "identified": {
@@ -8614,6 +8715,143 @@
           "reason"
         ],
         "title": "ReasonIn"
+      },
+      "ScenarioOut": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "request",
+              "engine_only",
+              "decided",
+              "all_accepted"
+            ],
+            "title": "Key"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount",
+            "description": "term-loan amount evaluated (the request, or the safe limit)"
+          },
+          "term_loan": {
+            "type": "string",
+            "title": "Term Loan"
+          },
+          "trade_line": {
+            "type": "string",
+            "title": "Trade Line"
+          },
+          "total_facility": {
+            "type": "string",
+            "title": "Total Facility"
+          },
+          "cfo_monthly": {
+            "type": "string",
+            "title": "Cfo Monthly"
+          },
+          "new_payment": {
+            "type": "string",
+            "title": "New Payment"
+          },
+          "total_debt_service": {
+            "type": "string",
+            "title": "Total Debt Service"
+          },
+          "dscr": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dscr"
+          },
+          "dsr": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dsr"
+          },
+          "passes_min": {
+            "type": "boolean",
+            "title": "Passes Min"
+          },
+          "meets_target": {
+            "type": "boolean",
+            "title": "Meets Target"
+          },
+          "safe_limit": {
+            "type": "string",
+            "title": "Safe Limit"
+          },
+          "safe_limit_vs_engine_only": {
+            "type": "string",
+            "title": "Safe Limit Vs Engine Only"
+          },
+          "verified_revenue": {
+            "type": "string",
+            "title": "Verified Revenue"
+          },
+          "accepted_count": {
+            "type": "integer",
+            "title": "Accepted Count"
+          },
+          "accepted_amount": {
+            "type": "string",
+            "title": "Accepted Amount"
+          },
+          "open_count": {
+            "type": "integer",
+            "title": "Open Count"
+          },
+          "accepted_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Accepted Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "title",
+          "note",
+          "amount",
+          "term_loan",
+          "trade_line",
+          "total_facility",
+          "cfo_monthly",
+          "new_payment",
+          "total_debt_service",
+          "dscr",
+          "dsr",
+          "passes_min",
+          "meets_target",
+          "safe_limit",
+          "safe_limit_vs_engine_only",
+          "verified_revenue",
+          "accepted_count",
+          "accepted_amount",
+          "open_count",
+          "accepted_ids"
+        ],
+        "title": "ScenarioOut"
       },
       "SignIn": {
         "properties": {

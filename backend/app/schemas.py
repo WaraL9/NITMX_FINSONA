@@ -377,6 +377,40 @@ class SizingOut(BaseModel):
     structure: StructureOut
 
 
+class ScenarioOut(BaseModel):
+    key: Literal["request", "engine_only", "decided", "all_accepted"]
+    title: str
+    note: str
+    amount: MoneyStr = Field(description="term-loan amount evaluated (the request, or the safe limit)")
+    term_loan: MoneyStr
+    trade_line: MoneyStr
+    total_facility: MoneyStr
+    cfo_monthly: MoneyStr
+    new_payment: MoneyStr
+    total_debt_service: MoneyStr
+    dscr: str | None
+    dsr: str | None
+    passes_min: bool
+    meets_target: bool
+    safe_limit: MoneyStr
+    safe_limit_vs_engine_only: MoneyStr
+    verified_revenue: MoneyStr
+    accepted_count: int
+    accepted_amount: MoneyStr
+    open_count: int
+    accepted_ids: list[int]
+
+
+class ComparisonOut(BaseModel):
+    """E8-12: request vs safe limit vs after Watchlist decisions (+ an upper-bound what-if)."""
+    analysis_id: int
+    haircut: DecimalStr
+    requested: MoneyStr
+    min_dscr: DecimalStr
+    target_dscr: DecimalStr
+    scenarios: list[ScenarioOut]
+
+
 class WatchlistOut(BaseModel):
     id: int
     status: Literal["pending", "accepted", "excluded", "queried"]

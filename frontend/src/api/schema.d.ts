@@ -414,6 +414,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/comparison": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Comparison
+         * @description E8-12: the case sized four ways side by side — as requested, engine-only safe limit,
+         *     after the CA's Watchlist decisions, and if every open item were accepted.
+         */
+        get: operations["comparison_api_cases__case_id__comparison_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases/{case_id}/watchlist": {
         parameters: {
             query?: never;
@@ -1616,6 +1637,24 @@ export interface components {
             detail: string | null;
         };
         /**
+         * ComparisonOut
+         * @description E8-12: request vs safe limit vs after Watchlist decisions (+ an upper-bound what-if).
+         */
+        ComparisonOut: {
+            /** Analysis Id */
+            analysis_id: number;
+            /** Haircut */
+            haircut: string;
+            /** Requested */
+            requested: string;
+            /** Min Dscr */
+            min_dscr: string;
+            /** Target Dscr */
+            target_dscr: string;
+            /** Scenarios */
+            scenarios: components["schemas"]["ScenarioOut"][];
+        };
+        /**
          * ConcentrationOut
          * @description E5-06: who the verified revenue comes from.
          */
@@ -2542,6 +2581,57 @@ export interface components {
         ReasonIn: {
             /** Reason */
             reason: string;
+        };
+        /** ScenarioOut */
+        ScenarioOut: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "request" | "engine_only" | "decided" | "all_accepted";
+            /** Title */
+            title: string;
+            /** Note */
+            note: string;
+            /**
+             * Amount
+             * @description term-loan amount evaluated (the request, or the safe limit)
+             */
+            amount: string;
+            /** Term Loan */
+            term_loan: string;
+            /** Trade Line */
+            trade_line: string;
+            /** Total Facility */
+            total_facility: string;
+            /** Cfo Monthly */
+            cfo_monthly: string;
+            /** New Payment */
+            new_payment: string;
+            /** Total Debt Service */
+            total_debt_service: string;
+            /** Dscr */
+            dscr: string | null;
+            /** Dsr */
+            dsr: string | null;
+            /** Passes Min */
+            passes_min: boolean;
+            /** Meets Target */
+            meets_target: boolean;
+            /** Safe Limit */
+            safe_limit: string;
+            /** Safe Limit Vs Engine Only */
+            safe_limit_vs_engine_only: string;
+            /** Verified Revenue */
+            verified_revenue: string;
+            /** Accepted Count */
+            accepted_count: number;
+            /** Accepted Amount */
+            accepted_amount: string;
+            /** Open Count */
+            open_count: number;
+            /** Accepted Ids */
+            accepted_ids: number[];
         };
         /** SignIn */
         SignIn: {
@@ -3818,6 +3908,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SizingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    comparison_api_cases__case_id__comparison_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                case_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonOut"];
                 };
             };
             /** @description Validation Error */

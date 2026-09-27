@@ -9,7 +9,7 @@ from app.api.deps import client_ip, require_role
 from app.db import get_db
 from app.engine import ratios
 from app.models import Case, Page, Transaction, User, WatchlistItem
-from app.schemas import AltScenarioIn, AnalysisOut, PolicyOut, SizingOut, StructureOut, WatchlistOut
+from app.schemas import AltScenarioIn, AnalysisOut, ComparisonOut, PolicyOut, SizingOut, StructureOut, WatchlistOut
 from app.services import policy as policy_svc
 from app.services.analysis import AnalysisError, latest_analysis, run_analysis
 
@@ -98,6 +98,19 @@ def sizing(
         passes_min=s.passes_min, meets_target=s.meets_target, safe_limit=s.safe_limit, max_at_min=s.max_at_min,
         policy=PolicyOut(min_dscr=s.policy.min_dscr, target_dscr=s.policy.target_dscr, max_dsr=s.policy.max_dsr),
     )
+
+
+@router.get("/comparison", response_model=ComparisonOut)
+def comparison(case_id: int, db: Session = Depends(get_db)):
+    """E8-12: the case sized four ways side by side — as requested, engine-only safe limit,
+    after the CA's Watchlist decisions, and if every open item were accepted."""
+    from app.services.comparison import compare
+
+    case = _case(db, case_id)
+    try:
+        return compare(db, case)
+    except AnalysisError as e:
+        raise HTTPException(404, str(e)) from e
 
 
 @router.get("/watchlist", response_model=list[WatchlistOut])

@@ -8,6 +8,7 @@ onto each transaction, upsert Watchlist items (keeping CA decisions), store an A
 from __future__ import annotations
 
 import time
+from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 
@@ -134,6 +135,63 @@ def serialize(r: AnalysisResult, sync: dict | None, period: tuple[date, date]) -
     }
 
 
+@dataclass
+class EngineInputs:
+    """Everything the engine reads for a case, loaded once (E8-12 re-runs it with other decisions)."""
+    accounts: list[Account]
+    rows: list[Transaction]  # analysed rows (OCR-held rows excluded)
+    held: list[Transaction]
+    invoices: list[Invoice]
+    usable_invoices: list[Invoice]
+    etax_duplicates: list[str]
+    filings: list[TaxFiling]
+    existing_items: dict[int, WatchlistItem]
+    decisions: dict[int, str]
+    overrides: dict[int, tuple[str, str]]
+    period: tuple[date, date]
+
+
+def load_inputs(db: Session, case: Case) -> EngineInputs:
+    case_id = case.id
+    accounts = list(db.scalars(select(Account).where(Account.case_id == case_id)))
+    all_rows = list(db.scalars(select(Transaction).where(Transaction.case_id == case_id)))
+    if not all_rows:
+        raise AnalysisError("no transactions to analyse — upload statements first")
+    # OCR rows whose amount is in doubt stay out of every figure until a CA checks them (E2-09).
+    held = [t for t in all_rows if ocr_review.amount_uncertain(t)]
+    held_ids = {t.id for t in held}
+    rows = [t for t in all_rows if t.id not in held_ids]
+    invoices = list(db.scalars(select(Invoice).where(Invoice.case_id == case_id)))
+    # E2-13: an uploaded e-Tax invoice that PromptBiz also reports is the same sale. Keep the
+    # network copy only, so one sale can never verify two receipts.
+    on_network = {i.invoice_no for i in invoices if i.source.startswith("promptbiz_")}
+    etax_duplicates = sorted(i.invoice_no for i in invoices if i.source == "etax_upload" and i.invoice_no in on_network)
+    usable = [i for i in invoices if not (i.source == "etax_upload" and i.invoice_no in on_network)]
+    filings = list(db.scalars(select(TaxFiling).where(TaxFiling.case_id == case_id)))
+    existing_items = {w.transaction_id: w for w in db.scalars(select(WatchlistItem).where(WatchlistItem.case_id == case_id))}
+    decisions = {tid: w.status for tid, w in existing_items.items() if w.status in ("accepted", "excluded")}
+    overrides = {o.transaction_id: (o.value, o.reason)
+                 for o in db.scalars(select(TagOverride).where(TagOverride.case_id == case_id))}
+    return EngineInputs(accounts, rows, held, invoices, usable, etax_duplicates, filings, existing_items, decisions,
+                        overrides, _period(case, rows))
+
+
+def run_engine(inp: EngineInputs, decisions: dict[int, str]) -> AnalysisResult:
+    """The deterministic engine over loaded inputs; writes nothing."""
+    return analyze(
+        [EAccount(a.id, a.bank_code, a.account_no_masked, a.account_name, a.owner_type) for a in inp.accounts],
+        [ETxn(t.id, t.account_id, t.posted_at, t.code or "", t.description, t.debit, t.credit,
+              t.counterparty_name, t.counterparty_account, t.counterparty_bank) for t in inp.rows],
+        [EInvoice(i.id, i.invoice_no, i.issue_date, i.buyer_name, i.amount, i.subtotal, i.source)
+         for i in inp.usable_invoices],
+        [EFiling(f.period, f.sales, f.output_vat) for f in inp.filings],
+        inp.period[0],
+        inp.period[1],
+        decisions,
+        inp.overrides,
+    )
+
+
 def run_analysis(db: Session, case_id: int, sync_invoices: bool = True, user_id: int | None = None,
                  ip: str | None = None, trigger: str = "manual") -> Analysis:
     case = db.get(Case, case_id)
@@ -155,39 +213,12 @@ def run_analysis(db: Session, case_id: int, sync_invoices: bool = True, user_id:
         sync = previous.result.get("connector") if previous else None
         alt_sync = previous.result.get("alt_connector") if previous else None
 
-    accounts = list(db.scalars(select(Account).where(Account.case_id == case_id)))
-    all_rows = list(db.scalars(select(Transaction).where(Transaction.case_id == case_id)))
-    if not all_rows:
-        raise AnalysisError("no transactions to analyse — upload statements first")
-    # OCR rows whose amount is in doubt stay out of every figure until a CA checks them (E2-09).
-    held = [t for t in all_rows if ocr_review.amount_uncertain(t)]
-    held_ids = {t.id for t in held}
-    rows = [t for t in all_rows if t.id not in held_ids]
-    invoices = list(db.scalars(select(Invoice).where(Invoice.case_id == case_id)))
-    # E2-13: an uploaded e-Tax invoice that PromptBiz also reports is the same sale. Keep the
-    # network copy only, so one sale can never verify two receipts.
-    on_network = {i.invoice_no for i in invoices if i.source.startswith("promptbiz_")}
-    etax_duplicates = sorted(i.invoice_no for i in invoices if i.source == "etax_upload" and i.invoice_no in on_network)
-    usable = [i for i in invoices if not (i.source == "etax_upload" and i.invoice_no in on_network)]
-    filings = list(db.scalars(select(TaxFiling).where(TaxFiling.case_id == case_id)))
-    existing_items = {w.transaction_id: w for w in db.scalars(select(WatchlistItem).where(WatchlistItem.case_id == case_id))}
-    decisions = {tid: w.status for tid, w in existing_items.items() if w.status in ("accepted", "excluded")}
-    overrides = {o.transaction_id: (o.value, o.reason)
-                 for o in db.scalars(select(TagOverride).where(TagOverride.case_id == case_id))}
-    period = _period(case, rows)
+    inp = load_inputs(db, case)
+    rows, held, invoices, etax_duplicates, existing_items, period = (
+        inp.rows, inp.held, inp.invoices, inp.etax_duplicates, inp.existing_items, inp.period)
 
     started = time.perf_counter()
-    result = analyze(
-        [EAccount(a.id, a.bank_code, a.account_no_masked, a.account_name, a.owner_type) for a in accounts],
-        [ETxn(t.id, t.account_id, t.posted_at, t.code or "", t.description, t.debit, t.credit,
-              t.counterparty_name, t.counterparty_account, t.counterparty_bank) for t in rows],
-        [EInvoice(i.id, i.invoice_no, i.issue_date, i.buyer_name, i.amount, i.subtotal, i.source) for i in usable],
-        [EFiling(f.period, f.sales, f.output_vat) for f in filings],
-        period[0],
-        period[1],
-        decisions,
-        overrides,
-    )
+    result = run_engine(inp, inp.decisions)
     duration_ms = int((time.perf_counter() - started) * 1000)
 
     for t in rows:

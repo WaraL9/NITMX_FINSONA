@@ -73,6 +73,13 @@ test("demo run: pipeline → loops → lineage → sizing → judgement → memo
     await expect(page.getByTestId("wl-item").filter({ hasText: "450,000" })).toContainText("รับรอง");
     await page.getByTestId("tab-overview").click();
     await expect(page.getByTestId("use-safe-limit")).toContainText("4.14");
+    // E8-12: side by side — evidence alone vs after the CA's decision
+    await page.getByTestId("scenario-comparison").scrollIntoViewIfNeeded();
+    await expect(page.getByTestId("cmp-safe-engine_only")).toContainText("3,500,000");
+    await expect(page.getByTestId("cmp-safe-decided")).toContainText("4,140,000");
+    await expect(page.getByTestId("cmp-safe-decided")).toContainText("+640,000");
+    await expect(page.getByTestId("cmp-dscr-request")).toHaveText("1.18×"); // 5.0M still fails 1.25 on the higher cash flow
+    await expect(page.getByTestId("cmp-dscr-request")).toHaveClass(/text-risk/);
     await beat(page);
   });
 

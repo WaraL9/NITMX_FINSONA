@@ -3,6 +3,7 @@ import { Building2, FileSignature, FileText, History, LayoutDashboard, ListCheck
 import { useParams, useSearchParams } from "react-router-dom";
 import { api, errorMessage, unwrap, type Analysis, type CaseDetail } from "@/api/client";
 import { DocumentsPanel } from "@/components/DocumentsPanel";
+import { ScenarioComparison } from "@/components/workbench/ScenarioComparison";
 import { TransactionsPanel } from "@/components/TransactionsPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -197,6 +198,7 @@ export default function CaseWorkbench() {
         <div className="space-y-5">
           <PipelineStrip caseId={id} a={a} />
           <SizingSandbox caseId={id} a={a} requested={c.requested_amount} />
+          <ScenarioComparison caseId={id} a={a} />
           <div className="grid gap-5 xl:grid-cols-[1.6fr_1fr]">
             <WaterfallChart caseId={id} a={a} />
             <LoopsCard caseId={id} a={a} accounts={c.accounts} />

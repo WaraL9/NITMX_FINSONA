@@ -1,6 +1,6 @@
 # Handoff — where Finsona AI stands
 
-_Last updated: 2026-09-27, after E3-04 (dStatement sandbox connector)._
+_Last updated: 2026-09-27, after E8-12 (scenario comparison)._
 
 ## What it is
 Finsona AI turns an SME's messy bank statements into a verified cash-flow picture and a safe loan size a bank
@@ -41,7 +41,8 @@ Playwright e2e in `e2e/` (uses installed Chrome). Commands: see `README.md` (`np
 2. Loop graph: 3.8M of circular transfers between own accounts, removed from revenue.
 3. Click a Tier 1 figure → rows sum exactly → click a row → highlighted line on the original PDF.
 4. Sizing: 5.0M requested → DSCR 1.05 (fails 1.25); "use safe limit" → 3.5M at DSCR 1.35 + 1.0M Trade Line.
-5. Watchlist: accept the 450k receipt with a reason → safe limit rises to 4.14M, audit-logged.
+5. Watchlist: accept the 450k receipt with a reason → safe limit rises to 4.14M, audit-logged. The overview's
+   “เปรียบเทียบสถานการณ์” card then shows 3.5M (evidence alone) vs 4.14M (+640,000) after the decision.
 6. Memo: sign structured approval → PDF with evidence appendix → send to LOS (reference LOS-YYYY-NNNNNN).
 7. Case 2: OCR tab — OCR read 2,954.19 where the scan shows 2,954.79; correct it against the image.
 8. (after a reset) Case 1 documents tab: drop `etax_ETX-2512-0001.xml` → “รอวิเคราะห์ใหม่” → วิเคราะห์ใหม่ →
@@ -51,7 +52,11 @@ Playwright e2e in `e2e/` (uses installed Chrome). Commands: see `README.md` (`np
 10. dStatement: Case 1 documents → “ดึงจากธนาคาร (dStatement)” → BBL → “ไฟล์ที่อัปโหลดตรงกับธนาคาร 581/581”.
     Case 2 → SCB (the scan) → “ไม่ตรง 3 จุด” → วิเคราะห์ใหม่ → high anomaly “ไม่ตรงกับข้อมูลธนาคาร” (the OCR misreads).
 
-## Done (increments I0–I7 + P2 batch + E2-13 + E2-14 + E3-04)
+## Done (increments I0–I7 + P2 batch + E2-13 + E2-14 + E3-04 + E8-12)
+Scenario comparison (E8-12: `GET /api/cases/{id}/comparison`, `services/comparison.py` — re-runs the engine in memory
+with no / current / all-open-accepted Watchlist decisions via `load_inputs` + `run_engine` (split out of
+`run_analysis`), sized with the same `ratios` functions; the “decided” column provably equals the stored analysis;
+overview card `ScenarioComparison.tsx`.)
 dStatement connector (E3-04: `connectors/dstatement.py` sandbox bank, HMAC-signed statement JSON, verified before
 use; `services/dstatement.py` imports dates no uploaded statement covers — rows identical to the PDF parse, no bbox,
 lineage shows the signed bank document — and *verifies* dates already covered: matched / differs / case_only /
@@ -78,10 +83,10 @@ case scoping, PDPA consents, hash-chained audit log + CSV, compliance/metrics/po
 portal, eval harness (`python -m app.eval.run`, 50 synthetic cases), instant demo reset, offline mode,
 Playwright e2e, single-process prod server (`npm start`) + Dockerfile.
 
-Test counts at handoff: 212 backend, 13 frontend, 6 e2e — all green.
+Test counts at handoff: 216 backend, 13 frontend, 6 e2e — all green.
 
 ## Next (remaining backlog, suggested order)
-1. E8-12 case comparison · E8-13 Thai/English toggle · E7-05 watchlist evidence hint · E0-07 background jobs.
+1. E8-13 Thai/English toggle · E7-05 watchlist evidence hint · E0-07 background jobs.
 
 Blocked on the team (not code): real-bank statement parsers need real sample statements (T-01); LINE integration
 needs a LINE Official Account; backup demo video needs `npx playwright install ffmpeg` then `npm run e2e:record`.
