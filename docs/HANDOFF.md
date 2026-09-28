@@ -57,9 +57,10 @@ Playwright e2e in `e2e/` (uses installed Chrome). Commands: see `README.md` (`np
 Background analysis jobs (E0-07: `POST /api/cases/{id}/analysis/jobs` → 202, poll `GET …/analysis/jobs/{job_id}`;
 `services/jobs.py` runs `run_analysis` via FastAPI BackgroundTasks with a progress callback — stages sync, load, the
 engine's loops/classify/tiers/aggregate laps, evidence, save. Job row written when queued and when finished; live
-stage progress kept in memory because the analysis holds SQLite's write lock until it commits (single-process
-server; several workers would need a shared queue such as RQ). One open job per case; jobs cut off by a restart are
-failed on startup. The workbench “วิเคราะห์ใหม่” button runs a job and shows the live stage strip (E8-03). The
+stage progress in a per-job file `<storage>/jobs/<id>.json` (the analysis holds SQLite's write lock until it commits),
+readable by every worker; heartbeat every 5 s, a job silent for 60 s is failed (on poll and at startup). One open job
+per case via a partial unique index. Verified with `uvicorn --workers 2` under concurrent starts and polling —
+which found and fixed a Windows file-lock race: progress writes are best effort and can never fail a job. The workbench “วิเคราะห์ใหม่” button runs a job and shows the live stage strip (E8-03). The
 synchronous `POST /analysis` and the quick re-runs after CA decisions are unchanged.)
 Watchlist evidence hint (E7-05: `ai/evidence_hint.py` — one batched gateway call per case for open items, told the
 business's industry; returns 1–3 documents + a question for the RM; no digits allowed — `{{amount}}` `{{date}}`
@@ -105,7 +106,7 @@ case scoping, PDPA consents, hash-chained audit log + CSV, compliance/metrics/po
 portal, eval harness (`python -m app.eval.run`, 50 synthetic cases), instant demo reset, offline mode,
 Playwright e2e, single-process prod server (`npm start`) + Dockerfile.
 
-Test counts at handoff: 231 backend, 22 frontend, 9 e2e — all green.
+Test counts at handoff: 234 backend, 22 frontend, 9 e2e — all green.
 
 ## Next
 Every code item in `docs/BACKLOG.md` is done. Candidate follow-ups (not in the backlog):

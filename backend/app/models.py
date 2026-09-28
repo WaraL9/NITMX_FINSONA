@@ -8,7 +8,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Any, Literal
 
-from sqlalchemy import JSON, Date, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Index, Integer, JSON, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base, ExactDecimal, Money
@@ -228,8 +228,11 @@ class WatchlistItem(Base):
 
 class AnalysisJob(Base):
     """E0-07: one analysis run as a background job. Written when queued and when finished;
-    live stage progress in between is kept in memory (see services/jobs.py)."""
+    live stage progress in between is in a per-job file (see services/jobs.py)."""
     __tablename__ = "analysis_jobs"
+    # One open job per case, enforced by the database so it holds across server processes.
+    __table_args__ = (Index("uq_analysis_jobs_open_case", "case_id", unique=True,
+                            sqlite_where=text("status IN ('queued', 'running')")),)
     id: Mapped[int] = mapped_column(primary_key=True)
     case_id: Mapped[int] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), index=True)
     status: Mapped[str] = mapped_column(String(16), default="queued")  # queued | running | succeeded | failed

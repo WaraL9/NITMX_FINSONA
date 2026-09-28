@@ -50,7 +50,7 @@ def start_job(case_id: int, request: Request, response: Response, background: Ba
         background.add_task(jobs.run, job.id, user.id, client_ip(request))
     else:
         response.status_code = 200
-    return jobs.snapshot(job)
+    return jobs.snapshot(db, job)
 
 
 @router.get("/analysis/jobs/{job_id}", response_model=AnalysisJobOut)
@@ -60,7 +60,7 @@ def job_status(case_id: int, job_id: int, db: Session = Depends(get_db)):
     job = db.get(AnalysisJob, job_id)
     if job is None or job.case_id != case_id:
         raise HTTPException(404, "job not found")
-    return jobs.snapshot(job)
+    return jobs.snapshot(db, job)
 
 
 @router.get("/analysis", response_model=AnalysisOut)
