@@ -31,6 +31,7 @@ from app.parsers.dstatement import parse_dstatement
 from app.services import consent
 from app.services.ingest import (BadRequest, DuplicateDocument, IngestError, ParseFailed, _match_account, add_rows,
                                  sha256_hex, statement_report)
+from app.core.i18n import th
 
 MAX_LISTED = 50
 
@@ -103,9 +104,9 @@ def pull(db: Session, case_id: int, bank_code: str, account_no: str, start: date
         raise BadRequest(f"case {case_id} not found")
     grant = consent.has(db, case.id, "dstatement_data")
     if grant is None:
-        raise ConsentRequired("ยังไม่ได้รับความยินยอมให้ดึงรายการเดินบัญชีผ่าน dStatement")
+        raise ConsentRequired(th("ยังไม่ได้รับความยินยอมให้ดึงรายการเดินบัญชีผ่าน dStatement"))
     if not case.tax_id:
-        raise BadRequest("แฟ้มยังไม่มีเลขประจำตัวผู้เสียภาษี — ธนาคารต้นทางใช้ระบุตัวผู้ประกอบการ")
+        raise BadRequest(th("แฟ้มยังไม่มีเลขประจำตัวผู้เสียภาษี — ธนาคารต้นทางใช้ระบุตัวผู้ประกอบการ"))
     source = get_statement_source()
     try:
         signed = source.fetch_statement(case.tax_id, bank_code, account_no, start or case.period_start,
@@ -117,7 +118,7 @@ def pull(db: Session, case_id: int, bank_code: str, account_no: str, start: date
     except ConnectorError as e:
         raise ConnectorFailed(str(e)) from e
     if not verify(signed):
-        raise ParseFailed("ลายมือชื่อของธนาคารต้นทางไม่ถูกต้อง — ข้อมูลอาจถูกแก้ไขระหว่างทาง")
+        raise ParseFailed(th("ลายมือชื่อของธนาคารต้นทางไม่ถูกต้อง — ข้อมูลอาจถูกแก้ไขระหว่างทาง"))
     try:
         stmt = parse_dstatement(signed.statement)
     except ParseError as e:
@@ -127,7 +128,7 @@ def pull(db: Session, case_id: int, bank_code: str, account_no: str, start: date
     digest = sha256_hex(data)
     existing_doc = db.scalar(select(Document).where(Document.case_id == case.id, Document.sha256 == digest))
     if existing_doc:
-        raise DuplicateDocument("ดึงรายการชุดนี้จากธนาคารไปแล้ว (ข้อมูลตรงกันทุกไบต์)", existing_document_id=existing_doc.id)
+        raise DuplicateDocument(th("ดึงรายการชุดนี้จากธนาคารไปแล้ว (ข้อมูลตรงกันทุกไบต์)"), existing_document_id=existing_doc.id)
     account, created = _match_account(db, case, stmt, None)
 
     # Dates already covered by an uploaded statement for this account are verified, not imported.
@@ -160,7 +161,7 @@ def pull(db: Session, case_id: int, bank_code: str, account_no: str, start: date
         report["verification"] = verification
         issues = verification["differs_count"] + verification["case_only_count"] + verification["bank_only_count"]
         if issues:
-            report["warnings"].append(f"สเตทเมนต์ที่อัปโหลดไม่ตรงกับข้อมูลธนาคาร {issues} จุด")
+            report["warnings"].append(th(f"สเตทเมนต์ที่อัปโหลดไม่ตรงกับข้อมูลธนาคาร {issues} จุด"))
     doc.parse_report = report
     db.commit()
     db.refresh(doc)

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { api } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
-import { tr } from "@/lib/i18n";
+import { tr, trServer } from "@/lib/i18n";
 
 type Compliance = {
   controls: { control: string; status: "implemented" | "sandbox" | "planned"; detail: string }[];
@@ -78,8 +78,8 @@ export default function CompliancePage() {
             return (
               <div key={x.control} className="flex items-start justify-between gap-4 py-2.5">
                 <div>
-                  <div className="text-sm font-medium text-ink">{x.control}</div>
-                  <div className="text-xs text-muted">{x.detail}</div>
+                  <div className="text-sm font-medium text-ink">{trServer(x.control)}</div>
+                  <div className="text-xs text-muted">{trServer(x.detail)}</div>
                 </div>
                 <Badge tone={s.tone}><s.icon className="size-3" /> {s.label}</Badge>
               </div>

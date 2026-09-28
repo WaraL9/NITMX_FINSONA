@@ -37,6 +37,7 @@ from app.parsers.etax import (ParsedETax, SignatureInvalid, detect_etax_pdf, emb
                               parse_etax_words, parse_etax_xml)
 from app.parsers.bill import ParsedBill, detect_bill, page_text, parse_bill_words, text_layer_words
 from app.parsers.pp30 import ParsedPP30, detect_pp30, parse_pp30
+from app.core.i18n import th
 
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 DOCUMENT_KINDS = {"auto", "statement", "pp30", "etax_invoice", "utility_bill", "evidence"}
@@ -244,7 +245,7 @@ def ingest_document(
     etax: ParsedETax | None = None
     bill: ParsedBill | None = None
     if image_mime and kind not in ("statement", "utility_bill", "etax_invoice", "evidence"):
-        raise UnsupportedDocument("รูปภาพรับเฉพาะสเตทเมนต์ ใบกำกับภาษี บิลค่าสาธารณูปโภค/ค่าเช่า และเอกสารประกอบ")
+        raise UnsupportedDocument(th("รูปภาพรับเฉพาะสเตทเมนต์ ใบกำกับภาษี บิลค่าสาธารณูปโภค/ค่าเช่า และเอกสารประกอบ"))
     if kind == "utility_bill":
         try:
             if ocr is None:
@@ -313,7 +314,7 @@ def ingest_document(
             duplicates_skipped = len(stmt.rows) - len(fresh)
             if stmt.rows and not fresh:
                 raise OverlappingStatement(
-                    "ธุรกรรมทุกรายการในไฟล์นี้มีอยู่ในแฟ้มแล้ว (สเตทเมนต์บัญชีเดียวกันช่วงเวลาซ้ำ)",
+                    th("ธุรกรรมทุกรายการในไฟล์นี้มีอยู่ในแฟ้มแล้ว (สเตทเมนต์บัญชีเดียวกันช่วงเวลาซ้ำ)"),
                     account_id=account.id)
             new_rows = fresh
         else:
@@ -393,7 +394,7 @@ def statement_report(stmt: ParsedStatement, *, encrypted: bool, created: bool, d
         "was_encrypted": encrypted,
         "account_created": created,
         "warnings": stmt.warnings + (
-            [f"{duplicates_skipped} รายการซ้ำกับสเตทเมนต์ที่อัปโหลดแล้ว — ไม่นับซ้ำ"] if duplicates_skipped else []),
+            [th(f"{duplicates_skipped} รายการซ้ำกับสเตทเมนต์ที่อัปโหลดแล้ว — ไม่นับซ้ำ")] if duplicates_skipped else []),
         "duplicate_rows_skipped": duplicates_skipped,
         "duplicate_pages": stmt.duplicate_pages,
     }
@@ -464,7 +465,7 @@ def _store_bill(db: Session, doc: Document, b: ParsedBill, ocr: OcrResult | None
         "field_confidence": b.confidence,
         "low_confidence": low,
         "ocr": {"provider": ocr.provider, "mean_confidence": ocr.mean_confidence} if ocr else None,
-        "warnings": b.warnings + ([f"OCR อ่าน {', '.join(low)} ไม่มั่นใจ — รอเจ้าหน้าที่ตรวจทานก่อนนำมาใช้"] if low else []),
+        "warnings": b.warnings + ([th(f"OCR อ่าน {', '.join(low)} ไม่มั่นใจ — รอเจ้าหน้าที่ตรวจทานก่อนนำมาใช้")] if low else []),
     }
 
 
@@ -472,13 +473,13 @@ def _check_etax(db: Session, case: Case, inv: ParsedETax) -> None:
     """An invoice proves this applicant's revenue only if the applicant issued it, once."""
     if case.tax_id and inv.seller_tax_id != case.tax_id:
         raise SellerMismatch(
-            f"ใบกำกับภาษีนี้ออกโดยผู้ขายเลขประจำตัวผู้เสียภาษี {inv.seller_tax_id or 'ไม่ระบุ'} "
-            f"ไม่ใช่ผู้ขอสินเชื่อ ({case.tax_id}) — ใช้ยืนยันรายได้ของกิจการนี้ไม่ได้",
+            th(f"ใบกำกับภาษีนี้ออกโดยผู้ขายเลขประจำตัวผู้เสียภาษี {inv.seller_tax_id or th('ไม่ระบุ')} "
+            f"ไม่ใช่ผู้ขอสินเชื่อ ({case.tax_id}) — ใช้ยืนยันรายได้ของกิจการนี้ไม่ได้"),
             seller_tax_id=inv.seller_tax_id)
     existing = db.scalar(select(Invoice).where(Invoice.case_id == case.id, Invoice.source == "etax_upload",
                                                Invoice.invoice_no == inv.invoice_no))
     if existing:
-        raise DuplicateInvoice(f"ใบกำกับภาษีเลขที่ {inv.invoice_no} อยู่ในแฟ้มแล้ว (ไฟล์ XML/PDF ของใบเดียวกัน)",
+        raise DuplicateInvoice(th(f"ใบกำกับภาษีเลขที่ {inv.invoice_no} อยู่ในแฟ้มแล้ว (ไฟล์ XML/PDF ของใบเดียวกัน)"),
                                existing_document_id=existing.document_id)
 
 
@@ -488,9 +489,9 @@ def _store_etax(db: Session, case: Case, doc: Document, inv: ParsedETax, ocr: Oc
     warnings = list(inv.warnings)
     low = sorted(f for f, c in inv.confidence.items() if c < settings.ocr_review_threshold)
     if low:
-        warnings.append(f"OCR อ่าน {', '.join(low)} ไม่มั่นใจ — ยังไม่นำไปจับคู่รายได้จนกว่าเจ้าหน้าที่จะตรวจทาน")
+        warnings.append(th(f"OCR อ่าน {', '.join(low)} ไม่มั่นใจ — ยังไม่นำไปจับคู่รายได้จนกว่าเจ้าหน้าที่จะตรวจทาน"))
     if not case.tax_id:
-        warnings.append("แฟ้มยังไม่มีเลขประจำตัวผู้เสียภาษี — ยังยืนยันไม่ได้ว่าผู้ขอสินเชื่อเป็นผู้ออกใบกำกับ")
+        warnings.append(th("แฟ้มยังไม่มีเลขประจำตัวผู้เสียภาษี — ยังยืนยันไม่ได้ว่าผู้ขอสินเชื่อเป็นผู้ออกใบกำกับ"))
     db.add(Invoice(
         case_id=case.id, source="etax_upload", document_id=doc.id, invoice_no=inv.invoice_no,
         issue_date=inv.issue_date, seller_tax_id=inv.seller_tax_id, buyer_name=inv.buyer_name,
@@ -531,7 +532,7 @@ def _store_pp30(db: Session, case: Case, doc: Document, f: ParsedPP30) -> None:
     existing = db.scalar(select(TaxFiling).where(TaxFiling.case_id == case.id, TaxFiling.period == f.period))
     if existing:
         db.delete(existing)
-        warnings.append(f"replaced earlier ภ.พ.30 for {f.period}")
+        warnings.append(th(f"replaced earlier ภ.พ.30 for {f.period}"))
     zero = to_money(0)
     db.add(TaxFiling(
         case_id=case.id,

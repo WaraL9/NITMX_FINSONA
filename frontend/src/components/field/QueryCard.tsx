@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { authHeaders } from "@/lib/auth";
 import { formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
-import { tr } from "@/lib/i18n";
+import { tr, trServer } from "@/lib/i18n";
 
 /** Loads a protected evidence file with the user header (plain <img> can't send headers). */
 function AuthImage({ id, mime, alt }: { id: number; mime: string; alt: string }) {
@@ -109,7 +109,7 @@ export function QueryCard({ q, canAnswer, canForward, invalidate }: {
       <div className="mt-2 flex gap-2 text-sm text-ink">
         <MessageSquareMore className="mt-0.5 size-4 shrink-0 text-judge" />
         <div className="whitespace-pre-line">
-          {q.question}
+          {trServer(q.question)}
           <div className="text-[11px] text-muted">— {q.created_by}</div>
         </div>
       </div>

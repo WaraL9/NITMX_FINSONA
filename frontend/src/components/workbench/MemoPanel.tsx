@@ -10,7 +10,7 @@ import { tierInfo } from "@/lib/labels";
 import { formatMillions, formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { Figure } from "./Figure";
-import { tr } from "@/lib/i18n";
+import { tr, trServer } from "@/lib/i18n";
 
 const SOURCE: Record<MemoPackage["memo"]["narrative_source"], { label: string; tone: "navy" | "neutral" | "judge" }> = {
   llm: { get label() { return tr("ร่างโดย AI (ตัวเลขจากระบบคำนวณ)"); }, tone: "navy" },
@@ -104,7 +104,7 @@ function Preview({ p }: { p: MemoPackage }) {
 
       <Section n={4} title={tr("ปัจจัยที่มีผลต่อวงเงิน")}>
         {(a.drivers ?? []).filter((d) => d.kind !== "info").slice(0, 5).map((d) => (
-          <Row key={d.key} label={<span>{d.kind === "positive" ? "▲" : "▼"} {d.title}</span>}>
+          <Row key={d.key} label={<span>{d.kind === "positive" ? "▲" : "▼"} {trServer(d.title)}</span>}>
             <span className={cn("num font-mono text-xs", d.kind === "positive" ? "text-verified" : "text-judge")}>
               {d.key === "unverified" ? tr("ศักยภาพ +") : Number(d.impact) > 0 ? "+" : ""}{formatMillions(d.impact, 2)}
             </span>

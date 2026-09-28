@@ -31,6 +31,7 @@ from app.engine.types import (
     ETxn,
     Outcome,
 )
+from app.core.i18n import th
 
 ZERO = Decimal("0.00")
 REVENUE_TIERS = ("T1_golden", "T2_tax", "T3_operational")
@@ -83,14 +84,14 @@ def analyze(
         lid = loop_of.get(leg.debit.id)
         for t in (leg.debit, leg.credit):
             if lid:
-                outcomes[t.id] = Outcome("own_transfer_loop", f"เงินโอนวนระหว่างบัญชีตนเอง (วงจร {lid}) — ตัดออก",
+                outcomes[t.id] = Outcome("own_transfer_loop", th(f"เงินโอนวนระหว่างบัญชีตนเอง (วงจร {lid}) — ตัดออก"),
                                          loop_id=lid)
             elif leg.src in owners and leg.dst in company:
-                outcomes[t.id] = Outcome("owner_injection", "เงินโอนจากบัญชีเจ้าของเข้าบริษัท — เป็นเงินทุน ไม่ใช่รายได้")
+                outcomes[t.id] = Outcome("owner_injection", th("เงินโอนจากบัญชีเจ้าของเข้าบริษัท — เป็นเงินทุน ไม่ใช่รายได้"))
             elif leg.src in company and leg.dst in owners:
-                outcomes[t.id] = Outcome("owner_drawing", "บริษัทโอนให้บัญชีเจ้าของ — ไม่ใช่ต้นทุนดำเนินงาน")
+                outcomes[t.id] = Outcome("owner_drawing", th("บริษัทโอนให้บัญชีเจ้าของ — ไม่ใช่ต้นทุนดำเนินงาน"))
             else:
-                outcomes[t.id] = Outcome("own_transfer_internal", "โอนระหว่างบัญชีของบริษัท — ไม่ใช่รายได้/รายจ่าย")
+                outcomes[t.id] = Outcome("own_transfer_internal", th("โอนระหว่างบัญชีของบริษัท — ไม่ใช่รายได้/รายจ่าย"))
 
     lap("loops")
 
@@ -100,7 +101,7 @@ def analyze(
         if t.id in outcomes:
             continue
         if t.account_id not in company:
-            outcomes[t.id] = Outcome("personal_account", "รายการในบัญชีส่วนตัว — ไม่นับเป็นรายได้/ต้นทุนธุรกิจ")
+            outcomes[t.id] = Outcome("personal_account", th("รายการในบัญชีส่วนตัว — ไม่นับเป็นรายได้/ต้นทุนธุรกิจ"))
             continue
         if t.credit > 0:
             tag, reason = rules.tag_company_credit(t, family_surnames)
@@ -125,8 +126,8 @@ def analyze(
     for tid, (inv, how) in matched.items():
         o = outcomes[tid]
         o.tier, o.invoice_id = "T1_golden", inv.id
-        where = "ใบกำกับภาษีอิเล็กทรอนิกส์ (e-Tax) ที่อัปโหลด" if inv.source == "etax_upload" else "ใบแจ้งหนี้ PromptBiz"
-        o.reason = f"ตรงกับ{where} {inv.invoice_no} ({how})"
+        where = th("ใบกำกับภาษีอิเล็กทรอนิกส์ (e-Tax) ที่อัปโหลด") if inv.source == "etax_upload" else th("ใบแจ้งหนี้ PromptBiz")
+        o.reason = th(f"ตรงกับ{where} {inv.invoice_no} ({how})")
         t1_by_month[by_id[tid].posted_at.strftime("%Y-%m")] += by_id[tid].credit
 
     rest = [t for t in customer if t.id not in matched]
@@ -150,7 +151,7 @@ def analyze(
         # 4. CA decisions
         d = decisions.get(t.id)
         if d == "accepted":
-            o.tier, o.reason = "T3_operational", "CA รับรองเป็นรายได้จากการค้า (ดูบันทึกเหตุผล)"
+            o.tier, o.reason = "T3_operational", th("CA รับรองเป็นรายได้จากการค้า (ดูบันทึกเหตุผล)")
             o.tag = "ca_accepted"
         elif d == "excluded":
             o.tag = "ca_excluded"
@@ -163,7 +164,7 @@ def analyze(
             continue
         o = outcomes[tid]
         o.overridden = True
-        o.reason = f"CA override: {why} (เดิม: {o.reason})"
+        o.reason = th(f"CA override: {why} (เดิม: {o.reason})")
         if t.credit > 0:
             if value == "non_revenue":
                 o.tier, o.tag = None, "ca_non_revenue"

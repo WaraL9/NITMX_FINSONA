@@ -26,6 +26,7 @@ from app.core.money import MoneyError, to_money
 from app.parsers.base import BBox, NoTextLayer, PageWords, ParseError, UnsupportedFormat
 from app.parsers.bill import text_layer_words
 from app.parsers.etax_signature import check as check_signature
+from app.core.i18n import th
 
 PARSER_VERSION = "etax-v1.0"
 VAT_RATE = Decimal("0.07")
@@ -33,16 +34,16 @@ TOLERANCE = Decimal("0.01")
 
 # ETDA document type codes that are tax invoices for a sale.
 TAX_INVOICE_TYPES = {
-    "388": "ใบกำกับภาษี",
-    "T02": "ใบแจ้งหนี้/ใบกำกับภาษี",
-    "T03": "ใบเสร็จรับเงิน/ใบกำกับภาษี",
-    "T04": "ใบส่งของ/ใบกำกับภาษี",
+    "388": th("ใบกำกับภาษี"),
+    "T02": th("ใบแจ้งหนี้/ใบกำกับภาษี"),
+    "T03": th("ใบเสร็จรับเงิน/ใบกำกับภาษี"),
+    "T04": th("ใบส่งของ/ใบกำกับภาษี"),
 }
 NOT_A_SALE_TYPES = {
-    "80": "ใบเพิ่มหนี้",
-    "81": "ใบลดหนี้",
-    "T01": "ใบรับ (ใบเสร็จรับเงิน)",
-    "T05": "ใบกำกับภาษีอย่างย่อ",
+    "80": th("ใบเพิ่มหนี้"),
+    "81": th("ใบลดหนี้"),
+    "T01": th("ใบรับ (ใบเสร็จรับเงิน)"),
+    "T05": th("ใบกำกับภาษีอย่างย่อ"),
 }
 
 
@@ -121,11 +122,11 @@ def _amount(settlement: ET.Element | None, name: str) -> Decimal | None:
 def _check_totals(subtotal: Decimal, vat: Decimal, total: Decimal) -> list[str]:
     warnings = []
     if abs(subtotal + vat - total) > TOLERANCE:
-        warnings.append("ยอดรวมทั้งสิ้นไม่เท่ากับมูลค่าสินค้า + ภาษีมูลค่าเพิ่ม")
+        warnings.append(th("ยอดรวมทั้งสิ้นไม่เท่ากับมูลค่าสินค้า + ภาษีมูลค่าเพิ่ม"))
     if abs((subtotal * VAT_RATE).quantize(TOLERANCE) - vat) > TOLERANCE:
-        warnings.append("ภาษีมูลค่าเพิ่มไม่เท่ากับ 7% ของมูลค่าสินค้า")
+        warnings.append(th("ภาษีมูลค่าเพิ่มไม่เท่ากับ 7% ของมูลค่าสินค้า"))
     if total <= 0:
-        warnings.append("ยอดรวมไม่เป็นบวก")
+        warnings.append(th("ยอดรวมไม่เป็นบวก"))
     return warnings
 
 
@@ -145,7 +146,7 @@ def parse_etax_xml(data: bytes, source: str = "xml") -> ParsedETax:
     type_code = _text(doc, "TypeCode") or ""
     issued = _text(doc, "IssueDateTime")
     if type_code in NOT_A_SALE_TYPES:
-        raise UnsupportedFormat(f"{NOT_A_SALE_TYPES[type_code]} ({type_code}) ไม่ใช่ใบกำกับภาษีขาย — ใช้ยืนยันรายได้ไม่ได้")
+        raise UnsupportedFormat(th(f"{NOT_A_SALE_TYPES[type_code]} ({type_code}) ไม่ใช่ใบกำกับภาษีขาย — ใช้ยืนยันรายได้ไม่ได้"))
     if type_code not in TAX_INVOICE_TYPES:
         raise UnsupportedFormat(f"unknown e-Tax document type {type_code!r}")
     if not invoice_no or not issued:
@@ -173,21 +174,21 @@ def parse_etax_xml(data: bytes, source: str = "xml") -> ParsedETax:
 
     warnings = _check_totals(subtotal, vat, total)
     if currency != "THB":
-        warnings.append(f"สกุลเงิน {currency} — จับคู่กับรายการรับเงินบาทไม่ได้")
+        warnings.append(th(f"สกุลเงิน {currency} — จับคู่กับรายการรับเงินบาทไม่ได้"))
     sig = check_signature(data)
     if sig.status == "invalid":
-        raise SignatureInvalid(f"ลายมือชื่อดิจิทัลไม่ถูกต้อง — เอกสารถูกแก้ไขหลังลงนามหรือลายมือชื่อเสียหาย ({sig.detail})")
+        raise SignatureInvalid(th(f"ลายมือชื่อดิจิทัลไม่ถูกต้อง — เอกสารถูกแก้ไขหลังลงนามหรือลายมือชื่อเสียหาย ({sig.detail})"))
     if sig.status == "absent":
-        warnings.append("ไม่มีลายมือชื่อดิจิทัล — เป็นหลักฐานที่ผู้กู้จัดทำเอง")
+        warnings.append(th("ไม่มีลายมือชื่อดิจิทัล — เป็นหลักฐานที่ผู้กู้จัดทำเอง"))
     elif sig.status == "valid_untrusted":
-        warnings.append(f"ลายมือชื่อถูกต้อง เอกสารไม่ถูกแก้ไข แต่ผู้ออกใบรับรอง ({sig.issuer}) "
-                        "ยังไม่อยู่ในรายการที่ธนาคารเชื่อถือ")
+        warnings.append(th(f"ลายมือชื่อถูกต้อง เอกสารไม่ถูกแก้ไข แต่ผู้ออกใบรับรอง ({sig.issuer}) "
+                        "ยังไม่อยู่ในรายการที่ธนาคารเชื่อถือ"))
     seller_tax = _tax_id(_text(seller, "SpecifiedTaxRegistration", "ID"))
     buyer_tax = _tax_id(_text(buyer, "SpecifiedTaxRegistration", "ID"))
     if sig.signer_tax_id and seller_tax and sig.signer_tax_id != seller_tax:
-        warnings.append(f"ผู้ลงนาม ({sig.signer_tax_id}) ไม่ใช่ผู้ขาย — อาจเป็นผู้ให้บริการที่ลงนามแทน ควรตรวจสอบ")
+        warnings.append(th(f"ผู้ลงนาม ({sig.signer_tax_id}) ไม่ใช่ผู้ขาย — อาจเป็นผู้ให้บริการที่ลงนามแทน ควรตรวจสอบ"))
     if seller_tax and seller_tax == buyer_tax:
-        warnings.append("ผู้ซื้อและผู้ขายเป็นนิติบุคคลเดียวกัน")
+        warnings.append(th("ผู้ซื้อและผู้ขายเป็นนิติบุคคลเดียวกัน"))
     return ParsedETax(
         parser="etda-etax-xml", parser_version=PARSER_VERSION, source=source, invoice_no=invoice_no,
         type_code=type_code, issue_date=issue_date, seller_name=seller_name, seller_tax_id=seller_tax,
@@ -327,9 +328,9 @@ def parse_etax_words(pages: list[PageWords], source: str = "pdf_text") -> Parsed
         raise ParseError(f"bad invoice date {issued.group(1)!r}") from e
 
     warnings = _check_totals(amounts["subtotal"], amounts["vat"], amounts["total"])
-    warnings.append("อ่านจากภาพสแกน/รูปถ่ายด้วย OCR (ไม่มีไฟล์ XML ของ e-Tax) — หลักฐานอ่อนกว่า XML"
+    warnings.append(th("อ่านจากภาพสแกน/รูปถ่ายด้วย OCR (ไม่มีไฟล์ XML ของ e-Tax) — หลักฐานอ่อนกว่า XML")
                     if source == "scan_ocr" else
-                    "อ่านจากข้อความบน PDF (ไม่มีไฟล์ XML ของ e-Tax แนบ) — หลักฐานอ่อนกว่า XML")
+                    th("อ่านจากข้อความบน PDF (ไม่มีไฟล์ XML ของ e-Tax แนบ) — หลักฐานอ่อนกว่า XML"))
     return ParsedETax(
         parser="etax-ocr" if source == "scan_ocr" else "etax-pdf-text", parser_version=PARSER_VERSION,
         source=source, invoice_no=no.group(1), type_code="388", issue_date=issue_date,

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { tagLabel, tierInfo } from "@/lib/labels";
 import { formatTHB } from "@/lib/money";
-import { tr } from "@/lib/i18n";
+import { tr, trServer } from "@/lib/i18n";
 
 const CREDIT_OPTIONS: { value: OverrideValue; label: string }[] = [
   { value: "T1_golden", label: tierInfo.T1_golden.label },
@@ -87,7 +87,7 @@ export function OverrideDialog({ caseId, txn, onClose }: { caseId: number; txn: 
             <div className="mt-1 text-xs text-muted">
               {tr("ปัจจุบัน:")} {txn.tier ? tierInfo[txn.tier]?.label : tagLabel[txn.tag ?? ""] ?? txn.tag}
             </div>
-            {txn.tag_reason && <div className="mt-1 text-xs text-muted">{tr("เหตุผลของระบบ:")} {txn.tag_reason}</div>}
+            {txn.tag_reason && <div className="mt-1 text-xs text-muted">{tr("เหตุผลของระบบ:")} {trServer(txn.tag_reason)}</div>}
           </div>
           <div className="space-y-1.5">
             {options.map((o) => (

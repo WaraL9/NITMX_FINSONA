@@ -1,7 +1,7 @@
 import createClient from "openapi-fetch";
 import { authHeaders, logout } from "@/lib/auth";
 import type { components, paths } from "./schema";
-import { tr } from "@/lib/i18n";
+import { tr, trServer } from "@/lib/i18n";
 
 /** Typed client generated from the backend's OpenAPI schema (`npm run gen:api`). */
 export const api = createClient<paths>({ baseUrl: "" });
@@ -39,7 +39,7 @@ export class UploadError extends Error {
     public status: number,
     public body: ApiErrorBody,
   ) {
-    super(body.message);
+    super(trServer(body.message));
   }
 }
 
@@ -94,10 +94,10 @@ export type OverrideValue = components["schemas"]["OverrideIn"]["value"];
 export function errorMessage(err: unknown): string {
   if (err && typeof err === "object" && "detail" in err) {
     const d = (err as { detail: unknown }).detail;
-    if (typeof d === "string") return d;
+    if (typeof d === "string") return trServer(d);
     if (Array.isArray(d) && d[0]?.msg) return String(d[0].msg);
   }
-  return err instanceof Error ? err.message : tr("เกิดข้อผิดพลาด");
+  return err instanceof Error ? trServer(err.message) : tr("เกิดข้อผิดพลาด");
 }
 export type MemoPackage = components["schemas"]["MemoPackageOut"];
 export type Driver = components["schemas"]["DriverOut"];

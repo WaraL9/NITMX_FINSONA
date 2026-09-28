@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session
 
 from app.engine.altdata import KIND_TH, EBill
 from app.models import AltDataRecord, Case, Transaction
+from app.core.i18n import th
 
 AMOUNT_TOL = Decimal("1.00")
 PAY_BEFORE_DUE = timedelta(days=45)
@@ -53,7 +54,7 @@ def _be(d: date) -> str:
 
 
 def _label(r: AltDataRecord) -> str:
-    return f"{KIND_TH.get(r.kind, r.kind)} งวด {r.period}"
+    return th(f"{KIND_TH.get(r.kind, r.kind)} งวด {r.period}")
 
 
 def _match(r: AltDataRecord, debits: list[Transaction], used: set[int]) -> Transaction | None:
@@ -90,7 +91,7 @@ def reconcile(db: Session, case: Case, rows: list[Transaction], as_of: date) -> 
         r.matched_transaction_id, r.status_note = None, None
         if r.review_status == "pending":
             r.status = "held_review"
-            r.status_note = "OCR อ่านไม่มั่นใจ — รอเจ้าหน้าที่ตรวจทาน"
+            r.status_note = th("OCR อ่านไม่มั่นใจ — รอเจ้าหน้าที่ตรวจทาน")
             counts["held_review"] += 1
             continue
         paid_txn = _match(r, debits, used_txns)
@@ -103,31 +104,31 @@ def reconcile(db: Session, case: Case, rows: list[Transaction], as_of: date) -> 
         if feed is not None:
             differences = []
             if abs(feed.amount - r.amount) > AMOUNT_TOL:
-                differences.append(f"ยอด {r.amount:,.2f} vs {feed.amount:,.2f}")
+                differences.append(th(f"ยอด {r.amount:,.2f} vs {feed.amount:,.2f}"))
             if paid and feed.paid_date and abs((feed.paid_date - paid).days) > PAID_DATE_TOL_DAYS:
-                differences.append(f"วันชำระ {_be(paid)} vs {_be(feed.paid_date)}")
+                differences.append(th(f"วันชำระ {_be(paid)} vs {_be(feed.paid_date)}"))
             if differences:
                 r.status = "conflict"
-                r.status_note = "ไม่ตรงกับข้อมูลจากผู้ให้บริการ (" + ", ".join(differences) + ") — ใช้ข้อมูลผู้ให้บริการ"
-                out.signals.append(f"{_label(r)}: บิลที่อัปโหลด{r.status_note}")
+                r.status_note = th(f"ไม่ตรงกับข้อมูลจากผู้ให้บริการ ({', '.join(differences)}) — ใช้ข้อมูลผู้ให้บริการ")
+                out.signals.append(th(f"{_label(r)}: บิลที่อัปโหลด{r.status_note}"))
             else:
                 r.status = "corroborated"
-                r.status_note = "ตรงกับข้อมูลจากผู้ให้บริการ"
+                r.status_note = th("ตรงกับข้อมูลจากผู้ให้บริการ")
             counts[r.status] += 1
             continue
         if paid is None and r.due_date < as_of:
             r.status = "payment_not_found"
-            r.status_note = "ไม่พบใบเสร็จหรือรายการชำระในสเตทเมนต์ — ไม่นับเป็นค้างชำระ ควรสอบถามผู้กู้"
-            out.signals.append(f"{_label(r)}: {r.status_note}")
+            r.status_note = th("ไม่พบใบเสร็จหรือรายการชำระในสเตทเมนต์ — ไม่นับเป็นค้างชำระ ควรสอบถามผู้กู้")
+            out.signals.append(th(f"{_label(r)}: {r.status_note}"))
             counts["payment_not_found"] += 1
             continue
         r.status = "used"
         if paid and paid > r.due_date:
-            r.status_note = f"ชำระหลังกำหนด {(paid - r.due_date).days} วัน"
+            r.status_note = th(f"ชำระหลังกำหนด {(paid - r.due_date).days} วัน")
         elif paid:
-            r.status_note = "ชำระตรงเวลา" + (" (ตามรายการในสเตทเมนต์)" if r.paid_date is None else " (ตามใบเสร็จ)")
+            r.status_note = th("ชำระตรงเวลา (ตามรายการในสเตทเมนต์)") if r.paid_date is None else th("ชำระตรงเวลา (ตามใบเสร็จ)")
         else:
-            r.status_note = "ยังไม่ถึงกำหนดชำระ"
+            r.status_note = th("ยังไม่ถึงกำหนดชำระ")
         counts["used"] += 1
         out.bills.append(EBill(r.kind, r.period, r.due_date, paid, r.amount))
 
@@ -138,9 +139,9 @@ def reconcile(db: Session, case: Case, rows: list[Transaction], as_of: date) -> 
         if out.lease_end < maturity:
             out.tenor_cap_months = max(1, months_between(as_of, out.lease_end))
             out.signals.append(
-                f"สัญญาเช่าสถานประกอบการสิ้นสุด {_be(out.lease_end)} ก่อนสินเชื่อครบกำหนด ({_be(maturity)}) "
+                th(f"สัญญาเช่าสถานประกอบการสิ้นสุด {_be(out.lease_end)} ก่อนสินเชื่อครบกำหนด ({_be(maturity)}) "
                 f"— จำกัดอายุสินเชื่อไม่เกิน {out.tenor_cap_months} เดือนตามอายุสัญญาเช่าที่เหลือ "
-                "(ขอสัญญาต่ออายุเพื่อปลดเงื่อนไขนี้)")
+                "(ขอสัญญาต่ออายุเพื่อปลดเงื่อนไขนี้)"))
     out.counts = counts
     return out
 

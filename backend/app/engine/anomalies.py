@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from statistics import median
+from app.core.i18n import th
 
 PASS_MIN = Decimal("100000")
 PASS_TOL = Decimal("0.005")
@@ -75,9 +76,9 @@ def _pass_through(txns: list[ATxn]) -> list[Anomaly]:
             used.add(d.id)
             hours = int((d.at - c.at).total_seconds() // 3600)
             out.append(Anomaly(
-                "pass_through", "watch", "เงินเข้าแล้วออกทันที",
-                f"รับ {_thb(c.credit)} บาท จาก {c.counterparty or 'ไม่ระบุ'} แล้วโอนออก {_thb(d.debit)} บาท "
-                f"ให้ {d.counterparty or 'ไม่ระบุ'} ภายใน {hours} ชม. — อาจเป็นเงินผ่านทาง ไม่ใช่รายได้จริง",
+                "pass_through", "watch", th("เงินเข้าแล้วออกทันที"),
+                th(f"รับ {_thb(c.credit)} บาท จาก {c.counterparty or th('ไม่ระบุ')} แล้วโอนออก {_thb(d.debit)} บาท "
+                f"ให้ {d.counterparty or th('ไม่ระบุ')} ภายใน {hours} ชม. — อาจเป็นเงินผ่านทาง ไม่ใช่รายได้จริง"),
                 c.credit, [c.id, d.id]))
             break
     return out
@@ -100,9 +101,9 @@ def _period_end(txns: list[ATxn], period_end: date, monthly_avg: Decimal) -> lis
     if not late or monthly_avg <= 0 or total < monthly_avg * PERIOD_END_SHARE:
         return []
     return [Anomaly(
-        "period_end", "watch", "เงินไม่ทราบที่มาเข้าช่วงท้ายรอบบัญชี",
-        f"{len(late)} รายการรวม {_thb(total)} บาท ใน {PERIOD_END_DAYS} วันสุดท้ายของรอบ "
-        f"({total / monthly_avg:.0%} ของรายได้เฉลี่ยต่อเดือน) เป็นเงินเจ้าของหรือยังไม่ยืนยันที่มา — ตรวจว่าเป็นการแต่งยอดก่อนยื่นกู้หรือไม่",
+        "period_end", "watch", th("เงินไม่ทราบที่มาเข้าช่วงท้ายรอบบัญชี"),
+        th(f"{len(late)} รายการรวม {_thb(total)} บาท ใน {PERIOD_END_DAYS} วันสุดท้ายของรอบ "
+        f"({total / monthly_avg:.0%} ของรายได้เฉลี่ยต่อเดือน) เป็นเงินเจ้าของหรือยังไม่ยืนยันที่มา — ตรวจว่าเป็นการแต่งยอดก่อนยื่นกู้หรือไม่"),
         total, [t.id for t in late])]
 
 
@@ -116,8 +117,8 @@ def _spikes(txns: list[ATxn]) -> list[Anomaly]:
         if med > 0 and v > med * SPIKE_RATIO:
             ids = [t.id for t in txns if t.company and t.tier in REVENUE_TIERS and (t.at.year, t.at.month) == (y, m)]
             out.append(Anomaly(
-                "revenue_spike", "info", f"รายได้เดือน {m:02d}/{y + 543} สูงผิดปกติ",
-                f"{_thb(v)} บาท = {v / med:.1f} เท่าของค่ามัธยฐานรายเดือน ({_thb(med)} บาท) — ตรวจว่าเป็นรายได้ตามฤดูกาลหรือครั้งเดียว",
+                "revenue_spike", "info", th(f"รายได้เดือน {m:02d}/{y + 543} สูงผิดปกติ"),
+                th(f"{_thb(v)} บาท = {v / med:.1f} เท่าของค่ามัธยฐานรายเดือน ({_thb(med)} บาท) — ตรวจว่าเป็นรายได้ตามฤดูกาลหรือครั้งเดียว"),
                 v, ids))
     return out
 
@@ -129,8 +130,8 @@ def _round_cash(txns: list[ATxn]) -> list[Anomaly]:
         return []
     total = sum((t.credit for t in hits), Decimal("0"))
     return [Anomaly(
-        "round_cash", "watch", "ฝากเงินสดก้อนใหญ่ตัวเลขกลม",
-        f"ฝากเงินสด {len(hits)} ครั้ง รวม {_thb(total)} บาท เป็นจำนวนเต็มหมื่นทุกครั้ง — ขอหลักฐานที่มา (ใบเสร็จขาย/บันทึกเงินสด)",
+        "round_cash", "watch", th("ฝากเงินสดก้อนใหญ่ตัวเลขกลม"),
+        th(f"ฝากเงินสด {len(hits)} ครั้ง รวม {_thb(total)} บาท เป็นจำนวนเต็มหมื่นทุกครั้ง — ขอหลักฐานที่มา (ใบเสร็จขาย/บันทึกเงินสด)"),
         total, [t.id for t in hits])]
 
 

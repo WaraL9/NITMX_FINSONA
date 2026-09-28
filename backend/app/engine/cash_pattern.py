@@ -16,8 +16,9 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from app.engine.types import ETxn
+from app.core.i18n import th
 
-WEEKDAYS_TH = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"]
+WEEKDAYS_TH = [th("จันทร์"), th("อังคาร"), th("พุธ"), th("พฤหัสบดี"), th("ศุกร์"), th("เสาร์"), th("อาทิตย์")]
 MIN_COUNT = 12  # about two a month over six months
 CONCENTRATION = 0.8  # share of withdrawals on the top two weekdays
 

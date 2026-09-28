@@ -19,6 +19,7 @@ from app import storage
 from app.config import settings
 from app.models import Case, Evidence, Query, Transaction, User, WatchlistItem
 from app.services import audit
+from app.core.i18n import th
 
 MAX_FILE = 10 * 1024 * 1024
 MAX_FILES = 5
@@ -76,7 +77,7 @@ def forward_to_sme(db: Session, q: Query, user: User, note: str | None, ip: str 
         raise QueryError("question is not open", 409)
     q.audience = "sme"
     if note:
-        q.question = f"{q.question}\n\nจาก RM: {note.strip()}"
+        q.question = th(f"{q.question}\n\nจาก RM: {note.strip()}")
     audit.log(db, "query_forwarded", case_id=q.case_id, user_id=user.id, ip=ip, target_type="query",
               target_id=q.id, after={"audience": "sme"})
     db.commit()

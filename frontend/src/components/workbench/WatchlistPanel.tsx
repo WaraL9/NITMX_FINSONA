@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { formatMillions, formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
-import { tr } from "@/lib/i18n";
+import { tr, trServer } from "@/lib/i18n";
 
 const STATUS: Record<WatchlistEntry["status"], { label: string; tone: "judge" | "verified" | "neutral" | "navy" }> = {
   pending: { get label() { return tr("รอดุลยพินิจ"); }, tone: "judge" },
@@ -50,17 +50,17 @@ function EvidenceHint({ item, onAsk }: { item: WatchlistEntry; onAsk?: (question
       <ol className="mt-2 list-decimal space-y-1 pl-5">
         {h.evidence.map((e) => (
           <li key={e.document}>
-            <span className="text-ink">{e.document}</span>
-            <div className="text-xs text-muted">{e.why}</div>
+            <span className="text-ink">{trServer(e.document)}</span>
+            <div className="text-xs text-muted">{trServer(e.why)}</div>
           </li>
         ))}
       </ol>
       {h.question && (
         <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-line pt-2">
           <span className="text-xs text-muted">{tr("คำถามถึงลูกค้า:")}</span>
-          <span className="flex-1 text-body">{h.question}</span>
+          <span className="flex-1 text-body">{trServer(h.question)}</span>
           {onAsk && (
-            <Button size="sm" variant="secondary" data-testid="use-hint-question" onClick={() => onAsk(h.question)}>
+            <Button size="sm" variant="secondary" data-testid="use-hint-question" onClick={() => onAsk(trServer(h.question))}>
               <MessageSquareMore className="size-4" /> {tr("ใช้ถาม RM")}
             </Button>
           )}
@@ -145,7 +145,7 @@ function Detail({ caseId, item, onDone }: { caseId: number; item: WatchlistEntry
         <ShieldAlert className="mt-0.5 size-4 shrink-0 text-judge" />
         <div>
           <div className="font-medium text-ink">{tr("ข้อสังเกตของระบบ")}</div>
-          {item.system_note}
+          {trServer(item.system_note)}
         </div>
       </div>
 

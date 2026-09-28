@@ -13,6 +13,7 @@ import json
 from app.config import settings
 from app.ocr.base import OcrResult, OcrUnavailable
 from app.parsers.base import PageWords
+from app.core.i18n import th
 
 
 def recordings_dir():
@@ -25,7 +26,7 @@ class SandboxOcrProvider:
     def analyze(self, pdf: bytes, sha256: str) -> OcrResult:
         path = recordings_dir() / f"{sha256}.json"
         if not path.exists():
-            raise OcrUnavailable("ไม่มีผล OCR ที่บันทึกไว้สำหรับไฟล์นี้ — ต้องเปิดใช้ OCR จริง (FINSONA_USE_LIVE_OCR)")
+            raise OcrUnavailable(th("ไม่มีผล OCR ที่บันทึกไว้สำหรับไฟล์นี้ — ต้องเปิดใช้ OCR จริง (FINSONA_USE_LIVE_OCR)"))
         rec = json.loads(path.read_text(encoding="utf-8"))
         return OcrResult(
             provider=f"sandbox:{rec['provider']}",

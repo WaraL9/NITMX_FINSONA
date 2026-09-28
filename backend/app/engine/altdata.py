@@ -14,8 +14,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
+from app.core.i18n import th
 
-KIND_TH = {"electricity": "ค่าไฟฟ้า", "water": "ค่าน้ำประปา", "rent": "ค่าเช่า"}
+KIND_TH = {"electricity": th("ค่าไฟฟ้า"), "water": th("ค่าน้ำประปา"), "rent": th("ค่าเช่า")}
 
 
 @dataclass(frozen=True)
@@ -47,7 +48,7 @@ def days_late(b: EBill, as_of: date) -> int:
 
 def evaluate(bills: list[EBill], as_of: date) -> AltDataResult:
     if not bills:
-        return AltDataResult(0, 0, 0, 0, 0, Decimal("0"), False, False, ["ไม่มีข้อมูลการชำระค่าสาธารณูปโภค/ค่าเช่า"])
+        return AltDataResult(0, 0, 0, 0, 0, Decimal("0"), False, False, [th("ไม่มีข้อมูลการชำระค่าสาธารณูปโภค/ค่าเช่า")])
     periods = sorted({b.period for b in bills})
     recent_periods = set(periods[-6:])
     recent = [b for b in bills if b.period in recent_periods]
@@ -59,15 +60,15 @@ def evaluate(bills: list[EBill], as_of: date) -> AltDataResult:
     signals: list[str] = []
     if late60:
         haircut, ews = Decimal("0.25"), True
-        signals += [f"{KIND_TH.get(b.kind, b.kind)} งวด {b.period} ค้างชำระเกิน 60 วัน" for b in late60]
+        signals += [th(f"{KIND_TH.get(b.kind, b.kind)} งวด {b.period} ค้างชำระเกิน 60 วัน") for b in late60]
     elif len(late30) >= 2:
         haircut, ews = Decimal("0.10"), False
     elif len(late30) == 1:
         haircut, ews = Decimal("0.05"), False
     else:
         haircut, ews = Decimal("0"), False
-    signals += [f"{KIND_TH.get(b.kind, b.kind)} งวด {b.period} ชำระล่าช้า {days_late(b, as_of)} วัน" for b in late30]
+    signals += [th(f"{KIND_TH.get(b.kind, b.kind)} งวด {b.period} ชำระล่าช้า {days_late(b, as_of)} วัน") for b in late30]
     liveness = len(periods) >= 12 and on_time == len(bills)
     if liveness:
-        signals.insert(0, f"ชำระค่าสาธารณูปโภคและค่าเช่าตรงเวลาครบ {len(periods)} เดือน — ยืนยันการเปิดดำเนินกิจการต่อเนื่อง")
+        signals.insert(0, th(f"ชำระค่าสาธารณูปโภคและค่าเช่าตรงเวลาครบ {len(periods)} เดือน — ยืนยันการเปิดดำเนินกิจการต่อเนื่อง"))
     return AltDataResult(len(periods), len(bills), on_time, len(late30), len(late60), haircut, ews, liveness, signals)

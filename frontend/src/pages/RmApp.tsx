@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { formatMillions, formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
-import { tr } from "@/lib/i18n";
+import { tr, trServer } from "@/lib/i18n";
 
 const GROUP = {
   ready: { get label() { return tr("พร้อมปิดการขาย"); }, tone: "verified" as const },
@@ -101,7 +101,7 @@ function LeadDetailView({ caseId, onBack }: { caseId: number; onBack: () => void
         {d.contact_phone && (
           <a href={`tel:${d.contact_phone}`} className="mt-3 inline-flex items-center gap-2 text-sm text-navy"><Phone className="size-4" /> {d.contact_phone}</a>
         )}
-        <ul className="mt-3 space-y-0.5 text-xs text-muted">{d.reasons.map((r) => <li key={r}>• {r}</li>)}</ul>
+        <ul className="mt-3 space-y-0.5 text-xs text-muted">{d.reasons.map((r) => <li key={r}>• {trServer(r)}</li>)}</ul>
       </Card>
 
       <div>
@@ -110,11 +110,11 @@ function LeadDetailView({ caseId, onBack }: { caseId: number; onBack: () => void
           {d.gaps.map((g, i) => (
             <Card key={i} className="p-3">
               <div className="flex items-start justify-between gap-2">
-                <span className="text-sm font-medium text-ink">{g.title}</span>
+                <span className="text-sm font-medium text-ink">{trServer(g.title)}</span>
                 <Badge tone={GAP_TONE[g.kind]}>{g.kind}</Badge>
               </div>
-              <p className="mt-1 text-sm text-body">“{g.starter}”</p>
-              {g.impact && <p className="mt-1 text-xs font-medium text-verified">{g.impact}</p>}
+              <p className="mt-1 text-sm text-body">“{trServer(g.starter)}”</p>
+              {g.impact && <p className="mt-1 text-xs font-medium text-verified">{trServer(g.impact)}</p>}
             </Card>
           ))}
           {d.gaps.length === 0 && <p className="text-sm text-muted">{tr("ข้อมูลครบ ไม่มีประเด็นค้าง")}</p>}

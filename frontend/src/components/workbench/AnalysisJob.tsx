@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { api, errorMessage, unwrap } from "@/api/client";
 import type { components } from "@/api/schema";
 import { cn } from "@/lib/utils";
-import { tr } from "@/lib/i18n";
+import { tr, trServer } from "@/lib/i18n";
 
 export type AnalysisJob = components["schemas"]["AnalysisJobOut"];
 type StageKey = AnalysisJob["stages"][number]["key"];
@@ -74,7 +74,7 @@ export function useAnalysisJob(caseId: number) {
     start: () => start.mutate(),
     job: jobId !== null ? job ?? null : null,
     running: start.isPending || isOpen(job),
-    error: start.error?.message ?? (job?.status === "failed" ? job.error ?? tr("วิเคราะห์ไม่สำเร็จ") : null),
+    error: start.error?.message ?? (job?.status === "failed" ? (job.error ? trServer(job.error) : tr("วิเคราะห์ไม่สำเร็จ")) : null),
     dismiss: () => setJobId(null),
   };
 }
@@ -107,7 +107,7 @@ export function JobProgress({ job }: { job: AnalysisJob }) {
           </li>
         ))}
       </ol>
-      {job.status === "failed" && job.error && <p className="mt-2 text-sm text-risk">{job.error}</p>}
+      {job.status === "failed" && job.error && <p className="mt-2 text-sm text-risk">{trServer(job.error)}</p>}
     </div>
   );
 }

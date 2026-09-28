@@ -204,6 +204,12 @@ test("Thai / English toggle: the whole UI switches and the choice persists", asy
   expect(await page.evaluate(() => document.documentElement.lang)).toBe("en");
   // Figures are identical in both languages — only the words change.
   await expect(page.getByTestId("sim-dscr")).toHaveText("1.05×");
+  // Server-generated text follows too: the engine explanations and Watchlist notes.
+  await expect(page.getByText("Revenue verified by PromptBiz / e-Tax invoices")).toBeVisible();
+  await page.getByTestId("tab-watchlist").click();
+  await page.getByTestId("wl-item").filter({ hasText: "700,000" }).click();
+  await expect(page.getByText(/Large cash deposit with no trade document/).first()).toBeVisible();
+  await page.getByTestId("tab-overview").click();
   await page.getByTestId("lang-th").click();
   await expect(page.getByTestId("tab-overview")).toHaveText(/ภาพรวม & กระแสเงินสด/);
 });

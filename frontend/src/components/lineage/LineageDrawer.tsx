@@ -8,7 +8,7 @@ import { tagLabel, tierInfo } from "@/lib/labels";
 import { formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { PdfPage } from "./PdfPage";
-import { tr } from "@/lib/i18n";
+import { tr, trServer } from "@/lib/i18n";
 
 /**
  * Pixel lineage (E10-02/03/04): any figure opens a split-screen panel.
@@ -151,7 +151,7 @@ function RowsView({ view, onPick, onClose }: { view: Extract<View, { kind: "metr
             </div>
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm text-ink">{t.counterparty_name ?? t.description}</div>
-              <div className="truncate text-xs text-muted">{t.tag_reason ?? t.description}</div>
+              <div className="truncate text-xs text-muted">{t.tag_reason ? trServer(t.tag_reason) : t.description}</div>
             </div>
             <div className={cn("num font-mono text-sm", t.credit !== "0.00" ? "text-verified" : "text-risk")}>
               {formatTHB(t.credit !== "0.00" ? t.credit : t.debit)}
@@ -244,7 +244,7 @@ export function TxnLineage({ txnId, compact }: { txnId: number; compact?: boolea
           {t.tag_source === "ca" && <Badge tone="navy">CA Override</Badge>}
         </div>
         <div className="mt-1 text-xs text-muted">{t.description}</div>
-        {t.tag_reason && <div className="mt-2 text-xs text-body">{tr("เหตุผลของระบบ:")} {t.tag_reason}</div>}
+        {t.tag_reason && <div className="mt-2 text-xs text-body">{tr("เหตุผลของระบบ:")} {trServer(t.tag_reason)}</div>}
       </div>
     </div>
   );

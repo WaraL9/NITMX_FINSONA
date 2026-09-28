@@ -73,7 +73,11 @@ holds the English; header toggle “ไทย | EN”, persisted in localStorage
 years in BE for Thai, CE for English. **Rule for new UI text: write it in Thai inside `tr()` and add the English to
 `src/i18n/en.ts`** — `src/i18n/i18n.test.ts` scans the source and fails on any Thai UI text outside `tr()`, a
 missing/stale key, or mismatched `{n}` placeholders. `tr` not `t`: `t` is a transaction variable everywhere.
-Server-generated text (engine reasons, XAI drivers, signals, anomalies, credit memo) stays Thai.)
+Server text is bilingual too: user-facing backend strings are wrapped in the identity marker `th()`
+(`app/core/i18n.py`), `python -m app.i18n_catalog` turns each call into a template, the English lives in
+`frontend/src/i18n/en_server.json` (backend test `test_i18n_catalog.py` enforces coverage/placeholders), and the
+frontend's `trServer()` matches rendered Thai to templates — nested messages and “ · ”-joined notes included. The
+backend still produces Thai, so the credit memo PDF stays Thai. Data (names, bank memos) is never translated.)
 Scenario comparison (E8-12: `GET /api/cases/{id}/comparison`, `services/comparison.py` — re-runs the engine in memory
 with no / current / all-open-accepted Watchlist decisions via `load_inputs` + `run_engine` (split out of
 `run_analysis`), sized with the same `ratios` functions; the “decided” column provably equals the stored analysis;
@@ -106,20 +110,18 @@ case scoping, PDPA consents, hash-chained audit log + CSV, compliance/metrics/po
 portal, eval harness (`python -m app.eval.run`, 50 synthetic cases), instant demo reset, offline mode,
 Playwright e2e, single-process prod server (`npm start`) + Dockerfile.
 
-Test counts at handoff: 237 backend, 22 frontend, 10 e2e — all green.
+Test counts at handoff: 241 backend, 27 frontend, 10 e2e — all green.
 
 ## Next
 Every code item in `docs/BACKLOG.md` is done. Candidate follow-ups (not in the backlog):
-- Bilingual server text: send message codes + params from the backend so engine reasons, XAI drivers, alt-data
-  signals and anomaly titles translate too (the UI chrome already does — E8-13).
 - Rehearse the demo script end to end and record the backup video (below).
 
 Blocked on the team (not code): real-bank statement parsers need real sample statements (T-01); LINE integration
 needs a LINE Official Account; backup demo video needs `npx playwright install ffmpeg` then `npm run e2e:record`.
 
 ## Not verified
-i18n: server-generated narrative (tag reasons, XAI driver texts, alt-data signals, anomaly titles, warnings, the
-credit memo PDF) is Thai only — making it bilingual needs message codes from the backend.
+i18n: the credit memo PDF and the LLM-written narrative are Thai only (a Thai bank's document); dates the backend
+formats inside messages stay in the Buddhist era in English mode.
 e-Tax: signatures are verified cryptographically, but no real Thai CA certificate is bundled — put the e-Tax
 CAs' PEMs in `data/trust/` for production (until then real invoices read as valid_untrusted). Certificate validity
 is checked at the current time, not the signing time. An unsigned upload is flagged as SME-provided evidence and

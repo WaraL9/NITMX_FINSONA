@@ -27,7 +27,7 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { openProtected, useSession } from "@/lib/auth";
 import { formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
-import { displayYear, tr } from "@/lib/i18n";
+import { displayYear, tr, trServer } from "@/lib/i18n";
 
 const ERROR_TEXT: Record<string, string> = {
   get password_incorrect() { return tr("รหัสผ่านไม่ถูกต้อง ลองอีกครั้ง"); },
@@ -125,7 +125,7 @@ function PP30Row({ doc, r }: { doc: DocumentOut; r: PP30Report }) {
             <CheckCircle2 className="size-3" /> {tr("อ่านครบทุกช่อง")}
           </Badge>
         ) : (
-          <Badge tone="judge" title={r.warnings.join("\n")}>
+          <Badge tone="judge" title={r.warnings.map(trServer).join("\n")}>
             <TriangleAlert className="size-3" /> {r.warnings.length} {tr("ข้อสังเกต")}
           </Badge>
         )}
@@ -210,7 +210,7 @@ function ETaxRow({ doc, r, onReview }: { doc: DocumentOut; r: ETaxReport; onRevi
             <Button size="sm" variant="secondary" data-testid="etax-review" onClick={() => onReview(doc)}>{tr("ตรวจทาน")}</Button>
           )}
           {r.warnings.length > 0 && (
-            <Badge tone="judge" title={r.warnings.join("\n")}>
+            <Badge tone="judge" title={r.warnings.map(trServer).join("\n")}>
               <TriangleAlert className="size-3" /> {r.warnings.length} {tr("ข้อสังเกต")}
             </Badge>
           )}
@@ -267,7 +267,7 @@ function BillRow({ doc, r, onReview }: { doc: DocumentOut; r: BillReport; onRevi
       <TD>
         <div className="flex flex-wrap gap-1">
           {status && link && (
-            <Badge tone={status.tone} title={link.note ?? undefined}>
+            <Badge tone={status.tone} title={link.note ? trServer(link.note) : undefined}>
               {link.status === "pending_analysis" ? <Clock className="size-3" /> : link.status === "held_review" || link.status === "payment_not_found" || link.status === "conflict" ? <TriangleAlert className="size-3" /> : <CheckCircle2 className="size-3" />}
               {status.label}
             </Badge>
@@ -284,7 +284,7 @@ function BillRow({ doc, r, onReview }: { doc: DocumentOut; r: BillReport; onRevi
             <Button size="sm" variant="secondary" data-testid="bill-review" onClick={() => onReview(doc)}>{tr("ตรวจทาน")}</Button>
           )}
         </div>
-        {link?.note && link.status !== "held_review" && link.status !== "corroborated" && <div className="mt-1 text-xs text-muted">{link.note}</div>}
+        {link?.note && link.status !== "held_review" && link.status !== "corroborated" && <div className="mt-1 text-xs text-muted">{trServer(link.note)}</div>}
       </TD>
     </TR>
   );
@@ -592,7 +592,7 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
       const code = err instanceof UploadError ? err.body.code : "network";
       setLocked(null);
       // e-Tax rejections carry a specific Thai explanation from the server.
-      const serverText = err instanceof UploadError && ["seller_mismatch", "duplicate_invoice", "signature_invalid"].includes(code) ? err.body.message : null;
+      const serverText = err instanceof UploadError && ["seller_mismatch", "duplicate_invoice", "signature_invalid"].includes(code) ? trServer(err.body.message) : null;
       setMessage({ tone: "risk", text: `${file.name}: ${serverText ?? ERROR_TEXT[code] ?? err.message}` });
     },
   });

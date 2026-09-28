@@ -19,6 +19,7 @@ from app.services import consent
 from app.engine.types import Policy
 from app.services import policy as policy_svc
 from app.services.analysis import latest_analysis, sizing_tenor
+from app.core.i18n import th
 
 ASSESSMENT_SLA = timedelta(hours=48)
 
@@ -71,7 +72,7 @@ def score_case(db: Session, case: Case) -> Lead:
         completeness += round(10 * len(filings & set(months)) / max(len(months), 1))
     completeness += 10 if grants.get("promptbiz_data") else 0
     completeness += 5 if grants.get("utility_data") else 0
-    reasons.append(f"ความครบถ้วนของข้อมูล {completeness}/40")
+    reasons.append(th(f"ความครบถ้วนของข้อมูล {completeness}/40"))
 
     a = latest_analysis(db, case.id)
     headroom, verification, dscr_s, safe_s = 0, 0, None, None
@@ -90,10 +91,10 @@ def score_case(db: Session, case: Case) -> Lead:
             headroom = 5
         verified = Decimal(r["waterfall"]["verified_operating_revenue"]) or Decimal(1)
         verification = round(20 * float(Decimal(r["tiers"]["T1_golden"]) / verified))
-        reasons.append(f"ความสามารถชำระหนี้ที่วงเงินขอ {headroom}/40 (DSCR {s.dscr:.2f})" if s.dscr else "ยังคำนวณ DSCR ไม่ได้")
-        reasons.append(f"สัดส่วนรายได้ยืนยันด้วย PromptBiz {verification}/20")
+        reasons.append(th(f"ความสามารถชำระหนี้ที่วงเงินขอ {headroom}/40 (DSCR {s.dscr:.2f})") if s.dscr else th("ยังคำนวณ DSCR ไม่ได้"))
+        reasons.append(th(f"สัดส่วนรายได้ยืนยันด้วย PromptBiz {verification}/20"))
     else:
-        reasons.append("ยังไม่มีผลวิเคราะห์ — ต้องรวบรวมเอกสาร")
+        reasons.append(th("ยังไม่มีผลวิเคราะห์ — ต้องรวบรวมเอกสาร"))
     open_q = db.query(Query).filter(Query.case_id == case.id, Query.status == "open").count()
     return Lead(case, completeness + headroom + verification, group, reasons, dscr_s, safe_s, open_q)
 
@@ -104,45 +105,45 @@ def gaps(db: Session, case: Case) -> list[Gap]:
     grants = {p: c is not None and c.granted for p, c in consent.current(db, case.id).items()}
     for p, label in consent.PURPOSES.items():
         if not grants.get(p):
-            out.append(Gap("consent", f"ยังไม่มีความยินยอม: {label}",
-                           "รบกวนกดยืนยันความยินยอมในแอป เพื่อให้ธนาคารใช้ข้อมูลนี้ช่วยยืนยันรายได้แทนการขอเอกสารกระดาษ"))
+            out.append(Gap("consent", th(f"ยังไม่มีความยินยอม: {label}"),
+                           th("รบกวนกดยืนยันความยินยอมในแอป เพื่อให้ธนาคารใช้ข้อมูลนี้ช่วยยืนยันรายได้แทนการขอเอกสารกระดาษ")))
     if case.period_start and case.period_end:
         filed = {f.period for f in db.scalars(select(TaxFiling).where(TaxFiling.case_id == case.id))}
         missing = [m for m in _months(case.period_start, case.period_end) if m not in filed]
         if missing:
-            out.append(Gap("data", f"ขาดแบบ ภ.พ.30 {len(missing)} เดือน ({', '.join(missing)})",
-                           "ขอแบบ ภ.พ.30 ของเดือนที่ขาด เพื่อยืนยันยอดขายที่ยื่นภาษี (ระดับ 2)"))
+            out.append(Gap("data", th(f"ขาดแบบ ภ.พ.30 {len(missing)} เดือน ({', '.join(missing)})"),
+                           th("ขอแบบ ภ.พ.30 ของเดือนที่ขาด เพื่อยืนยันยอดขายที่ยื่นภาษี (ระดับ 2)")))
     a = latest_analysis(db, case.id)
     if a is None:
-        out.append(Gap("data", "ยังไม่มีสเตทเมนต์/ผลวิเคราะห์",
-                       "ขอสเตทเมนต์ทุกบัญชีที่ใช้ทำธุรกิจย้อนหลัง 6 เดือน (ไฟล์ PDF จากแอปธนาคารได้เลย)"))
+        out.append(Gap("data", th("ยังไม่มีสเตทเมนต์/ผลวิเคราะห์"),
+                       th("ขอสเตทเมนต์ทุกบัญชีที่ใช้ทำธุรกิจย้อนหลัง 6 เดือน (ไฟล์ PDF จากแอปธนาคารได้เลย)")))
         return out
     r = a.result
     drivers = {d["key"]: d for d in r.get("drivers", [])}
     pending = db.scalars(select(WatchlistItem).where(WatchlistItem.case_id == case.id,
                                                      WatchlistItem.status.in_(("pending", "queried")))).all()
     if pending and "unverified" in drivers:
-        out.append(Gap("evidence", f"เงินเข้า {len(pending)} รายการยังไม่มีเอกสารรองรับ",
-                       "ถามลูกค้าว่ายอดเงินเหล่านี้คือค่างานอะไร และขอสัญญาจ้าง/ใบส่งของ/ภาพหน้างานประกอบ",
-                       f"ศักยภาพเพิ่มวงเงินได้สูงสุด {Decimal(drivers['unverified']['impact']):,.0f} บาท"))
+        out.append(Gap("evidence", th(f"เงินเข้า {len(pending)} รายการยังไม่มีเอกสารรองรับ"),
+                       th("ถามลูกค้าว่ายอดเงินเหล่านี้คือค่างานอะไร และขอสัญญาจ้าง/ใบส่งของ/ภาพหน้างานประกอบ"),
+                       th(f"ศักยภาพเพิ่มวงเงินได้สูงสุด {Decimal(drivers['unverified']['impact']):,.0f} บาท")))
     pol = policy_svc.current(db)
     s = _sizing(case, r, case.requested_amount, pol)
     st = ratios.structure(case.requested_amount, s.safe_limit, Decimal(r.get("t1_monthly", "0")), pol)
     if st.needed:
-        out.append(Gap("structure", f"วงเงินที่ขอ {case.requested_amount:,.0f} บาท สูงกว่าที่ผ่อนไหว",
-                       f"เสนอวงเงินระยะยาว {st.term_loan:,.0f} บาท + Trade Line {st.trade_line:,.0f} บาท ผูกใบแจ้งหนี้ PromptBiz "
-                       "ผ่อนสบายกว่าและไม่เสียประวัติจากการถูกปฏิเสธ",
-                       f"รวม {st.total:,.0f} บาท"))
+        out.append(Gap("structure", th(f"วงเงินที่ขอ {case.requested_amount:,.0f} บาท สูงกว่าที่ผ่อนไหว"),
+                       th(f"เสนอวงเงินระยะยาว {st.term_loan:,.0f} บาท + Trade Line {st.trade_line:,.0f} บาท ผูกใบแจ้งหนี้ PromptBiz "
+                       "ผ่อนสบายกว่าและไม่เสียประวัติจากการถูกปฏิเสธ"),
+                       th(f"รวม {st.total:,.0f} บาท")))
     alt = r.get("alt_data") or {}
     if Decimal(alt.get("haircut", "0")) > 0:
-        out.append(Gap("risk", "พบการชำระค่าไฟ/ค่าน้ำ/ค่าเช่าล่าช้า",
-                       "สอบถามสาเหตุการชำระค่าสาธารณูปโภคล่าช้า และสภาพคล่องช่วงนั้น",
-                       f"ตอนนี้ถูกปรับลดกระแสเงินสด {Decimal(alt['haircut']) * 100:.0f}%"))
+        out.append(Gap("risk", th("พบการชำระค่าไฟ/ค่าน้ำ/ค่าเช่าล่าช้า"),
+                       th("สอบถามสาเหตุการชำระค่าสาธารณูปโภคล่าช้า และสภาพคล่องช่วงนั้น"),
+                       th(f"ตอนนี้ถูกปรับลดกระแสเงินสด {Decimal(alt['haircut']) * 100:.0f}%")))
     verified = Decimal(r["waterfall"]["verified_operating_revenue"]) or Decimal(1)
     share = Decimal(r["tiers"]["T1_golden"]) / verified
     if share < Decimal("0.6"):
-        out.append(Gap("opportunity", f"รายได้ที่ยืนยันด้วย PromptBiz เพียง {share * 100:.0f}%",
-                       "ชวนลูกค้าออกใบแจ้งหนี้ให้ลูกค้ารายใหญ่ผ่าน PromptBiz — ยืนยันรายได้อัตโนมัติ และเปิดวงเงิน Trade Line"))
+        out.append(Gap("opportunity", th(f"รายได้ที่ยืนยันด้วย PromptBiz เพียง {share * 100:.0f}%"),
+                       th("ชวนลูกค้าออกใบแจ้งหนี้ให้ลูกค้ารายใหญ่ผ่าน PromptBiz — ยืนยันรายได้อัตโนมัติ และเปิดวงเงิน Trade Line")))
     return out
 
 
@@ -150,12 +151,12 @@ def gaps(db: Session, case: Case) -> list[Gap]:
 
 # Indicative operating-cash-flow margins by industry (assumption table; a bank would calibrate).
 INDUSTRY_MARGINS = {
-    "contractor": ("รับเหมาก่อสร้าง/ตกแต่ง", Decimal("0.14")),
-    "manufacturing": ("โรงงาน/การผลิต", Decimal("0.12")),
-    "retail": ("ค้าปลีก/ค้าส่ง", Decimal("0.08")),
-    "food": ("ร้านอาหาร/เครื่องดื่ม", Decimal("0.10")),
-    "services": ("บริการ", Decimal("0.18")),
-    "agriculture": ("เกษตร/แปรรูปสินค้าเกษตร", Decimal("0.09")),
+    "contractor": (th("รับเหมาก่อสร้าง/ตกแต่ง"), Decimal("0.14")),
+    "manufacturing": (th("โรงงาน/การผลิต"), Decimal("0.12")),
+    "retail": (th("ค้าปลีก/ค้าส่ง"), Decimal("0.08")),
+    "food": (th("ร้านอาหาร/เครื่องดื่ม"), Decimal("0.10")),
+    "services": (th("บริการ"), Decimal("0.18")),
+    "agriculture": (th("เกษตร/แปรรูปสินค้าเกษตร"), Decimal("0.09")),
 }
 
 
@@ -174,31 +175,31 @@ def prequalify(amount: Decimal, industry: str, monthly_revenue: Decimal, existin
     label, margin = INDUSTRY_MARGINS[industry]
     cfo = (monthly_revenue * margin).quantize(Decimal("0.01"))
     s = ratios.size(amount, cfo, existing_debt, rate, tenor, pol)
-    reasons = [f"ประมาณกระแสเงินสดจากยอดขาย × อัตรากำไรเงินสดเฉลี่ยของธุรกิจ{label} ({margin * 100:.0f}%) = {cfo:,.0f} บาท/เดือน"]
-    unlocks = ["เชื่อมข้อมูลใบแจ้งหนี้ PromptBiz เพื่อยืนยันรายได้อัตโนมัติ (ระดับ 1)",
-               "ส่งแบบ ภ.พ.30 ย้อนหลัง 6 เดือน เพื่อยืนยันยอดขายที่ยื่นภาษี"]
+    reasons = [th(f"ประมาณกระแสเงินสดจากยอดขาย × อัตรากำไรเงินสดเฉลี่ยของธุรกิจ{label} ({margin * 100:.0f}%) = {cfo:,.0f} บาท/เดือน")]
+    unlocks = [th("เชื่อมข้อมูลใบแจ้งหนี้ PromptBiz เพื่อยืนยันรายได้อัตโนมัติ (ระดับ 1)"),
+               th("ส่งแบบ ภ.พ.30 ย้อนหลัง 6 เดือน เพื่อยืนยันยอดขายที่ยื่นภาษี")]
     if s.meets_target:
         result = "high"
-        reasons.append(f"ผ่อนไหวสบาย: DSCR ประมาณ {s.dscr:.2f} เท่า")
+        reasons.append(th(f"ผ่อนไหวสบาย: DSCR ประมาณ {s.dscr:.2f} เท่า"))
     elif s.passes_min:
         result = "conditional"
-        reasons.append(f"ผ่านเกณฑ์ขั้นต่ำ (DSCR ประมาณ {s.dscr:.2f}) แต่ต้องยืนยันรายได้ด้วยข้อมูลจริง")
+        reasons.append(th(f"ผ่านเกณฑ์ขั้นต่ำ (DSCR ประมาณ {s.dscr:.2f}) แต่ต้องยืนยันรายได้ด้วยข้อมูลจริง"))
     else:
         result = "mismatch"
-        reasons.append(f"วงเงินที่ขอสูงกว่าที่ผ่อนไหว (DSCR ประมาณ {s.dscr:.2f})" if s.dscr else "ยังไม่มีกระแสเงินสดรองรับหนี้ใหม่")
+        reasons.append(th(f"วงเงินที่ขอสูงกว่าที่ผ่อนไหว (DSCR ประมาณ {s.dscr:.2f})") if s.dscr else th("ยังไม่มีกระแสเงินสดรองรับหนี้ใหม่"))
         if s.safe_limit > 0:
-            reasons.append(f"วงเงินที่มีโอกาสผ่านมากที่สุดประมาณ {s.safe_limit:,.0f} บาท — ไม่ใช่การปฏิเสธ แต่เป็นขนาดที่ปลอดภัยกว่า")
+            reasons.append(th(f"วงเงินที่มีโอกาสผ่านมากที่สุดประมาณ {s.safe_limit:,.0f} บาท — ไม่ใช่การปฏิเสธ แต่เป็นขนาดที่ปลอดภัยกว่า"))
     return PreQual(result, cfo, s.dscr, s.safe_limit, reasons, unlocks)
 
 
 # ---------------- SME tracker (E13-05) ----------------
 
 STAGES = [
-    ("documents", "ตรวจสอบความครบถ้วนของเอกสาร"),
-    ("analysis", "จัดระเบียบกระแสเงินสดและจับคู่ข้อมูลการค้าดิจิทัล"),
-    ("review", "เจ้าหน้าที่วิเคราะห์สินเชื่อตรวจสอบเชิงลึก"),
-    ("committee", "เสนอคณะกรรมการสินเชื่อ"),
-    ("contract", "อนุมัติและนัดหมายลงนามสัญญา"),
+    ("documents", th("ตรวจสอบความครบถ้วนของเอกสาร")),
+    ("analysis", th("จัดระเบียบกระแสเงินสดและจับคู่ข้อมูลการค้าดิจิทัล")),
+    ("review", th("เจ้าหน้าที่วิเคราะห์สินเชื่อตรวจสอบเชิงลึก")),
+    ("committee", th("เสนอคณะกรรมการสินเชื่อ")),
+    ("contract", th("อนุมัติและนัดหมายลงนามสัญญา")),
 ]
 
 

@@ -40,6 +40,7 @@ from app.models import (
 DEFAULT_POLICY = Policy()
 from app.services import audit, bills as bills_svc, consent, ocr_review
 from app.services import policy as policy_svc
+from app.core.i18n import th
 
 
 class AnalysisError(Exception):
@@ -54,7 +55,7 @@ def sync_promptbiz(db: Session, case: Case) -> dict:
         # No consent: never fetch, and drop anything fetched under an earlier grant.
         db.execute(delete(Invoice).where(Invoice.case_id == case.id, Invoice.source.like("promptbiz_%")))
         return {"source": source.name, "mode": source.mode, "fetched": 0, "consent": False,
-                "note": "ไม่มีความยินยอมให้ดึงข้อมูล PromptBiz"}
+                "note": th("ไม่มีความยินยอมให้ดึงข้อมูล PromptBiz")}
     if not case.tax_id:
         return {"source": source.name, "mode": source.mode, "fetched": 0, "note": "case has no tax ID"}
     records = source.fetch_invoices(case.tax_id, consent_token=f"consent-{grant.id}")
@@ -76,7 +77,7 @@ def sync_alt_data(db: Session, case: Case) -> dict:
     if grant is None:
         db.execute(delete(AltDataRecord).where(AltDataRecord.case_id == case.id, AltDataRecord.source.like("utility_%")))
         return {"source": source.name, "mode": source.mode, "fetched": 0, "consent": False,
-                "note": "ไม่มีความยินยอมให้ดึงประวัติค่าสาธารณูปโภค/ค่าเช่า"}
+                "note": th("ไม่มีความยินยอมให้ดึงประวัติค่าสาธารณูปโภค/ค่าเช่า")}
     if not case.tax_id:
         return {"source": source.name, "mode": source.mode, "fetched": 0, "note": "case has no tax ID"}
     bills = source.fetch_bills(case.tax_id, consent_token=f"consent-{grant.id}", scenario=case.sandbox_alt_scenario)
@@ -238,7 +239,7 @@ def run_analysis(db: Session, case_id: int, sync_invoices: bool = True, user_id:
         t.tag_source = "ca" if o.overridden else "rule"
     for t in held:
         t.tag, t.tier, t.loop_id, t.invoice_id, t.tag_source = ocr_review.HELD_TAG, None, None, None, "rule"
-        t.tag_reason = "OCR อ่านจำนวนเงินไม่มั่นใจ — ยังไม่นำมาคำนวณจนกว่าเจ้าหน้าที่จะตรวจทาน"
+        t.tag_reason = th("OCR อ่านจำนวนเงินไม่มั่นใจ — ยังไม่นำมาคำนวณจนกว่าเจ้าหน้าที่จะตรวจทาน")
     _llm_annotations(db, rows, result)
     for inv in invoices:
         inv.matched_transaction_id = None
@@ -325,7 +326,7 @@ def _llm_annotations(db: Session, rows: list[Transaction], r: AnalysisResult) ->
     for s in tagging.suggest(db, [(t.id, t.description, t.counterparty_name) for t in todo], case_id=case_id):
         t = next(x for x in todo if x.id == s.txn_id)
         t.tag_source = "llm"
-        t.tag_reason = f"{t.tag_reason} · AI แนะนำหมวด {s.tag} (ความเชื่อมั่น {s.confidence:.0%}): {s.rationale}"
+        t.tag_reason = th(f"{t.tag_reason} · AI แนะนำหมวด {s.tag} (ความเชื่อมั่น {s.confidence:.0%}): {s.rationale}")
 
 
 def _bank_mismatches(db: Session, case: Case) -> list[dict]:
@@ -336,14 +337,14 @@ def _bank_mismatches(db: Session, case: Case) -> list[dict]:
         if not v or not (v["differs_count"] or v["case_only_count"] or v["bank_only_count"]):
             continue
         ids = [x["transaction_id"] for x in v["differs"]] + v["case_only"]
-        parts = [f"ยอดต่างจากธนาคาร {v['differs_count']} รายการ" if v["differs_count"] else "",
-                 f"ไม่มีในบันทึกธนาคาร {v['case_only_count']} รายการ" if v["case_only_count"] else "",
-                 f"ธนาคารมีแต่ไม่อยู่ในไฟล์ที่อัปโหลด {v['bank_only_count']} รายการ" if v["bank_only_count"] else ""]
+        parts = [th(f"ยอดต่างจากธนาคาร {v['differs_count']} รายการ") if v["differs_count"] else "",
+                 th(f"ไม่มีในบันทึกธนาคาร {v['case_only_count']} รายการ") if v["case_only_count"] else "",
+                 th(f"ธนาคารมีแต่ไม่อยู่ในไฟล์ที่อัปโหลด {v['bank_only_count']} รายการ") if v["bank_only_count"] else ""]
         amount = sum((Decimal(x["debit"]) + Decimal(x["credit"]) for x in v["bank_only"]), Decimal("0"))
         out.append({
             "kind": "bank_record_mismatch", "severity": "high",
-            "title": f"สเตทเมนต์ {d.parse_report.get('bank_code')} {d.parse_report.get('account_no')} ไม่ตรงกับข้อมูลธนาคาร (dStatement)",
-            "detail": " · ".join(p for p in parts if p) + " — ตรวจว่าไฟล์ถูกแก้ไขหรือ OCR อ่านผิด ก่อนใช้ตัวเลขนี้",
+            "title": th(f"สเตทเมนต์ {d.parse_report.get('bank_code')} {d.parse_report.get('account_no')} ไม่ตรงกับข้อมูลธนาคาร (dStatement)"),
+            "detail": th(f"{' · '.join(p for p in parts if p)} — ตรวจว่าไฟล์ถูกแก้ไขหรือ OCR อ่านผิด ก่อนใช้ตัวเลขนี้"),
             "amount": f"{amount:.2f}", "txn_ids": ids,
         })
     return out

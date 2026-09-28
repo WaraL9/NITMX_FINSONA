@@ -18,6 +18,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from app.engine.rules import normalize_party
+from app.core.i18n import th
 
 TOP1_HIGH = Decimal("0.30")  # one customer > 30% of identified revenue
 TOP5_HIGH = Decimal("0.70")
@@ -83,11 +84,11 @@ def analyze(receipts: list[Receipt], months: int, top_n: int = 10) -> Concentrat
 
     flags: list[str] = []
     if shares and top1 > TOP1_HIGH:
-        flags.append(f"ลูกค้ารายใหญ่สุด ({shares[0].name}) คิดเป็น {top1:.0%} ของรายได้ที่ระบุตัวลูกค้าได้")
+        flags.append(th(f"ลูกค้ารายใหญ่สุด ({shares[0].name}) คิดเป็น {top1:.0%} ของรายได้ที่ระบุตัวลูกค้าได้"))
     if top5 > TOP5_HIGH and len(shares) > 5:
-        flags.append(f"ลูกค้า 5 รายแรกคิดเป็น {top5:.0%} ของรายได้")
+        flags.append(th(f"ลูกค้า 5 รายแรกคิดเป็น {top5:.0%} ของรายได้"))
     if shares and top1 > TOP1_HIGH and shares[0].months_active < max(1, months // 2):
-        flags.append("ลูกค้ารายใหญ่สุดจ่ายเงินไม่ถึงครึ่งหนึ่งของเดือนที่พิจารณา — รายได้อาจไม่ต่อเนื่อง")
+        flags.append(th("ลูกค้ารายใหญ่สุดจ่ายเงินไม่ถึงครึ่งหนึ่งของเดือนที่พิจารณา — รายได้อาจไม่ต่อเนื่อง"))
     level = "high" if (top1 > TOP1_HIGH or hhi_i > HHI_HIGH) else "moderate" if (top5 > TOP5_HIGH or hhi_i > 1500) else "low"
     return Concentration(identified, unidentified, len(shares), shares[:top_n], top1, top5.quantize(Decimal("0.0001")),
                          hhi_i, level, flags)

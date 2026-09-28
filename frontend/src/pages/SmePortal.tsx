@@ -11,7 +11,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { Toggle } from "@/components/ui/toggle";
 import { formatMillions, formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
-import { tr } from "@/lib/i18n";
+import { tr, trServer } from "@/lib/i18n";
 
 const MONEY_RE = /^\d+(\.\d{1,2})?$/;
 const inputCls = "h-10 w-full rounded-md border border-line bg-surface px-3 text-sm text-ink outline-none focus:border-navy";
@@ -55,7 +55,7 @@ function Tracker({ a }: { a: Application }) {
               <Circle className="mt-0.5 size-5 shrink-0 text-line" />
             )}
             <div className={cn("text-sm", s.status === "todo" ? "text-muted" : "text-ink", s.status === "current" && "font-medium")}>
-              {tr("ขั้นที่")} {i + 1}: {s.label}
+              {tr("ขั้นที่")} {i + 1}: {trServer(s.label)}
             </div>
           </li>
         ))}
@@ -96,7 +96,7 @@ function Consents({ a }: { a: Application }) {
       <div className="space-y-2">
         {a.consents.map((c) => (
           <div key={c.purpose} className="flex items-center justify-between gap-3 rounded-md border border-line px-3 py-2">
-            <span className="text-sm text-ink">{c.label}</span>
+            <span className="text-sm text-ink">{trServer(c.label)}</span>
             <Toggle checked={c.granted} disabled={m.isPending || c.purpose === "credit_assessment"}
               onChange={(v) => m.mutate({ [c.purpose]: v })} />
           </div>
@@ -206,7 +206,7 @@ function NewApplication({ onCreated, onBack }: { onCreated: (id: number) => void
           <Field label={tr("วงเงินที่ต้องการ (บาท)")}><input className={inputCls} value={pq.requested_amount} onChange={(e) => setPq({ ...pq, requested_amount: e.target.value.replace(/,/g, "") })} /></Field>
           <Field label={tr("ประเภทธุรกิจ")}>
             <select className={inputCls} value={pq.industry} onChange={(e) => setPq({ ...pq, industry: e.target.value })}>
-              {industries?.map((i) => <option key={i.key} value={i.key}>{i.label}</option>)}
+              {industries?.map((i) => <option key={i.key} value={i.key}>{trServer(i.label)}</option>)}
             </select>
           </Field>
           <Field label={tr("ยอดขายเฉลี่ยต่อเดือน (บาท)")}><input className={inputCls} value={pq.monthly_revenue} onChange={(e) => setPq({ ...pq, monthly_revenue: e.target.value.replace(/,/g, "") })} /></Field>
@@ -220,7 +220,7 @@ function NewApplication({ onCreated, onBack }: { onCreated: (id: number) => void
         {result && (
           <div className="rise mt-4 rounded-lg border border-line bg-surface p-4">
             <Badge tone={RESULT[result.result].tone}>{RESULT[result.result].label}</Badge>
-            <ul className="mt-2 space-y-1 text-sm text-body">{result.reasons.map((r) => <li key={r}>• {r}</li>)}</ul>
+            <ul className="mt-2 space-y-1 text-sm text-body">{result.reasons.map((r) => <li key={r}>• {trServer(r)}</li>)}</ul>
             {result.result === "mismatch" && Number(result.safe_limit) > 0 && (
               <Button size="sm" variant="verified" className="mt-3"
                 onClick={() => { setPq({ ...pq, requested_amount: String(Math.floor(Number(result.safe_limit))) }); setResult(null); }}>
@@ -228,8 +228,8 @@ function NewApplication({ onCreated, onBack }: { onCreated: (id: number) => void
               </Button>
             )}
             <div className="mt-3 text-xs text-muted">{tr("สิ่งที่ช่วยให้ผ่านง่ายขึ้น:")}</div>
-            <ul className="text-xs text-body">{result.unlocks.map((u) => <li key={u}>✓ {u}</li>)}</ul>
-            <p className="mt-2 text-[11px] text-muted">{result.disclaimer}</p>
+            <ul className="text-xs text-body">{result.unlocks.map((u) => <li key={u}>✓ {trServer(u)}</li>)}</ul>
+            <p className="mt-2 text-[11px] text-muted">{trServer(result.disclaimer)}</p>
           </div>
         )}
       </Card>
@@ -311,7 +311,7 @@ export default function SmePortal() {
                     <div>
                       <div className="font-semibold text-ink">{a.company_name}</div>
                       <div className="text-sm text-muted">{tr("ขอ")} {formatTHB(a.requested_amount, 0)} {tr("บาท")}</div>
-                      <div className="mt-1 text-xs text-body">{a.tracker.outcome ? tr("มีผลการพิจารณาแล้ว") : current ? tr("กำลัง: {0}", [current.label]) : ""}</div>
+                      <div className="mt-1 text-xs text-body">{a.tracker.outcome ? tr("มีผลการพิจารณาแล้ว") : current ? tr("กำลัง: {0}", [trServer(current.label)]) : ""}</div>
                     </div>
                     {open > 0 && <Badge tone="judge">{tr("ธนาคารขอข้อมูล")} {open} {tr("รายการ")}</Badge>}
                   </div>

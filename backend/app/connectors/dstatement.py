@@ -23,6 +23,7 @@ from typing import Any
 
 from app.config import settings
 from app.connectors.base import ConnectorError, ConsentMissing
+from app.core.i18n import th
 
 SANDBOX_FEEDS = "generated/*/dstatement.json"
 SANDBOX_KEY_ID = "SANDBOX-BANK-KEY-1"
@@ -77,7 +78,7 @@ def sandbox_statement(tax_id: str, bank_code: str, account_no: str, start: date 
             if acct["bank_code"] == bank_code.upper() and _last4(acct["account_no"]) == _last4(account_no):
                 # A copy: callers must never be able to alter the cached feed.
                 return SignedStatement(copy.deepcopy(_window(acct, start, end)), "", SANDBOX_KEY_ID)
-    raise AccountNotFound(f"ธนาคาร {bank_code} ไม่พบบัญชี {account_no} ของผู้ประกอบการรายนี้ (หรือไม่ได้ให้ความยินยอม)")
+    raise AccountNotFound(th(f"ธนาคาร {bank_code} ไม่พบบัญชี {account_no} ของผู้ประกอบการรายนี้ (หรือไม่ได้ให้ความยินยอม)"))
 
 
 def _window(acct: dict, start: date | None, end: date | None) -> dict:

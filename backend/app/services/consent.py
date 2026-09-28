@@ -12,12 +12,13 @@ from sqlalchemy.orm import Session
 
 from app.models import Consent
 from app.services import audit
+from app.core.i18n import th
 
 PURPOSES = {
-    "credit_assessment": "ใช้ข้อมูลเพื่อพิจารณาสินเชื่อ",
-    "promptbiz_data": "ดึงข้อมูลใบแจ้งหนี้และการชำระเงินจากโครงข่าย PromptBiz",
-    "utility_data": "ดึงประวัติการชำระค่าไฟฟ้า ค่าน้ำ และค่าเช่า",
-    "dstatement_data": "ให้ธนาคารต้นทางส่งรายการเดินบัญชีผ่าน dStatement",
+    "credit_assessment": th("ใช้ข้อมูลเพื่อพิจารณาสินเชื่อ"),
+    "promptbiz_data": th("ดึงข้อมูลใบแจ้งหนี้และการชำระเงินจากโครงข่าย PromptBiz"),
+    "utility_data": th("ดึงประวัติการชำระค่าไฟฟ้า ค่าน้ำ และค่าเช่า"),
+    "dstatement_data": th("ให้ธนาคารต้นทางส่งรายการเดินบัญชีผ่าน dStatement"),
 }
 VERSION = "v1"
 

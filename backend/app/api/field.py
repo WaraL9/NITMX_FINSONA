@@ -30,6 +30,7 @@ from app.services import audit, consent, field
 from app.services import policy as policy_svc
 from app.services import queries as qsvc
 from app.services.analysis import AnalysisError, run_analysis
+from app.core.i18n import th
 
 router = APIRouter(tags=["field"])
 public = APIRouter(tags=["sme-public"])  # pre-qualification works before login
@@ -130,8 +131,8 @@ def rm_inbox(db: Session = Depends(get_db), user: User = Depends(require_role("R
 
 # ---------------- SME portal ----------------
 
-DISCLAIMER = ("ผลประเมินเบื้องต้นจากข้อมูลที่ท่านกรอก ไม่ใช่การอนุมัติสินเชื่อ "
-              "ผลจริงขึ้นกับการตรวจสอบกระแสเงินสดจากเอกสารและดุลยพินิจของเจ้าหน้าที่")
+DISCLAIMER = (th("ผลประเมินเบื้องต้นจากข้อมูลที่ท่านกรอก ไม่ใช่การอนุมัติสินเชื่อ "
+              "ผลจริงขึ้นกับการตรวจสอบกระแสเงินสดจากเอกสารและดุลยพินิจของเจ้าหน้าที่"))
 
 
 @public.get("/api/sme/industries", response_model=list[IndustryOut])

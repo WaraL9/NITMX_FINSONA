@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ownerType, tagLabel, tierInfo } from "@/lib/labels";
 import { formatTHB } from "@/lib/money";
 import { cn } from "@/lib/utils";
-import { tr } from "@/lib/i18n";
+import { tr, trServer } from "@/lib/i18n";
 
 const PAGE_SIZE = 50;
 
@@ -141,7 +141,7 @@ export function TransactionsPanel({ caseId, accounts }: { caseId: number; accoun
                       </div>
                     )}
                   </TD>
-                  <TD className="max-w-56" title={t.tag_reason ?? undefined}>
+                  <TD className="max-w-56" title={t.tag_reason ? trServer(t.tag_reason) : undefined}>
                     <div className="flex flex-wrap gap-1">
                       {t.tier && <Badge tone={tierInfo[t.tier]?.tone}>{tierInfo[t.tier]?.short}</Badge>}
                       {t.loop_id && <Badge tone="risk">{t.loop_id}</Badge>}

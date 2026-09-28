@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
 import { formatMillions } from "@/lib/money";
 import { cn } from "@/lib/utils";
-import { tr } from "@/lib/i18n";
+import { tr, trServer } from "@/lib/i18n";
 
 const LEVEL = {
   low: { get label() { return tr("กระจายตัวดี"); }, tone: "verified" as const },
@@ -31,7 +31,7 @@ export function ConcentrationPanel({ caseId, a }: { caseId: number; a: Analysis 
       />
       {c.flags.length > 0 && (
         <ul className="mb-3 space-y-1 rounded-md border border-risk/30 bg-risk-soft p-3 text-sm text-body">
-          {c.flags.map((f) => <li key={f} className="flex gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-risk" />{f}</li>)}
+          {c.flags.map((f) => <li key={trServer(f)} className="flex gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-risk" />{f}</li>)}
         </ul>
       )}
       <div className="space-y-1.5">
@@ -80,13 +80,13 @@ export function AnomaliesPanel({ caseId, a }: { caseId: number; a: Analysis }) {
           {list.map((x, i) => {
             const s = SEVERITY[x.severity];
             return (
-              <button key={`${x.kind}-${i}`} data-testid="anomaly" onClick={() => openRows(caseId, x.txn_ids, x.title)}
+              <button key={`${x.kind}-${i}`} data-testid="anomaly" onClick={() => openRows(caseId, x.txn_ids, trServer(x.title))}
                 className="w-full rounded-md border border-line bg-surface p-3 text-left hover:border-judge/50">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-2 text-sm font-medium text-ink"><s.icon className="size-4" /> {x.title}</span>
+                  <span className="flex items-center gap-2 text-sm font-medium text-ink"><s.icon className="size-4" /> {trServer(x.title)}</span>
                   <Badge tone={s.tone}>{s.label}</Badge>
                 </div>
-                <p className="mt-1 text-xs text-body">{x.detail}</p>
+                <p className="mt-1 text-xs text-body">{trServer(x.detail)}</p>
               </button>
             );
           })}

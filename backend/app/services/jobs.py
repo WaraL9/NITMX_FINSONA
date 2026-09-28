@@ -34,6 +34,7 @@ from app.config import settings
 from app.db import SessionLocal
 from app.models import AnalysisJob
 from app.services.analysis import AnalysisError, run_analysis
+from app.core.i18n import th
 
 log = logging.getLogger("finsona.jobs")
 
@@ -184,7 +185,7 @@ def run(job_id: int, user_id: int | None = None, ip: str | None = None) -> None:
         status, error = "failed", str(e)
     except Exception:  # noqa: BLE001 — a job must always end in a final state
         log.exception("analysis job %s failed", job_id)
-        status, error = "failed", "เกิดข้อผิดพลาดภายในระหว่างวิเคราะห์ — ดูบันทึกของเซิร์ฟเวอร์"
+        status, error = "failed", th("เกิดข้อผิดพลาดภายในระหว่างวิเคราะห์ — ดูบันทึกของเซิร์ฟเวอร์")
     finally:
         stop.set()
         beat.join()
@@ -208,7 +209,7 @@ def _expire_if_stale(db: Session, job: AnalysisJob) -> bool:
     data = _read(job.id)
     job.stages = data["stages"] if isinstance(data, dict) else job.stages
     job.status = "failed"
-    job.error = "กระบวนการวิเคราะห์หยุดทำงาน (เซิร์ฟเวอร์เริ่มใหม่หรือขัดข้อง) — กดวิเคราะห์ใหม่อีกครั้ง"
+    job.error = th("กระบวนการวิเคราะห์หยุดทำงาน (เซิร์ฟเวอร์เริ่มใหม่หรือขัดข้อง) — กดวิเคราะห์ใหม่อีกครั้ง")
     job.finished_at = datetime.now(timezone.utc)
     db.commit()
     _clear(job.id)

@@ -15,6 +15,9 @@ state, what is done, and what is next. Product spec: `docs/ITMX.md` (Thai). Back
   `npm run gen:api` if API shapes changed.
 - UI text is Thai, always inside `tr("…")` (`@/lib/i18n`; not `t` — that is a transaction variable) with the English
   added to `frontend/src/i18n/en.ts`; `i18n.test.ts` fails otherwise. Default theme is "dim" with a light toggle.
+- Backend text a user sees (reasons, signals, warnings, errors) goes in `th("…")`/`th(f"…")` (`app/core/i18n.py`,
+  identity) with English added to `frontend/src/i18n/en_server.json`; `test_i18n_catalog.py` fails otherwise. Never
+  wrap strings used to match bank data or to prompt the LLM.
 
 ## Rules that must not break
 - **The engine does all money math, deterministically.** Money = `Decimal`, stored as integer satang, sent as

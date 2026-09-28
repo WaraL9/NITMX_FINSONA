@@ -13,6 +13,7 @@ from decimal import Decimal
 
 from app.engine.ratios import limit_at
 from app.engine.types import Policy
+from app.core.i18n import th
 
 ZERO = Decimal("0")
 
@@ -62,48 +63,48 @@ def explain(x: ExplainInputs) -> tuple[Decimal, list[Driver]]:
     drivers: list[Driver] = []
 
     tier_titles = {
-        "T1_golden": ("รายได้ยืนยันด้วยใบแจ้งหนี้ PromptBiz / e-Tax",
-                      "ยอดรับชำระตรงกับ e-Invoice บนโครงข่าย PromptBiz หรือใบกำกับภาษีอิเล็กทรอนิกส์"),
-        "T2_tax": ("รายได้สอดคล้องกับ ภ.พ.30", "อยู่ในยอดขายที่ยื่นกรมสรรพากร"),
-        "T3_operational": ("รายได้เชิงบริบท (พร้อมเพย์/ลูกค้าประจำ/CA รับรอง)", "มีหลักฐานการค้าต่อเนื่อง"),
+        "T1_golden": (th("รายได้ยืนยันด้วยใบแจ้งหนี้ PromptBiz / e-Tax"),
+                      th("ยอดรับชำระตรงกับ e-Invoice บนโครงข่าย PromptBiz หรือใบกำกับภาษีอิเล็กทรอนิกส์")),
+        "T2_tax": (th("รายได้สอดคล้องกับ ภ.พ.30"), th("อยู่ในยอดขายที่ยื่นกรมสรรพากร")),
+        "T3_operational": (th("รายได้เชิงบริบท (พร้อมเพย์/ลูกค้าประจำ/CA รับรอง)"), th("มีหลักฐานการค้าต่อเนื่อง")),
     }
     for key, (title, why) in tier_titles.items():
         amount = x.tiers.get(key, ZERO)
         if amount > 0:
             drivers.append(Driver("positive", key, title,
-                                  f"{why} รวม {_fmt(amount)} บาท — หากไม่นับ วงเงินปลอดภัยจะลดลง",
+                                  th(f"{why} รวม {_fmt(amount)} บาท — หากไม่นับ วงเงินปลอดภัยจะลดลง"),
                                   base - safe(x.cfo_monthly - per_month(amount)), key))
 
     if x.household > 0:
-        drivers.append(Driver("positive", "household", "แยกค่าใช้จ่ายครัวเรือนออกจากต้นทุนธุรกิจ",
-                              f"ค่าเทอม ค่างวดรถส่วนตัว และเงินโอนให้ครอบครัว {_fmt(x.household)} บาท "
-                              "ไม่ถูกนับเป็นต้นทุนของบริษัท (Commingling Filter)",
+        drivers.append(Driver("positive", "household", th("แยกค่าใช้จ่ายครัวเรือนออกจากต้นทุนธุรกิจ"),
+                              th(f"ค่าเทอม ค่างวดรถส่วนตัว และเงินโอนให้ครอบครัว {_fmt(x.household)} บาท "
+                              "ไม่ถูกนับเป็นต้นทุนของบริษัท (Commingling Filter)"),
                               base - safe(x.cfo_monthly - per_month(x.household)), "household"))
 
     if x.cash_pattern_detected:
-        drivers.append(Driver("info", "cash_pattern", "การถอนเงินสดเป็นรอบสม่ำเสมอ",
-                              f"ถอนเงินสดรวม {_fmt(x.cash_total)} บาท เป็นรอบวันซื้อวัสดุ/จ่ายค่าแรงหน้างาน — "
-                              "นับเป็นต้นทุนดำเนินงานจริง ไม่ใช่เงินรั่วไหล", ZERO, "cost_cash_withdrawal"))
+        drivers.append(Driver("info", "cash_pattern", th("การถอนเงินสดเป็นรอบสม่ำเสมอ"),
+                              th(f"ถอนเงินสดรวม {_fmt(x.cash_total)} บาท เป็นรอบวันซื้อวัสดุ/จ่ายค่าแรงหน้างาน — "
+                              "นับเป็นต้นทุนดำเนินงานจริง ไม่ใช่เงินรั่วไหล"), ZERO, "cost_cash_withdrawal"))
 
     if x.loops > 0 or x.owner_inflow > 0:
-        drivers.append(Driver("info", "netting", "ตัดยอดหมุนเวียนเทียมและเงินทุนเจ้าของออกแล้ว",
-                              f"เงินโอนวน {_fmt(x.loops)} บาท และเงินจากเจ้าของ/ครอบครัว {_fmt(x.owner_inflow)} บาท "
-                              "ไม่ถูกนับเป็นรายได้ — ป้องกันการประเมินวงเงินเกินจริง", ZERO, "own_account_loops"))
+        drivers.append(Driver("info", "netting", th("ตัดยอดหมุนเวียนเทียมและเงินทุนเจ้าของออกแล้ว"),
+                              th(f"เงินโอนวน {_fmt(x.loops)} บาท และเงินจากเจ้าของ/ครอบครัว {_fmt(x.owner_inflow)} บาท "
+                              "ไม่ถูกนับเป็นรายได้ — ป้องกันการประเมินวงเงินเกินจริง"), ZERO, "own_account_loops"))
 
     if x.existing_debt_monthly > 0:
-        drivers.append(Driver("risk", "existing_debt", "ภาระหนี้เดิม",
-                              f"ผ่อนหนี้เดิม {_fmt(x.existing_debt_monthly)} บาท/เดือน ลดความสามารถรับหนี้ใหม่",
+        drivers.append(Driver("risk", "existing_debt", th("ภาระหนี้เดิม"),
+                              th(f"ผ่อนหนี้เดิม {_fmt(x.existing_debt_monthly)} บาท/เดือน ลดความสามารถรับหนี้ใหม่"),
                               base - safe(x.cfo_monthly, ZERO), "debt_service_total"))
 
     if x.haircut > 0:
-        drivers.append(Driver("risk", "alt_data", "พฤติกรรมชำระค่าสาธารณูปโภค/ค่าเช่า",
-                              f"ปรับลดกระแสเงินสด {x.haircut * 100:.0f}% ตามสัญญาณเตือนล่วงหน้า",
+        drivers.append(Driver("risk", "alt_data", th("พฤติกรรมชำระค่าสาธารณูปโภค/ค่าเช่า"),
+                              th(f"ปรับลดกระแสเงินสด {x.haircut * 100:.0f}% ตามสัญญาณเตือนล่วงหน้า"),
                               base - safe(x.cfo_monthly_before_haircut), None))
 
     if x.pending_unverified > 0:
-        drivers.append(Driver("risk", "unverified", "รายการรอตรวจสอบ (Watchlist) ยังไม่นับเป็นรายได้",
-                              f"เงินเข้า {_fmt(x.pending_unverified)} บาท ยังไม่มีเอกสารรองรับ — "
-                              "หาก CA รับรองทั้งหมด วงเงินปลอดภัยจะเพิ่มได้สูงสุดตามตัวเลขนี้",
+        drivers.append(Driver("risk", "unverified", th("รายการรอตรวจสอบ (Watchlist) ยังไม่นับเป็นรายได้"),
+                              th(f"เงินเข้า {_fmt(x.pending_unverified)} บาท ยังไม่มีเอกสารรองรับ — "
+                              "หาก CA รับรองทั้งหมด วงเงินปลอดภัยจะเพิ่มได้สูงสุดตามตัวเลขนี้"),
                               safe(x.cfo_monthly + per_month(x.pending_unverified)) - base, "unverified_pending"))
 
     order = {"positive": 0, "risk": 1, "info": 2}

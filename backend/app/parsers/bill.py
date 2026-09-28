@@ -20,6 +20,7 @@ import pdfplumber
 from app.core.dates import normalize_year, parse_thai_date
 from app.core.money import MoneyError, to_money
 from app.parsers.base import BBox, PageWords, ParseError, UnsupportedFormat
+from app.core.i18n import th
 
 PARSER_VERSION = "bill-v1.0"
 
@@ -146,12 +147,12 @@ def parse_bill_words(pages: list[PageWords]) -> ParsedBill:
 
     warnings = []
     if amount <= 0:
-        warnings.append("ยอดเงินไม่เป็นบวก")
+        warnings.append(th("ยอดเงินไม่เป็นบวก"))
     if paid and paid > due:
-        warnings.append(f"ชำระหลังกำหนด {(paid - due).days} วัน")
+        warnings.append(th(f"ชำระหลังกำหนด {(paid - due).days} วัน"))
     is_receipt = "ใบเสร็จรับเงิน" in text
     if is_receipt and paid is None:
-        warnings.append("ใบเสร็จไม่มีวันที่ชำระ")
+        warnings.append(th("ใบเสร็จไม่มีวันที่ชำระ"))
 
     def value(name: str) -> str | None:
         return found[name].group(1).strip() if name in found else None

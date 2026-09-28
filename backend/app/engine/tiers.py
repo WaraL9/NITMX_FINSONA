@@ -20,6 +20,7 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from app.engine.rules import is_individual, normalize_party
 from app.engine.types import EFiling, EInvoice, ETxn, WatchItem
+from app.core.i18n import th
 
 AMOUNT_TOL = Decimal("1.00")
 WHT_RATES = (Decimal("0.01"), Decimal("0.02"), Decimal("0.03"))
@@ -60,8 +61,8 @@ def match_invoices(receipts: list[ETxn], invoices: list[EInvoice]) -> dict[int, 
             days = (r.posted_at.date() - inv.issue_date).days
             if not (0 <= days <= PAY_WINDOW.days):
                 continue
-            options = [(inv.total, "ยอดตรงกับใบแจ้งหนี้")]
-            options += [(inv.total - _q(inv.subtotal * w), f"ยอดสุทธิหลังหักภาษี ณ ที่จ่าย {int(w * 100)}%")
+            options = [(inv.total, th("ยอดตรงกับใบแจ้งหนี้"))]
+            options += [(inv.total - _q(inv.subtotal * w), th(f"ยอดสุทธิหลังหักภาษี ณ ที่จ่าย {int(w * 100)}%"))
                         for w in WHT_RATES]
             for expected, how in options:
                 diff = abs(r.credit - expected)
@@ -89,7 +90,7 @@ def allocate_tax_capacity(candidates: list[ETxn], filings: dict[str, EFiling],
         for t in order:
             if t.credit <= remaining:
                 remaining -= t.credit
-                out[t.id] = f"อยู่ในยอดขายที่ยื่น ภ.พ.30 เดือน {month}"
+                out[t.id] = th(f"อยู่ในยอดขายที่ยื่น ภ.พ.30 เดือน {month}")
     return out
 
 
@@ -103,9 +104,9 @@ def operational(candidates: list[ETxn], recurring3: set[str]) -> dict[int, str]:
         is_pp = t.code == "PP-IN" or "พร้อมเพย์" in t.description
         n = pp_count[(t.account_id, t.posted_at.strftime("%Y-%m"))]
         if is_pp and n >= PP_VELOCITY_MIN and t.credit <= PP_MICRO_MAX:
-            out[t.id] = f"รับพร้อมเพย์รายย่อยสม่ำเสมอ ({n} รายการในเดือน) — ฐานลูกค้ารายย่อยจริง"
+            out[t.id] = th(f"รับพร้อมเพย์รายย่อยสม่ำเสมอ ({n} รายการในเดือน) — ฐานลูกค้ารายย่อยจริง")
         elif not is_pp and normalize_party(t.counterparty_name) in recurring3:
-            out[t.id] = "ลูกค้าประจำ (รับชำระซ้ำหลายครั้ง) แต่ยอดเกินที่ยื่นภาษี"
+            out[t.id] = th("ลูกค้าประจำ (รับชำระซ้ำหลายครั้ง) แต่ยอดเกินที่ยื่นภาษี")
     return out
 
 
@@ -114,22 +115,22 @@ def watch_item(t: ETxn, period_end: date, counterparty_count: int) -> WatchItem:
     notes: list[str] = []
     if t.code == "CD" or "ฝากเงินสด" in t.description:
         score += 0.3
-        notes.append("ฝากเงินสดก้อนใหญ่ ไม่มีเอกสารการค้ารองรับ")
+        notes.append(th("ฝากเงินสดก้อนใหญ่ ไม่มีเอกสารการค้ารองรับ"))
     else:
         memo = MEMO_RE.search(t.description)
         if memo:
-            notes.append(f"ไม่มีใบแจ้งหนี้ PromptBiz หรือยอดใน ภ.พ.30 แต่พบข้อความ “{memo.group(1).strip()}”")
+            notes.append(th(f"ไม่มีใบแจ้งหนี้ PromptBiz หรือยอดใน ภ.พ.30 แต่พบข้อความ “{memo.group(1).strip()}”"))
         else:
-            notes.append("ไม่มีใบแจ้งหนี้ PromptBiz หรือยอดใน ภ.พ.30 รองรับ")
+            notes.append(th("ไม่มีใบแจ้งหนี้ PromptBiz หรือยอดใน ภ.พ.30 รองรับ"))
         if is_individual(t.counterparty_name):
             score += 0.1
-            notes.append("โอนจากบุคคลธรรมดา")
+            notes.append(th("โอนจากบุคคลธรรมดา"))
     if t.counterparty_name and counterparty_count <= 1:
         score += 0.05
-        notes.append("คู่โอนรายนี้ปรากฏครั้งเดียวในช่วงข้อมูล")
+        notes.append(th("คู่โอนรายนี้ปรากฏครั้งเดียวในช่วงข้อมูล"))
     if (period_end - t.posted_at.date()).days <= 14:
         score += 0.15
-        notes.append("เกิดขึ้นช่วงใกล้ยื่นขอสินเชื่อ")
+        notes.append(th("เกิดขึ้นช่วงใกล้ยื่นขอสินเชื่อ"))
     if t.credit >= Decimal("500000"):
         score += 0.1
     return WatchItem(t.id, round(min(score, 0.99), 2), " · ".join(notes))

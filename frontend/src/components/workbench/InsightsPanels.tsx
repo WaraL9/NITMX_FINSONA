@@ -7,7 +7,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { Toggle } from "@/components/ui/toggle";
 import { formatMillions } from "@/lib/money";
 import { cn } from "@/lib/utils";
-import { tr } from "@/lib/i18n";
+import { tr, trServer } from "@/lib/i18n";
 
 /** E8-11 / E7-06: why the safe limit is what it is — each factor measured by ablation. */
 export function DriversPanel({ caseId, a }: { caseId: number; a: Analysis }) {
@@ -32,12 +32,12 @@ export function DriversPanel({ caseId, a }: { caseId: number; a: Analysis }) {
           return (
             <button
               key={d.key}
-              onClick={() => d.metric && openMetric(caseId, d.metric, d.title)}
+              onClick={() => d.metric && openMetric(caseId, d.metric, trServer(d.title))}
               className={cn("w-full rounded-md border border-line bg-surface px-3 py-2 text-left", d.metric && "hover:border-navy/50")}
             >
               <div className="flex items-center justify-between gap-3">
                 <span className={cn("flex items-center gap-2 text-sm font-medium text-ink")}>
-                  <Icon className={cn("size-4 shrink-0", color)} /> {d.title}
+                  <Icon className={cn("size-4 shrink-0", color)} /> {trServer(d.title)}
                 </span>
                 <span className={cn("num shrink-0 font-mono text-sm", color)}>{label}</span>
               </div>
@@ -46,7 +46,7 @@ export function DriversPanel({ caseId, a }: { caseId: number; a: Analysis }) {
                   <div className={cn("h-full rounded-full", bar)} style={{ width: `${(Math.abs(impact) / scale) * 100}%` }} />
                 </div>
               )}
-              <div className="mt-1 text-xs text-muted">{d.detail}</div>
+              <div className="mt-1 text-xs text-muted">{trServer(d.detail)}</div>
             </button>
           );
         })}
@@ -93,7 +93,7 @@ export function AltDataPanel({ caseId, a }: { caseId: number; a: Analysis }) {
             <Badge tone={haircut > 0 ? "risk" : "verified"} className="ml-2">{tr("ปรับลดกระแสเงินสด")} {(haircut * 100).toFixed(0)}%</Badge>
           </div>
           <ul className="mt-1 list-disc pl-4 text-xs text-body">
-            {alt.signals.map((s) => <li key={s}>{s}</li>)}
+            {alt.signals.map((s) => <li key={s}>{trServer(s)}</li>)}
           </ul>
         </div>
       </div>
