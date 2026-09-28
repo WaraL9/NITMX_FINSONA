@@ -149,6 +149,7 @@ test("e-Tax invoice: an uploaded ETDA XML verifies a receipt as Tier 1", async (
   await expect(page.getByTestId("job-count")).toHaveText("8/8", { timeout: 30_000 });
   await expect(row).toContainText("→ ระดับ 1", { timeout: 30_000 });
   await expect(row).toContainText("XML (ETDA)");
+  await expect(row.getByTestId("etax-signature")).toContainText("ลายมือชื่อดิจิทัลถูกต้อง"); // XAdES verified against the (sandbox) CA
 });
 
 test("utility bill photo: OCR-uncertain amount is held until a CA confirms it", async ({ page, request }) => {

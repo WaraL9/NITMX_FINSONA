@@ -1958,7 +1958,14 @@ export interface components {
              * Signature
              * @enum {string}
              */
-            signature: "present_unverified" | "absent";
+            signature: "verified" | "valid_untrusted" | "absent";
+            /**
+             * Signer
+             * @description from the signing certificate: name, tax_id, issuer
+             */
+            signer?: {
+                [key: string]: string | null;
+            } | null;
             /**
              * Field Confidence
              * @default {}

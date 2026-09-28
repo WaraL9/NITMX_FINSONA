@@ -799,4 +799,8 @@ export const EN: Record<string, string> = {
   "เลขที่": "number",
   "สแกน/รูปถ่าย (OCR)": "Scan/photo (OCR)",
   "ยังไม่นำไปจับคู่รายได้จนกว่าเจ้าหน้าที่จะตรวจทาน": "Not matched to revenue until staff review it",
+  // e-Tax signatures
+  "ผู้ลงนาม {0} · ออกโดย {1}": "Signed by {0} · issued by {1}",
+  "ลายมือชื่อดิจิทัลถูกต้อง": "Digital signature verified",
+  "ลายมือชื่อถูกต้อง · ผู้ออกใบรับรองไม่อยู่ในรายการที่เชื่อถือ": "Signature intact · issuer not trusted",
 };

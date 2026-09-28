@@ -14,3 +14,4 @@ pillow==12.*
 pypdfium2==5.*
 anthropic>=0.75
 cryptography>=43
+signxml==5.1.*

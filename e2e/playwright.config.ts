@@ -27,7 +27,8 @@ export default defineConfig({
   webServer: {
     command: "npm run dev",
     cwd: "..",
-    url: "http://localhost:5173",
+    // The API behind the proxy, not just Vite: the first test logs in straight away.
+    url: "http://localhost:5173/api/health",
     reuseExistingServer: true,
     timeout: 120_000,
   },

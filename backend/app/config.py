@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     database_url: str = f"sqlite:///{(BACKEND_DIR / 'finsona.db').as_posix()}"
     storage_dir: Path = BACKEND_DIR / "storage"
     data_dir: Path = REPO_DIR / "data"
+    # CA certificates the bank trusts for e-Tax invoice signatures (PEM files); see data/trust/README.md.
+    etax_trust_dir: Path = REPO_DIR / "data" / "trust"
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
     # Feature flags (E0-06). AI calls fall back to cached responses when live is off.

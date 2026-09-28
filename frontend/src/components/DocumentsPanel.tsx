@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarCheck, CalendarX, CheckCircle2, Clock, FileCode2, FileLock2, FileText, Home, Landmark, Loader2, Receipt, ScanLine, TriangleAlert, Upload, Zap } from "lucide-react";
+import { CalendarCheck, CalendarX, CheckCircle2, Clock, FileCode2, ShieldCheck, FileLock2, FileText, Home, Landmark, Loader2, Receipt, ScanLine, TriangleAlert, Upload, Zap } from "lucide-react";
 import { useRef, useState, type DragEvent, type ReactNode } from "react";
 import {
   api,
@@ -196,6 +196,16 @@ function ETaxRow({ doc, r, onReview }: { doc: DocumentOut; r: ETaxReport; onRevi
             <Badge tone="neutral">{link.review_status === "corrected" ? tr("CA แก้ไขแล้ว") : tr("CA ยืนยันแล้ว")}</Badge>
           )}
           <Badge tone={r.source === "pdf_text" || r.source === "scan_ocr" ? "judge" : "navy"}>{ETAX_SOURCE[r.source]}</Badge>
+          {r.signature === "verified" && (
+            <Badge tone="verified" data-testid="etax-signature" title={tr("ผู้ลงนาม {0} · ออกโดย {1}", [r.signer?.name ?? "—", r.signer?.issuer ?? "—"])}>
+              <ShieldCheck className="size-3" /> {tr("ลายมือชื่อดิจิทัลถูกต้อง")}
+            </Badge>
+          )}
+          {r.signature === "valid_untrusted" && (
+            <Badge tone="judge" data-testid="etax-signature" title={tr("ผู้ลงนาม {0} · ออกโดย {1}", [r.signer?.name ?? "—", r.signer?.issuer ?? "—"])}>
+              {tr("ลายมือชื่อถูกต้อง · ผู้ออกใบรับรองไม่อยู่ในรายการที่เชื่อถือ")}
+            </Badge>
+          )}
           {link?.status === "held_review" && isCa && (
             <Button size="sm" variant="secondary" data-testid="etax-review" onClick={() => onReview(doc)}>{tr("ตรวจทาน")}</Button>
           )}
@@ -582,7 +592,7 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
       const code = err instanceof UploadError ? err.body.code : "network";
       setLocked(null);
       // e-Tax rejections carry a specific Thai explanation from the server.
-      const serverText = err instanceof UploadError && ["seller_mismatch", "duplicate_invoice"].includes(code) ? err.body.message : null;
+      const serverText = err instanceof UploadError && ["seller_mismatch", "duplicate_invoice", "signature_invalid"].includes(code) ? err.body.message : null;
       setMessage({ tone: "risk", text: `${file.name}: ${serverText ?? ERROR_TEXT[code] ?? err.message}` });
     },
   });

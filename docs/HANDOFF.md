@@ -94,7 +94,7 @@ PDF; `?original=true` gives the uploaded bytes.)
 Ingest (auto-detect, passwords, SHA-256, encrypted at rest), e-Tax invoice ingest (E2-13: ETDA XML / PDF with
 embedded XML / PDF text fallback → `Invoice(source="etax_upload", document_id)` → T1 matching; seller must be the
 applicant; same invoice twice rejected; a PromptBiz copy of the same invoice wins so one sale never verifies two
-receipts; XAdES signature only *detected*, not verified; scanned/photographed invoices go through OCR — an uncertain total is held out of T1 matching and blocks memo signing until a CA confirms/corrects it via `POST /api/cases/{id}/invoices/{iid}/review`), synthetic statement/ภ.พ.30 generator, parser with
+receipts; XAdES signatures verified with signxml (`parsers/etax_signature.py`): verified (chains to a CA in `data/trust/` — empty until the bank adds the Thai e-Tax CAs — or to the generated sandbox CA in sandbox mode) / valid_untrusted / invalid → upload refused as tampered / absent → flagged; the sample invoices are signed by `synth/sandbox_ca.py`; scanned/photographed invoices go through OCR — an uncertain total is held out of T1 matching and blocks memo signing until a CA confirms/corrects it via `POST /api/cases/{id}/invoices/{iid}/review`), synthetic statement/ภ.พ.30 generator, parser with
 bboxes, OCR path (sandbox replays recorded responses keyed by SHA-256; Azure Document Intelligence adapter
 untested — no key), OCR confidence gating + review queue (uncertain amounts held out of all figures; memo signing
 blocked while pending), duplicate pages / overlapping statements / coverage gaps, transfer-loop detection, owner &
@@ -106,13 +106,12 @@ case scoping, PDPA consents, hash-chained audit log + CSV, compliance/metrics/po
 portal, eval harness (`python -m app.eval.run`, 50 synthetic cases), instant demo reset, offline mode,
 Playwright e2e, single-process prod server (`npm start`) + Dockerfile.
 
-Test counts at handoff: 236 backend, 22 frontend, 10 e2e — all green.
+Test counts at handoff: 237 backend, 22 frontend, 10 e2e — all green.
 
 ## Next
 Every code item in `docs/BACKLOG.md` is done. Candidate follow-ups (not in the backlog):
 - Bilingual server text: send message codes + params from the backend so engine reasons, XAI drivers, alt-data
   signals and anomaly titles translate too (the UI chrome already does — E8-13).
-- XAdES signature verification for e-Tax XML (needs signxml/lxml + the Thai CA chain).
 - Rehearse the demo script end to end and record the backup video (below).
 
 Blocked on the team (not code): real-bank statement parsers need real sample statements (T-01); LINE integration
@@ -121,9 +120,10 @@ needs a LINE Official Account; backup demo video needs `npx playwright install f
 ## Not verified
 i18n: server-generated narrative (tag reasons, XAI driver texts, alt-data signals, anomaly titles, warnings, the
 credit memo PDF) is Thai only — making it bilingual needs message codes from the backend.
-e-Tax: digital signatures are detected but not cryptographically verified (needs signxml/lxml + the Thai CA
-chain); an unsigned upload is flagged as SME-provided evidence and still counts as T1 once it matches a real
-receipt. PDF/A-3 conformance of
+e-Tax: signatures are verified cryptographically, but no real Thai CA certificate is bundled — put the e-Tax
+CAs' PEMs in `data/trust/` for production (until then real invoices read as valid_untrusted). Certificate validity
+is checked at the current time, not the signing time. An unsigned upload is flagged as SME-provided evidence and
+still counts as T1 once it matches a real receipt. PDF/A-3 conformance of
 embedded-XML PDFs is not checked.
 Bills: OCR of *new* photos needs the
 live Azure provider (the sandbox only replays recorded responses for the generated samples).

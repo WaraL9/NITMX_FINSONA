@@ -141,7 +141,8 @@ class ETaxParseReport(BaseModel):
     currency: str
     amounts: dict[str, str] = Field(description="subtotal (excl. VAT), vat, total — decimal strings")
     bboxes: dict[str, list[float]]
-    signature: Literal["present_unverified", "absent"]
+    signature: Literal["verified", "valid_untrusted", "absent"]
+    signer: dict[str, str | None] | None = Field(default=None, description="from the signing certificate: name, tax_id, issuer")
     field_confidence: dict[str, float] = {}
     low_confidence: list[str] = []
     ocr: dict[str, Any] | None = None

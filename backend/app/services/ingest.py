@@ -33,7 +33,7 @@ from app.ocr.base import get_provider as get_ocr_provider
 from app.services import ocr_review
 from app.parsers.base import (NoTextLayer, ParsedRow, ParsedStatement, ParseError, UnsupportedFormat,
                                parse_statement, parse_statement_words)
-from app.parsers.etax import (ParsedETax, detect_etax_pdf, embedded_xml, looks_like_xml, parse_etax_pdf,
+from app.parsers.etax import (ParsedETax, SignatureInvalid, detect_etax_pdf, embedded_xml, looks_like_xml, parse_etax_pdf,
                               parse_etax_words, parse_etax_xml)
 from app.parsers.bill import ParsedBill, detect_bill, page_text, parse_bill_words, text_layer_words
 from app.parsers.pp30 import ParsedPP30, detect_pp30, parse_pp30
@@ -91,6 +91,10 @@ class DuplicateInvoice(IngestError):
 
 class SellerMismatch(IngestError):
     code = "seller_mismatch"
+
+
+class TamperedSignature(IngestError):
+    code = "signature_invalid"
 
 
 class BadRequest(IngestError):
@@ -264,6 +268,8 @@ def ingest_document(
                 except NoTextLayer:  # a scanned invoice: read it like a photo
                     ocr = _ocr(plain, digest)
                     etax = parse_etax_words(ocr.pages, source="scan_ocr")
+        except SignatureInvalid as e:
+            raise TamperedSignature(str(e)) from e
         except UnsupportedFormat as e:
             raise UnsupportedDocument(str(e)) from e
         except ParseError as e:
@@ -508,6 +514,7 @@ def _store_etax(db: Session, case: Case, doc: Document, inv: ParsedETax, ocr: Oc
         "amounts": {"subtotal": f"{inv.subtotal:.2f}", "vat": f"{inv.vat:.2f}", "total": f"{inv.total:.2f}"},
         "bboxes": {k: [b.x0, b.top, b.x1, b.bottom] for k, b in inv.bboxes.items()},
         "signature": inv.signature,
+        "signer": inv.signer,
         "field_confidence": inv.confidence,
         "low_confidence": low,
         "ocr": {"provider": ocr.provider, "mean_confidence": ocr.mean_confidence} if ocr else None,

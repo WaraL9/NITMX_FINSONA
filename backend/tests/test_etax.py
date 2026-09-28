@@ -26,6 +26,30 @@ def _xml(sample: dict) -> bytes:
     return (ETAX / sample["xml"]).read_bytes()
 
 
+def _unsigned(xml: bytes) -> bytes:
+    """The same invoice without its signature (for tests that edit the XML)."""
+    from lxml import etree
+
+    root = etree.fromstring(xml)
+    for sig in root.findall(".//{http://www.w3.org/2000/09/xmldsig#}Signature"):
+        sig.getparent().remove(sig)
+    return etree.tostring(root, xml_declaration=True, encoding="UTF-8")
+
+
+def _resign(xml: bytes, tax_id: str, *, trusted: bool) -> bytes:
+    """Sign with a certificate from the sandbox CA (trusted) or from a CA nobody trusts."""
+    import tempfile
+    from pathlib import Path as P
+
+    from app.config import settings
+    from app.synth import sandbox_ca
+
+    folder = settings.data_dir / "generated" / "sandbox_ca" if trusted else P(tempfile.mkdtemp())
+    ca, ca_key = sandbox_ca.ensure_ca(folder)
+    cert, key = sandbox_ca.issue(ca, ca_key, tax_id, "ทดสอบ")
+    return sandbox_ca.sign(_unsigned(xml), cert, key)
+
+
 # ---- parser -------------------------------------------------------------------------------
 
 def test_xml_fields(samples):
@@ -36,24 +60,42 @@ def test_xml_fields(samples):
     assert inv.seller_tax_id == KITTI_TAX_ID  # 18-digit TXID (tax ID + branch) -> 13-digit tax ID
     assert inv.buyer_name == s["buyer_name"]
     assert (inv.subtotal, inv.vat, inv.total) == (Decimal(s["subtotal"]), Decimal(s["vat"]), Decimal(s["total"]))
-    assert inv.signature == "absent"
-    assert any("ลายมือชื่อดิจิทัล" in w for w in inv.warnings)
+    # The sample is signed by the seller's certificate from the (sandbox-trusted) CA.
+    assert inv.signature == "verified" and inv.warnings == []
+    assert inv.signer["tax_id"] == KITTI_TAX_ID and inv.signer["issuer"] == "Finsona Sandbox e-Tax CA"
 
 
-def test_xml_signature_detected(samples):
-    signature = (b'<ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:SignedInfo/>'
-                 b'<ds:SignatureValue>AA==</ds:SignatureValue></ds:Signature>')
-    xml = _xml(samples[0]).replace(b"</rsm:TaxInvoice_CrossIndustryInvoice>",
-                                   signature + b"</rsm:TaxInvoice_CrossIndustryInvoice>")
-    inv = parse_etax_xml(xml)
-    assert inv.signature == "present_unverified"
-    assert not any("ลายมือชื่อดิจิทัล" in w for w in inv.warnings)
+def test_signature_outcomes(samples):
+    from app.parsers.etax import SignatureInvalid
+
+    s = samples[0]
+    # Changed after signing: the amount no longer matches what was signed -> refused.
+    tampered = _xml(s).replace(f">{s['total']}<".encode(), b">951995.30<", 1)
+    with pytest.raises(SignatureInvalid, match="ถูกแก้ไขหลังลงนาม"):
+        parse_etax_xml(tampered)
+    # A made-up signature element is refused too.
+    fake = _unsigned(_xml(s)).replace(
+        b"</rsm:TaxInvoice_CrossIndustryInvoice>",
+        b'<ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:SignedInfo/>'
+        b"<ds:SignatureValue>AA==</ds:SignatureValue></ds:Signature></rsm:TaxInvoice_CrossIndustryInvoice>")
+    with pytest.raises(SignatureInvalid):
+        parse_etax_xml(fake)
+    # Unsigned: accepted as SME-provided evidence, flagged.
+    bare = parse_etax_xml(_unsigned(_xml(s)))
+    assert bare.signature == "absent" and any("ไม่มีลายมือชื่อดิจิทัล" in w for w in bare.warnings)
+    # Intact, but signed under a CA the bank does not trust.
+    other = parse_etax_xml(_resign(_xml(s), KITTI_TAX_ID, trusted=False))
+    assert other.signature == "valid_untrusted" and any("ยังไม่อยู่ในรายการที่ธนาคารเชื่อถือ" in w for w in other.warnings)
+    # Trusted CA, but the certificate belongs to someone other than the seller.
+    stranger = parse_etax_xml(_resign(_xml(s), "0105999999999", trusted=True))
+    assert stranger.signature == "verified" and any("ไม่ใช่ผู้ขาย" in w for w in stranger.warnings)
 
 
 def test_xml_rejects_dtd_and_non_sales(samples):
     with pytest.raises(ParseError, match="DTD"):
         parse_etax_xml(b'<?xml version="1.0"?><!DOCTYPE x [<!ENTITY a "b">]><x>&a;</x>')
-    credit_note = _xml(samples[0]).replace(b"<ram:TypeCode>388</ram:TypeCode>", b"<ram:TypeCode>81</ram:TypeCode>")
+    credit_note = _unsigned(_xml(samples[0])).replace(b"<ram:TypeCode>388</ram:TypeCode>",
+                                                      b"<ram:TypeCode>81</ram:TypeCode>")
     with pytest.raises(UnsupportedFormat, match="ใบลดหนี้"):
         parse_etax_xml(credit_note)
     with pytest.raises(UnsupportedFormat):
@@ -62,7 +104,8 @@ def test_xml_rejects_dtd_and_non_sales(samples):
 
 def test_xml_total_mismatch_is_a_warning(samples):
     s = samples[0]
-    xml = _xml(s).replace(f"<ram:GrandTotalAmount>{s['total']}".encode(), b"<ram:GrandTotalAmount>999999.00")
+    xml = _unsigned(_xml(s)).replace(f"<ram:GrandTotalAmount>{s['total']}".encode(),
+                                     b"<ram:GrandTotalAmount>999999.00")
     inv = parse_etax_xml(xml)
     assert inv.total == Decimal("999999.00")
     assert any("ยอดรวมทั้งสิ้นไม่เท่ากับ" in w for w in inv.warnings)
@@ -233,6 +276,14 @@ def test_case_without_tax_id_accepts_with_warning(client, samples):
     r = _upload(client, case_id, ETAX / samples[0]["xml"], kind="etax_invoice")
     assert r.status_code == 201, r.text
     assert any("เลขประจำตัวผู้เสียภาษี" in w for w in r.json()["parse_report"]["warnings"])
+
+
+def test_tampered_signed_invoice_is_refused_on_upload(client, samples, tmp_path):
+    s = samples[1]
+    bad = tmp_path / "tampered.xml"
+    bad.write_bytes(_xml(s).replace(f">{s['total']}<".encode(), b">999999.00<", 1))
+    r = _upload(client, _new_case(client, KITTI_TAX_ID), bad)
+    assert r.status_code == 422 and r.json()["code"] == "signature_invalid"
 
 
 def test_xml_only_for_etax(client, samples):

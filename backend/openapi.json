@@ -6786,10 +6786,33 @@
           "signature": {
             "type": "string",
             "enum": [
-              "present_unverified",
+              "verified",
+              "valid_untrusted",
               "absent"
             ],
             "title": "Signature"
+          },
+          "signer": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signer",
+            "description": "from the signing certificate: name, tax_id, issuer"
           },
           "field_confidence": {
             "additionalProperties": {

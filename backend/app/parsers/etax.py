@@ -25,9 +25,9 @@ from app.core.dates import parse_thai_date
 from app.core.money import MoneyError, to_money
 from app.parsers.base import BBox, NoTextLayer, PageWords, ParseError, UnsupportedFormat
 from app.parsers.bill import text_layer_words
+from app.parsers.etax_signature import check as check_signature
 
 PARSER_VERSION = "etax-v1.0"
-DSIG_NS = "http://www.w3.org/2000/09/xmldsig#"
 VAT_RATE = Decimal("0.07")
 TOLERANCE = Decimal("0.01")
 
@@ -46,6 +46,10 @@ NOT_A_SALE_TYPES = {
 }
 
 
+class SignatureInvalid(ParseError):
+    """The XML was changed after it was signed, or its signature is broken."""
+
+
 @dataclass
 class ParsedETax:
     parser: str
@@ -62,7 +66,8 @@ class ParsedETax:
     vat: Decimal
     total: Decimal  # incl. VAT
     currency: str = "THB"
-    signature: str = "absent"  # present_unverified | absent
+    signature: str = "absent"  # verified | valid_untrusted | absent (invalid is refused)
+    signer: dict | None = None  # {name, tax_id, issuer} from the signing certificate
     page_width: float | None = None
     page_height: float | None = None
     bboxes: dict[str, BBox] = field(default_factory=dict)
@@ -169,18 +174,26 @@ def parse_etax_xml(data: bytes, source: str = "xml") -> ParsedETax:
     warnings = _check_totals(subtotal, vat, total)
     if currency != "THB":
         warnings.append(f"สกุลเงิน {currency} — จับคู่กับรายการรับเงินบาทไม่ได้")
-    signed = root.find(f".//{{{DSIG_NS}}}Signature") is not None
-    if not signed:
+    sig = check_signature(data)
+    if sig.status == "invalid":
+        raise SignatureInvalid(f"ลายมือชื่อดิจิทัลไม่ถูกต้อง — เอกสารถูกแก้ไขหลังลงนามหรือลายมือชื่อเสียหาย ({sig.detail})")
+    if sig.status == "absent":
         warnings.append("ไม่มีลายมือชื่อดิจิทัล — เป็นหลักฐานที่ผู้กู้จัดทำเอง")
+    elif sig.status == "valid_untrusted":
+        warnings.append(f"ลายมือชื่อถูกต้อง เอกสารไม่ถูกแก้ไข แต่ผู้ออกใบรับรอง ({sig.issuer}) "
+                        "ยังไม่อยู่ในรายการที่ธนาคารเชื่อถือ")
     seller_tax = _tax_id(_text(seller, "SpecifiedTaxRegistration", "ID"))
     buyer_tax = _tax_id(_text(buyer, "SpecifiedTaxRegistration", "ID"))
+    if sig.signer_tax_id and seller_tax and sig.signer_tax_id != seller_tax:
+        warnings.append(f"ผู้ลงนาม ({sig.signer_tax_id}) ไม่ใช่ผู้ขาย — อาจเป็นผู้ให้บริการที่ลงนามแทน ควรตรวจสอบ")
     if seller_tax and seller_tax == buyer_tax:
         warnings.append("ผู้ซื้อและผู้ขายเป็นนิติบุคคลเดียวกัน")
     return ParsedETax(
         parser="etda-etax-xml", parser_version=PARSER_VERSION, source=source, invoice_no=invoice_no,
         type_code=type_code, issue_date=issue_date, seller_name=seller_name, seller_tax_id=seller_tax,
         buyer_name=buyer_name, buyer_tax_id=buyer_tax, subtotal=subtotal, vat=vat, total=total,
-        currency=currency, signature="present_unverified" if signed else "absent", warnings=warnings,
+        currency=currency, signature=sig.status, warnings=warnings,
+        signer={"name": sig.signer, "tax_id": sig.signer_tax_id, "issuer": sig.issuer} if sig.status != "absent" else None,
     )
 
 

@@ -6,8 +6,8 @@ also issued an e-Tax invoice. Each is written three ways, as an SME might upload
   * `etax_<no>.pdf`        printable PDF with that XML embedded (PDF/A-3 style)
   * `etax_<no>_print.pdf`  the same page without the XML (text-layer fallback)
 
-The samples are not signed: a real e-Tax invoice carries an XAdES signature from the
-seller's certificate, which the sandbox cannot produce.
+The XML is signed with XAdES by a certificate the sandbox CA issued to the seller
+(app/synth/sandbox_ca.py) — trusted only in sandbox mode.
 """
 
 from __future__ import annotations
@@ -23,7 +23,9 @@ from pypdf import PdfReader, PdfWriter
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen.canvas import Canvas
 
+from app.config import settings
 from app.core.money import fmt_thb
+from app.synth import sandbox_ca
 from app.synth.generator import REVENUE_T2, GeneratedCase
 from app.synth.statement_pdf import _ensure_fonts
 
@@ -186,7 +188,10 @@ def write_etax_files(inv: SynthETax, out_dir: Path, photo_recordings: Path | Non
     """With photo_recordings, also a phone photo of the printed invoice whose grand total reads
     at low OCR confidence (so the CA must check it), plus its recorded OCR response."""
     out_dir.mkdir(parents=True, exist_ok=True)
-    xml = etax_xml(inv)
+    # Signed by the seller's sandbox certificate, as a real e-Tax invoice would be.
+    ca, ca_key = sandbox_ca.ensure_ca(settings.data_dir / "generated" / "sandbox_ca")
+    cert, key = sandbox_ca.issue(ca, ca_key, inv.seller_tax_id, inv.seller_name)
+    xml = sandbox_ca.sign(etax_xml(inv), cert, key)
     page = _render_page(inv)
     stem = f"etax_{inv.invoice_no}"
     (out_dir / f"{stem}.xml").write_bytes(xml)
