@@ -239,3 +239,63 @@ def test_xml_only_for_etax(client, samples):
     case_id = _new_case(client, KITTI_TAX_ID)
     r = _upload(client, case_id, ETAX / samples[0]["xml"], kind="statement")
     assert r.status_code == 422 and r.json()["code"] == "not_a_pdf"
+
+
+# ---- scanned / photographed invoices ------------------------------------------------------
+
+def test_photo_invoice_is_read_by_ocr(samples):
+    import hashlib
+
+    from app.ocr.images import image_to_pdf
+    from app.ocr.sandbox import SandboxOcrProvider
+    from app.parsers.etax import parse_etax_words
+
+    s = samples[2]
+    data = (ETAX / s["photo"]).read_bytes()
+    pages = SandboxOcrProvider().analyze(image_to_pdf(data), hashlib.sha256(data).hexdigest()).pages
+    inv, ref = parse_etax_words(pages, source="scan_ocr"), parse_etax_xml(_xml(s))
+    for f in ("invoice_no", "issue_date", "seller_tax_id", "buyer_name", "subtotal", "vat", "total"):
+        assert getattr(inv, f) == getattr(ref, f), f
+    assert inv.confidence["total"] < 0.5 <= inv.confidence["invoice_no"]  # the total is smudged
+
+
+def test_uncertain_photo_invoice_is_held_until_a_ca_checks_it(client, truth, samples):
+    from app.services import ocr_review
+    from tests.helpers import SME
+
+    s = samples[2]
+    case_id = _new_case(client, KITTI_TAX_ID)
+    assert _upload(client, case_id, GENERATED / truth["accounts"][s["account"]]["file"]).status_code == 201
+    with open(ETAX / s["photo"], "rb") as f:
+        r = client.post(f"/api/cases/{case_id}/documents", files={"file": (s["photo"], f, "image/jpeg")})
+    assert r.status_code == 201, r.text
+    doc = r.json()
+    rep = doc["parse_report"]
+    assert doc["kind"] == "etax_invoice" and rep["source"] == "scan_ocr" and rep["low_confidence"] == ["total"]
+    assert rep["amounts"]["total"] == s["total"] and rep["ocr"]["provider"].startswith("sandbox")
+
+    client.post(f"/api/cases/{case_id}/analysis")
+    link = next(d for d in client.get(f"/api/cases/{case_id}/documents").json() if d["id"] == doc["id"])["invoice"]
+    assert link["status"] == "held_review" and link["review_status"] == "pending"
+    assert _receipt(client, case_id, s)["tier"] != "T1_golden"  # an unchecked OCR total verifies nothing
+    with SessionLocal() as db:
+        assert ocr_review.pending_documents(db, case_id) == 1  # and it blocks signing the memo
+
+    url = f"/api/cases/{case_id}/invoices/{link['invoice_id']}/review"
+    assert client.post(url, json={"action": "confirm", "reason": "สั้น"}).status_code == 422
+    with _client_as(SME) as sme:
+        assert sme.post(url, json={"action": "confirm", "reason": "ผู้กู้พยายามยืนยันเอง"}).status_code in (403, 404)
+    r = client.post(url, json={"action": "confirm", "reason": "ตรวจภาพถ่ายแล้ว ยอดรวมทั้งสิ้นชัดเจนตรงกับที่อ่านได้"})
+    assert r.status_code == 200, r.text
+    link = next(d for d in client.get(f"/api/cases/{case_id}/documents").json() if d["id"] == doc["id"])["invoice"]
+    assert link["status"] == "matched" and link["review_status"] == "confirmed"
+    assert _receipt(client, case_id, s)["tier"] == "T1_golden"
+    with SessionLocal() as db:
+        assert ocr_review.pending_documents(db, case_id) == 0
+
+
+def _client_as(headers):
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+    return TestClient(app, headers=headers)

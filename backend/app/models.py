@@ -172,6 +172,10 @@ class Invoice(Base):
     matched_transaction_id: Mapped[int | None] = mapped_column(ForeignKey("transactions.id", ondelete="SET NULL"))
     # Uploaded e-Tax invoices (E2-13) keep the file they were read from; connector invoices have none.
     document_id: Mapped[int | None] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"), index=True)
+    # Scanned/photographed invoices: OCR confidence per key field; "pending" keeps the invoice out of
+    # T1 matching and blocks memo signing until a CA confirms or corrects it (E2-09 rule).
+    review_status: Mapped[str | None] = mapped_column(String(16))
+    field_confidence: Mapped[dict[str, float] | None] = mapped_column(JSON)
 
 
 class TaxFiling(Base):

@@ -167,7 +167,9 @@ def load_inputs(db: Session, case: Case) -> EngineInputs:
     # network copy only, so one sale can never verify two receipts.
     on_network = {i.invoice_no for i in invoices if i.source.startswith("promptbiz_")}
     etax_duplicates = sorted(i.invoice_no for i in invoices if i.source == "etax_upload" and i.invoice_no in on_network)
-    usable = [i for i in invoices if not (i.source == "etax_upload" and i.invoice_no in on_network)]
+    # An invoice read uncertainly from a scan verifies nothing until a CA has checked it (E2-09).
+    usable = [i for i in invoices if not (i.source == "etax_upload" and i.invoice_no in on_network)
+              and i.review_status != "pending"]
     filings = list(db.scalars(select(TaxFiling).where(TaxFiling.case_id == case_id)))
     existing_items = {w.transaction_id: w for w in db.scalars(select(WatchlistItem).where(WatchlistItem.case_id == case_id))}
     decisions = {tid: w.status for tid, w in existing_items.items() if w.status in ("accepted", "excluded")}

@@ -792,4 +792,11 @@ export const EN: Record<string, string> = {
   "สัญญาเช่าสิ้นสุด {0}": "Lease ends {0}",
   "อายุสินเชื่อจำกัด {0} เดือนตามสัญญาเช่า": "Tenor capped at {0} months by the lease",
   "สัญญาเช่าสิ้นสุดก่อนสินเชื่อครบกำหนด — ทุกการคำนวณวงเงินใช้อายุสินเชื่อ {0} เดือน (ขอสัญญาต่ออายุเพื่อปลดเงื่อนไข)": "The lease ends before the loan would be repaid — every sizing uses a {0}-month tenor (a renewed lease lifts this)",
+  // scanned e-Tax invoices
+  "ตรวจทานใบกำกับภาษีจากภาพถ่าย": "Review a tax invoice from a photo",
+  "ภาพเอกสาร": "document image",
+  "ยอดรวมทั้งสิ้น": "grand total",
+  "เลขที่": "number",
+  "สแกน/รูปถ่าย (OCR)": "Scan/photo (OCR)",
+  "ยังไม่นำไปจับคู่รายได้จนกว่าเจ้าหน้าที่จะตรวจทาน": "Not matched to revenue until staff review it",
 };

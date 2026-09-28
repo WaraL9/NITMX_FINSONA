@@ -97,8 +97,11 @@ def build_case(name: str = "kitti", out_dir: Path | None = None, seed: int = 42,
     t2 = {k: sum(t.category == REVENUE_T2 for t in a.rows) for k, a in gen.accounts.items()}
     truth["etax"] = []
     if any(t2.values()):
-        for inv in make_etax_invoices(gen, max(t2, key=t2.get)):
-            files = write_etax_files(inv, out_dir / "etax")
+        invoices = make_etax_invoices(gen, max(t2, key=t2.get))
+        for inv in invoices:
+            # The last one is also photographed, to show the OCR path for invoices.
+            files = write_etax_files(inv, out_dir / "etax", settings.data_dir / "generated" / "ocr_recorded"
+                                     if inv is invoices[-1] else None)
             truth["etax"].append({"invoice_no": inv.invoice_no, "issue_date": inv.issue_date.isoformat(),
                                   "buyer_name": inv.buyer_name, "subtotal": f"{inv.subtotal:.2f}",
                                   "vat": f"{inv.vat:.2f}", "total": f"{inv.total:.2f}",

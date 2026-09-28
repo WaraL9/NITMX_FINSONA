@@ -138,11 +138,13 @@ const ETAX_SOURCE: Record<ETaxReport["source"], string> = {
   xml: "XML (ETDA)",
   get pdf_embedded_xml() { return tr("PDF + XML แนบ"); },
   get pdf_text() { return tr("PDF (อ่านจากข้อความ)"); },
+  get scan_ocr() { return tr("สแกน/รูปถ่าย (OCR)"); },
 };
 
 /** E2-13: an uploaded e-Tax invoice and the receipt it verified. */
-function ETaxRow({ doc, r }: { doc: DocumentOut; r: ETaxReport }) {
+function ETaxRow({ doc, r, onReview }: { doc: DocumentOut; r: ETaxReport; onReview: (d: DocumentOut) => void }) {
   const link = doc.invoice;
+  const isCa = useSession()?.user.role === "CA";
   return (
     <TR data-testid="etax-row">
       <TD>
@@ -185,7 +187,18 @@ function ETaxRow({ doc, r }: { doc: DocumentOut; r: ETaxReport }) {
               <Clock className="size-3" /> {tr("รอวิเคราะห์ใหม่")}
             </Badge>
           )}
-          <Badge tone={r.source === "pdf_text" ? "judge" : "navy"}>{ETAX_SOURCE[r.source]}</Badge>
+          {link?.status === "held_review" && (
+            <Badge tone="judge" title={tr("ยังไม่นำไปจับคู่รายได้จนกว่าเจ้าหน้าที่จะตรวจทาน")}>
+              <TriangleAlert className="size-3" /> {tr("รอตรวจทาน OCR")}
+            </Badge>
+          )}
+          {link?.review_status && link.review_status !== "pending" && (
+            <Badge tone="neutral">{link.review_status === "corrected" ? tr("CA แก้ไขแล้ว") : tr("CA ยืนยันแล้ว")}</Badge>
+          )}
+          <Badge tone={r.source === "pdf_text" || r.source === "scan_ocr" ? "judge" : "navy"}>{ETAX_SOURCE[r.source]}</Badge>
+          {link?.status === "held_review" && isCa && (
+            <Button size="sm" variant="secondary" data-testid="etax-review" onClick={() => onReview(doc)}>{tr("ตรวจทาน")}</Button>
+          )}
           {r.warnings.length > 0 && (
             <Badge tone="judge" title={r.warnings.join("\n")}>
               <TriangleAlert className="size-3" /> {r.warnings.length} {tr("ข้อสังเกต")}
@@ -267,36 +280,60 @@ function BillRow({ doc, r, onReview }: { doc: DocumentOut; r: BillReport; onRevi
   );
 }
 
-const FIELD_TH: Record<string, string> = { get amount() { return tr("จำนวนเงิน"); }, get due_date() { return tr("กำหนดชำระ"); }, get paid_date() { return tr("วันที่ชำระ"); } };
+const FIELD_TH: Record<string, string> = { get total() { return tr("ยอดรวมทั้งสิ้น"); }, get invoice_no() { return tr("เลขที่"); }, get issue_date() { return tr("วันที่"); }, get amount() { return tr("จำนวนเงิน"); }, get due_date() { return tr("กำหนดชำระ"); }, get paid_date() { return tr("วันที่ชำระ"); } };
 
-/** A CA checks an OCR'd bill against the photo: confirm as read, or correct it (reason required, audit-logged). */
-function BillReviewDialog({ caseId, doc, onClose }: { caseId: number; doc: DocumentOut | null; onClose: () => void }) {
+/** The OCR-uncertain document a CA is checking: a bill (E2-14) or a scanned e-Tax invoice (E2-13). */
+function reviewTarget(doc: DocumentOut | null) {
+  if (!doc) return null;
+  const r = doc.parse_report;
+  if (isBillReport(r) && doc.bill) {
+    const id = doc.bill.record_id;
+    return {
+      title: tr("ตรวจทานบิลจากภาพถ่าย"), photo: tr("ภาพบิล"), initial: doc.bill.amount, low: r.low_confidence,
+      confidence: r.field_confidence.amount,
+      send: (caseId: number, body: { action: "confirm" | "correct"; reason: string; amount?: string }) =>
+        api.POST("/api/cases/{case_id}/bills/{record_id}/review", { params: { path: { case_id: caseId, record_id: id } }, body }),
+    };
+  }
+  if (isETaxReport(r) && doc.invoice?.invoice_id != null) {
+    const id = doc.invoice.invoice_id;
+    return {
+      title: tr("ตรวจทานใบกำกับภาษีจากภาพถ่าย"), photo: tr("ภาพเอกสาร"), initial: doc.invoice.total ?? r.amounts.total,
+      low: r.low_confidence, confidence: r.field_confidence.total,
+      send: (caseId: number, body: { action: "confirm" | "correct"; reason: string; amount?: string }) =>
+        api.POST("/api/cases/{case_id}/invoices/{invoice_id}/review", {
+          params: { path: { case_id: caseId, invoice_id: id } },
+          body: { action: body.action, reason: body.reason, ...(body.amount ? { total: body.amount } : {}) },
+        }),
+    };
+  }
+  return null;
+}
+
+/** A CA checks an OCR'd document against the photo: confirm as read, or correct the amount (reason required, audit-logged). */
+function DocReviewDialog({ caseId, doc, onClose }: { caseId: number; doc: DocumentOut | null; onClose: () => void }) {
   const qc = useQueryClient();
-  const r = doc && isBillReport(doc.parse_report) ? doc.parse_report : null;
-  const link = doc?.bill;
-  const [amount, setAmount] = useState(link?.amount ?? "");
+  const target = reviewTarget(doc);
+  const [amount, setAmount] = useState(target?.initial ?? "");
   const [reason, setReason] = useState("");
   const review = useMutation({
     mutationFn: async (action: "confirm" | "correct") => {
-      const res = await api.POST("/api/cases/{case_id}/bills/{record_id}/review", {
-        params: { path: { case_id: caseId, record_id: link!.record_id } },
-        body: action === "correct" ? { action, amount, reason } : { action, reason },
-      });
+      const res = await target!.send(caseId, action === "correct" ? { action, amount, reason } : { action, reason });
       if (res.error) throw new Error(errorMessage(res.error));
       return res.data!;
     },
     onSuccess: (data) => {
       qc.setQueryData(["analysis", caseId], data);
-      for (const k of ["documents", "sizing", "sizing-safe", "audit", "memo"]) qc.invalidateQueries({ queryKey: [k, caseId] });
+      for (const k of ["documents", "transactions", "sizing", "sizing-safe", "audit", "memo"]) qc.invalidateQueries({ queryKey: [k, caseId] });
       onClose();
     },
   });
-  const changed = !!link && amount !== link.amount;
+  const changed = !!target && amount !== target.initial;
   return (
     <Modal
       open={doc !== null}
       onClose={onClose}
-      title={<span className="flex items-center gap-2"><ScanLine className="size-4 text-judge" /> {tr("ตรวจทานบิลจากภาพถ่าย")}</span>}
+      title={<span className="flex items-center gap-2"><ScanLine className="size-4 text-judge" /> {target?.title}</span>}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>{tr("ยกเลิก")}</Button>
@@ -307,13 +344,13 @@ function BillReviewDialog({ caseId, doc, onClose }: { caseId: number; doc: Docum
         </>
       }
     >
-      {r && link && (
+      {target && (
         <div className="space-y-3 text-sm">
           <p>
-            {tr("OCR อ่าน")} <span className="font-medium text-ink">{r.low_confidence.map((f) => FIELD_TH[f] ?? f).join(", ")}</span> {tr("ได้ไม่มั่นใจ — เปิด")} <a href="#" className="text-navy underline" onClick={(e) => { e.preventDefault(); void openProtected(documentFileUrl(doc!.id)); }}>{tr("ภาพบิล")}</a> {tr("แล้วเทียบตัวเลข")}
+            {tr("OCR อ่าน")} <span className="font-medium text-ink">{target.low.map((f) => FIELD_TH[f] ?? f).join(", ")}</span> {tr("ได้ไม่มั่นใจ — เปิด")} <a href="#" className="text-navy underline" onClick={(e) => { e.preventDefault(); void openProtected(documentFileUrl(doc!.id)); }}>{target.photo}</a> {tr("แล้วเทียบตัวเลข")}
           </p>
           <label className="block">
-            <span className="text-xs text-muted">{tr("จำนวนเงิน (บาท) · ความเชื่อมั่น OCR")} {((r.field_confidence.amount ?? 1) * 100).toFixed(0)}%</span>
+            <span className="text-xs text-muted">{tr("จำนวนเงิน (บาท) · ความเชื่อมั่น OCR")} {((target.confidence ?? 1) * 100).toFixed(0)}%</span>
             <input data-testid="bill-amount" value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal"
               className="mt-1 h-10 w-full rounded-md border border-line bg-surface px-3 font-mono text-ink outline-none focus:border-navy" />
           </label>
@@ -428,7 +465,7 @@ function BankSourceBadges({ r }: { r: NonNullable<DocumentOut["parse_report"]> &
 function DocumentRow({ doc, account, onReview }: { doc: DocumentOut; account?: Account; onReview: (d: DocumentOut) => void }) {
   const report = doc.parse_report;
   if (isPP30Report(report)) return <PP30Row doc={doc} r={report} />;
-  if (isETaxReport(report)) return <ETaxRow doc={doc} r={report} />;
+  if (isETaxReport(report)) return <ETaxRow doc={doc} r={report} onReview={onReview} />;
   if (isBillReport(report)) return <BillRow doc={doc} r={report} onReview={onReview} />;
   const r = isStatementReport(report) ? report : null;
   return (
@@ -648,7 +685,7 @@ export function DocumentsPanel({ caseId, accounts }: { caseId: number; accounts:
 
       <DStatementDialog key={pulling ? "open" : "closed"} caseId={caseId} accounts={accounts} open={pulling}
         onClose={() => setPulling(false)} onDone={(text) => setMessage({ tone: "verified", text })} />
-      <BillReviewDialog key={reviewing?.id ?? 0} caseId={caseId} doc={reviewing} onClose={() => setReviewing(null)} />
+      <DocReviewDialog key={reviewing?.id ?? 0} caseId={caseId} doc={reviewing} onClose={() => setReviewing(null)} />
       <PasswordDialog
         key={locked?.name}
         file={locked}

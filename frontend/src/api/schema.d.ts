@@ -533,6 +533,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{case_id}/invoices/{invoice_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Review Invoice
+         * @description A CA checks a scanned e-Tax invoice against its image — confirm as read, or correct the
+         *     amounts. Audit-logged with before/after and the reason; the engine re-runs.
+         */
+        post: operations["review_invoice_api_cases__case_id__invoices__invoice_id__review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases/{case_id}/watchlist/{item_id}/decision": {
         parameters: {
             query?: never;
@@ -1900,7 +1921,7 @@ export interface components {
              * Source
              * @enum {string}
              */
-            source: "xml" | "pdf_embedded_xml" | "pdf_text";
+            source: "xml" | "pdf_embedded_xml" | "pdf_text" | "scan_ocr";
             /** Invoice No */
             invoice_no: string;
             /** Type Code */
@@ -1938,6 +1959,22 @@ export interface components {
              * @enum {string}
              */
             signature: "present_unverified" | "absent";
+            /**
+             * Field Confidence
+             * @default {}
+             */
+            field_confidence: {
+                [key: string]: number;
+            };
+            /**
+             * Low Confidence
+             * @default []
+             */
+            low_confidence: string[];
+            /** Ocr */
+            ocr?: {
+                [key: string]: unknown;
+            } | null;
             /** Warnings */
             warnings: string[];
         };
@@ -2056,17 +2093,39 @@ export interface components {
         InvoiceLinkOut: {
             /** Invoice No */
             invoice_no: string;
+            /** Invoice Id */
+            invoice_id?: number | null;
             /**
              * Status
              * @enum {string}
              */
-            status: "pending_analysis" | "matched" | "unmatched" | "duplicate_of_promptbiz";
+            status: "pending_analysis" | "held_review" | "matched" | "unmatched" | "duplicate_of_promptbiz";
+            /** Review Status */
+            review_status?: ("pending" | "confirmed" | "corrected") | null;
+            /** Total */
+            total?: string | null;
             /** Transaction Id */
             transaction_id?: number | null;
             /** Paid At */
             paid_at?: string | null;
             /** Paid Amount */
             paid_amount?: string | null;
+        };
+        /** InvoiceReviewIn */
+        InvoiceReviewIn: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "confirm" | "correct";
+            /** Total */
+            total?: number | string | null;
+            /** Subtotal */
+            subtotal?: number | string | null;
+            /** Vat */
+            vat?: number | string | null;
+            /** Reason */
+            reason: string;
         };
         /** JobStageOut */
         JobStageOut: {
@@ -4224,6 +4283,44 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["BillReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalysisOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_invoice_api_cases__case_id__invoices__invoice_id__review_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                case_id: number;
+                invoice_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvoiceReviewIn"];
             };
         };
         responses: {

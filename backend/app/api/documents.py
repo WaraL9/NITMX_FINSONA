@@ -143,12 +143,15 @@ def _invoice_links(db: Session, case_id: int) -> dict[int, InvoiceLinkOut]:
     for inv, txn, uploaded_at in rows:
         if inv.document_id is None:
             continue
-        if analysed_at is None or analysed_at < uploaded_at:
+        if inv.review_status == "pending":
+            status = "held_review"
+        elif analysed_at is None or analysed_at < uploaded_at:
             status = "pending_analysis"
         else:
             status = "duplicate_of_promptbiz" if inv.invoice_no in on_network else "matched" if txn else "unmatched"
         out[inv.document_id] = InvoiceLinkOut(
-            invoice_no=inv.invoice_no, status=status, transaction_id=txn.id if txn else None,
+            invoice_id=inv.id, invoice_no=inv.invoice_no, status=status, review_status=inv.review_status,
+            total=inv.amount, transaction_id=txn.id if txn else None,
             paid_at=txn.posted_at if txn else None, paid_amount=txn.credit if txn else None)
     return out
 

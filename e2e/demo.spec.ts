@@ -239,3 +239,24 @@ test("Lease ending before the loan caps the tenor (E6-06)", async ({ page, reque
   await page.getByTestId("use-safe-limit").click();
   await expect(page.getByTestId("sim-amount")).not.toHaveText("3,500,000"); // a shorter term carries less
 });
+
+test("Photographed e-Tax invoice: held until a CA confirms the OCR'd total, then Tier 1", async ({ page, request }) => {
+  await resetDemo(request);
+  const photo = path.join(__dirname, "..", "data", "generated", "kitti", "etax", "etax_ETX-2602-0003_photo.jpg");
+  await page.goto("/login");
+  await page.getByRole("button", { name: "เจ้าหน้าที่วิเคราะห์สินเชื่อ (CA)" }).click();
+  await expect(page).toHaveURL("/");
+  await page.goto(`${CASE}?tab=documents`);
+  await page.locator('input[type="file"]').setInputFiles(photo);
+  const row = page.getByTestId("etax-row");
+  await expect(row).toContainText("รอตรวจทาน OCR");
+  await expect(row).toContainText("สแกน/รูปถ่าย (OCR)");
+  await page.getByTestId("run-analysis").click();
+  await expect(page.getByTestId("job-count")).toHaveText("8/8", { timeout: 30_000 });
+  await expect(row).not.toContainText("→ ระดับ 1"); // an unchecked OCR total verifies nothing
+  await page.getByTestId("etax-review").click();
+  await page.getByPlaceholder(/เหตุผล \(อย่างน้อย 10 ตัวอักษร\)/).fill("ตรวจภาพถ่ายแล้ว ยอดรวมทั้งสิ้นชัดเจนตรงกับที่อ่านได้");
+  await page.getByTestId("bill-review-submit").click();
+  await expect(row).toContainText("→ ระดับ 1", { timeout: 30_000 });
+  await expect(row).toContainText("CA ยืนยันแล้ว");
+});

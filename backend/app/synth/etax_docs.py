@@ -181,7 +181,10 @@ def _render_page(inv: SynthETax) -> bytes:
     return buf.getvalue()
 
 
-def write_etax_files(inv: SynthETax, out_dir: Path) -> dict[str, str]:
+def write_etax_files(inv: SynthETax, out_dir: Path, photo_recordings: Path | None = None,
+                     seed: int = 9) -> dict[str, str]:
+    """With photo_recordings, also a phone photo of the printed invoice whose grand total reads
+    at low OCR confidence (so the CA must check it), plus its recorded OCR response."""
     out_dir.mkdir(parents=True, exist_ok=True)
     xml = etax_xml(inv)
     page = _render_page(inv)
@@ -192,4 +195,10 @@ def write_etax_files(inv: SynthETax, out_dir: Path) -> dict[str, str]:
     writer.add_attachment(f"{inv.invoice_no}.xml", xml)
     with open(out_dir / f"{stem}.pdf", "wb") as f:
         writer.write(f)
-    return {"xml": f"{stem}.xml", "pdf": f"{stem}.pdf", "print_pdf": f"{stem}_print.pdf"}
+    files = {"xml": f"{stem}.xml", "pdf": f"{stem}.pdf", "print_pdf": f"{stem}_print.pdf"}
+    if photo_recordings is not None:
+        from app.synth.bills import photograph
+
+        photograph(page, out_dir / f"{stem}_photo.jpg", photo_recordings, seed, smudge=("จำนวนเงินรวมทั้งสิ้น",))
+        files["photo"] = f"{stem}_photo.jpg"
+    return files

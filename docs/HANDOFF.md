@@ -94,7 +94,7 @@ PDF; `?original=true` gives the uploaded bytes.)
 Ingest (auto-detect, passwords, SHA-256, encrypted at rest), e-Tax invoice ingest (E2-13: ETDA XML / PDF with
 embedded XML / PDF text fallback → `Invoice(source="etax_upload", document_id)` → T1 matching; seller must be the
 applicant; same invoice twice rejected; a PromptBiz copy of the same invoice wins so one sale never verifies two
-receipts; XAdES signature only *detected*, not verified), synthetic statement/ภ.พ.30 generator, parser with
+receipts; XAdES signature only *detected*, not verified; scanned/photographed invoices go through OCR — an uncertain total is held out of T1 matching and blocks memo signing until a CA confirms/corrects it via `POST /api/cases/{id}/invoices/{iid}/review`), synthetic statement/ภ.พ.30 generator, parser with
 bboxes, OCR path (sandbox replays recorded responses keyed by SHA-256; Azure Document Intelligence adapter
 untested — no key), OCR confidence gating + review queue (uncertain amounts held out of all figures; memo signing
 blocked while pending), duplicate pages / overlapping statements / coverage gaps, transfer-loop detection, owner &
@@ -106,7 +106,7 @@ case scoping, PDPA consents, hash-chained audit log + CSV, compliance/metrics/po
 portal, eval harness (`python -m app.eval.run`, 50 synthetic cases), instant demo reset, offline mode,
 Playwright e2e, single-process prod server (`npm start`) + Dockerfile.
 
-Test counts at handoff: 234 backend, 22 frontend, 9 e2e — all green.
+Test counts at handoff: 236 backend, 22 frontend, 10 e2e — all green.
 
 ## Next
 Every code item in `docs/BACKLOG.md` is done. Candidate follow-ups (not in the backlog):
@@ -123,7 +123,7 @@ i18n: server-generated narrative (tag reasons, XAI driver texts, alt-data signal
 credit memo PDF) is Thai only — making it bilingual needs message codes from the backend.
 e-Tax: digital signatures are detected but not cryptographically verified (needs signxml/lxml + the Thai CA
 chain); an unsigned upload is flagged as SME-provided evidence and still counts as T1 once it matches a real
-receipt. Scanned (image-only) invoices are rejected — no OCR path for invoices yet. PDF/A-3 conformance of
+receipt. PDF/A-3 conformance of
 embedded-XML PDFs is not checked.
 Bills: OCR of *new* photos needs the
 live Azure provider (the sandbox only replays recorded responses for the generated samples).

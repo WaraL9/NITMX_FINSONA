@@ -34,7 +34,7 @@ from app.services import ocr_review
 from app.parsers.base import (NoTextLayer, ParsedRow, ParsedStatement, ParseError, UnsupportedFormat,
                                parse_statement, parse_statement_words)
 from app.parsers.etax import (ParsedETax, detect_etax_pdf, embedded_xml, looks_like_xml, parse_etax_pdf,
-                              parse_etax_xml)
+                              parse_etax_words, parse_etax_xml)
 from app.parsers.bill import ParsedBill, detect_bill, page_text, parse_bill_words, text_layer_words
 from app.parsers.pp30 import ParsedPP30, detect_pp30, parse_pp30
 
@@ -228,17 +228,19 @@ def ingest_document(
     ocr: OcrResult | None = None
     if kind == "auto":
         kind = "scan" if image_mime else detect_kind(plain)
-    if kind == "scan" or (image_mime and kind in ("statement", "utility_bill")):
+    if kind == "scan" or (image_mime and kind in ("statement", "utility_bill", "etax_invoice")):
         ocr = _ocr(plain, digest)
         if kind == "scan":
-            kind = "utility_bill" if detect_bill(page_text(ocr.pages)) else "statement"
+            text = page_text(ocr.pages)
+            kind = ("etax_invoice" if detect_etax_pdf(text) else "utility_bill" if detect_bill(text)
+                    else "statement")
 
     stmt: ParsedStatement | None = None
     pp30: ParsedPP30 | None = None
     etax: ParsedETax | None = None
     bill: ParsedBill | None = None
-    if image_mime and kind not in ("statement", "utility_bill", "evidence"):
-        raise UnsupportedDocument("รูปภาพรับเฉพาะสเตทเมนต์ บิลค่าสาธารณูปโภค/ค่าเช่า และเอกสารประกอบ")
+    if image_mime and kind not in ("statement", "utility_bill", "etax_invoice", "evidence"):
+        raise UnsupportedDocument("รูปภาพรับเฉพาะสเตทเมนต์ ใบกำกับภาษี บิลค่าสาธารณูปโภค/ค่าเช่า และเอกสารประกอบ")
     if kind == "utility_bill":
         try:
             if ocr is None:
@@ -252,7 +254,16 @@ def ingest_document(
             raise ParseFailed(str(e)) from e
     if kind == "etax_invoice":
         try:
-            etax = parse_etax_xml(plain) if is_xml else parse_etax_pdf(plain)
+            if is_xml:
+                etax = parse_etax_xml(plain)
+            elif ocr is not None:
+                etax = parse_etax_words(ocr.pages, source="scan_ocr")
+            else:
+                try:
+                    etax = parse_etax_pdf(plain)
+                except NoTextLayer:  # a scanned invoice: read it like a photo
+                    ocr = _ocr(plain, digest)
+                    etax = parse_etax_words(ocr.pages, source="scan_ocr")
         except UnsupportedFormat as e:
             raise UnsupportedDocument(str(e)) from e
         except ParseError as e:
@@ -347,7 +358,7 @@ def ingest_document(
     if pp30 is not None:
         _store_pp30(db, case, doc, pp30)
     if etax is not None:
-        _store_etax(db, case, doc, etax)
+        _store_etax(db, case, doc, etax, ocr)
     if bill is not None:
         _store_bill(db, doc, bill, ocr)
     db.commit()
@@ -465,18 +476,22 @@ def _check_etax(db: Session, case: Case, inv: ParsedETax) -> None:
                                existing_document_id=existing.document_id)
 
 
-def _store_etax(db: Session, case: Case, doc: Document, inv: ParsedETax) -> None:
+def _store_etax(db: Session, case: Case, doc: Document, inv: ParsedETax, ocr: OcrResult | None = None) -> None:
     if inv.page_width is not None:
         db.add(Page(document_id=doc.id, page_no=1, width=inv.page_width, height=inv.page_height))
     warnings = list(inv.warnings)
+    low = sorted(f for f, c in inv.confidence.items() if c < settings.ocr_review_threshold)
+    if low:
+        warnings.append(f"OCR อ่าน {', '.join(low)} ไม่มั่นใจ — ยังไม่นำไปจับคู่รายได้จนกว่าเจ้าหน้าที่จะตรวจทาน")
     if not case.tax_id:
         warnings.append("แฟ้มยังไม่มีเลขประจำตัวผู้เสียภาษี — ยังยืนยันไม่ได้ว่าผู้ขอสินเชื่อเป็นผู้ออกใบกำกับ")
     db.add(Invoice(
         case_id=case.id, source="etax_upload", document_id=doc.id, invoice_no=inv.invoice_no,
         issue_date=inv.issue_date, seller_tax_id=inv.seller_tax_id, buyer_name=inv.buyer_name,
         buyer_tax_id=inv.buyer_tax_id, subtotal=inv.subtotal, vat=inv.vat, amount=inv.total,
+        review_status="pending" if low else None, field_confidence=inv.confidence or None,
     ))
-    doc.parser = inv.parser
+    doc.parser = f"ocr:{ocr.provider}+{inv.parser}" if ocr else inv.parser
     doc.parse_report = {
         "parser": inv.parser,
         "parser_version": inv.parser_version,
@@ -493,6 +508,9 @@ def _store_etax(db: Session, case: Case, doc: Document, inv: ParsedETax) -> None
         "amounts": {"subtotal": f"{inv.subtotal:.2f}", "vat": f"{inv.vat:.2f}", "total": f"{inv.total:.2f}"},
         "bboxes": {k: [b.x0, b.top, b.x1, b.bottom] for k, b in inv.bboxes.items()},
         "signature": inv.signature,
+        "field_confidence": inv.confidence,
+        "low_confidence": low,
+        "ocr": {"provider": ocr.provider, "mean_confidence": ocr.mean_confidence} if ocr else None,
         "warnings": warnings,
     }
 

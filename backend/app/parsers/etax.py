@@ -19,12 +19,12 @@ from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 
-import pdfplumber
 from pypdf import PdfReader
 
 from app.core.dates import parse_thai_date
 from app.core.money import MoneyError, to_money
-from app.parsers.base import BBox, NoTextLayer, ParseError, UnsupportedFormat
+from app.parsers.base import BBox, NoTextLayer, PageWords, ParseError, UnsupportedFormat
+from app.parsers.bill import text_layer_words
 
 PARSER_VERSION = "etax-v1.0"
 DSIG_NS = "http://www.w3.org/2000/09/xmldsig#"
@@ -50,7 +50,7 @@ NOT_A_SALE_TYPES = {
 class ParsedETax:
     parser: str
     parser_version: str
-    source: str  # xml | pdf_embedded_xml | pdf_text
+    source: str  # xml | pdf_embedded_xml | pdf_text | scan_ocr
     invoice_no: str
     type_code: str
     issue_date: date
@@ -66,6 +66,7 @@ class ParsedETax:
     page_width: float | None = None
     page_height: float | None = None
     bboxes: dict[str, BBox] = field(default_factory=dict)
+    confidence: dict[str, float] = field(default_factory=dict)  # OCR only: invoice_no, issue_date, amounts
     warnings: list[str] = field(default_factory=list)
 
     @property
@@ -217,23 +218,20 @@ def parse_etax_pdf(plain: bytes) -> ParsedETax:
         except UnsupportedFormat as e:
             first_error = first_error or e
             continue
-        with pdfplumber.open(io.BytesIO(plain)) as pdf:
-            page = pdf.pages[0]
-            parsed.page_width, parsed.page_height = float(page.width), float(page.height)
-            parsed.bboxes = _total_bboxes(page)[1]
+        pages = text_layer_words(plain)
+        if pages:
+            parsed.page_width, parsed.page_height = pages[0].width, pages[0].height
+            parsed.bboxes = _totals(pages[0].words)[1]
         return parsed
     if first_error is not None:
         raise first_error
     return _parse_text_layer(plain)
 
 
-def _lines(page) -> list[list[dict]]:
+def _lines(words: list[dict]) -> list[list[dict]]:
     lines: list[list[dict]] = []
-    # Upright body text only: drops rotated or oversized watermarks ("COPY", "SYNTHETIC").
-    words = [w for w in page.extract_words(x_tolerance=1.5, extra_attrs=["size", "upright"])
-             if w["upright"] and w["size"] <= 20]
     for w in sorted(words, key=lambda w: (w["top"], w["x0"])):
-        if lines and abs(lines[-1][0]["top"] - w["top"]) <= 2:
+        if lines and abs(lines[-1][0]["top"] - w["top"]) <= 3:
             lines[-1].append(w)
         else:
             lines.append([w])
@@ -242,10 +240,17 @@ def _lines(page) -> list[list[dict]]:
     return lines
 
 
-def _total_bboxes(page) -> tuple[dict[str, Decimal], dict[str, BBox]]:
+def _conf(line: list[dict]) -> float | None:
+    """Weakest OCR confidence among the line's value words (None for a text layer)."""
+    confs = [w["confidence"] for w in line if "confidence" in w and any(ch.isdigit() for ch in w["text"])]
+    return round(min(confs), 3) if confs else None
+
+
+def _totals(words: list[dict]) -> tuple[dict[str, Decimal], dict[str, BBox], dict[str, float]]:
     amounts: dict[str, Decimal] = {}
     boxes: dict[str, BBox] = {}
-    for line in _lines(page):
+    conf: dict[str, float] = {}
+    for line in _lines(words):
         text = " ".join(w["text"] for w in line)
         money = [w for w in line if MONEY_RE.match(w["text"])]
         if not money:
@@ -256,27 +261,37 @@ def _total_bboxes(page) -> tuple[dict[str, Decimal], dict[str, BBox]]:
                 amounts[key] = to_money(v["text"])
                 boxes[key] = BBox(line[0]["x0"] - 2, min(w["top"] for w in line) - 2, v["x1"] + 2,
                                   max(w["bottom"] for w in line) + 2)
-    return amounts, boxes
+                if (c := _conf(line)) is not None:
+                    conf[key] = c
+    return amounts, boxes, conf
 
 
 def _parse_text_layer(plain: bytes) -> ParsedETax:
-    with pdfplumber.open(io.BytesIO(plain)) as pdf:
-        if not pdf.pages:
-            raise ParseError("empty PDF")
-        page = pdf.pages[0]
-        text = page.extract_text() or ""
-        if not text.strip():
-            raise NoTextLayer("scanned invoice — no text layer and no embedded e-Tax XML")
-        if not detect_etax_pdf(text):
-            raise UnsupportedFormat("not a recognised tax invoice layout")
-        lines = [" ".join(w["text"] for w in line) for line in _lines(page)]
-        amounts, boxes = _total_bboxes(page)
-        width, height = float(page.width), float(page.height)
+    pages = text_layer_words(plain)
+    if not pages or not pages[0].words:
+        raise NoTextLayer("scanned invoice — no text layer and no embedded e-Tax XML")
+    return parse_etax_words(pages)
 
+
+def parse_etax_words(pages: list[PageWords], source: str = "pdf_text") -> ParsedETax:
+    """A printed tax invoice from positioned words: a PDF text layer, or OCR of a scan or photo."""
+    if not pages or not pages[0].words:
+        raise UnsupportedFormat("no text on the invoice")
+    page = pages[0]
+    line_words = _lines(page.words)
+    lines = [" ".join(w["text"] for w in line) for line in line_words]
     joined = "\n".join(lines)
+    if not detect_etax_pdf(joined):
+        raise UnsupportedFormat("not a recognised tax invoice layout")
+    amounts, boxes, conf = _totals(page.words)
+
     no, issued = NO_RE.search(joined), DATE_RE.search(joined)
     if not no or not issued:
-        raise ParseError("tax invoice number or date not found on the PDF")
+        raise ParseError("tax invoice number or date not found")
+    for key, pattern in (("invoice_no", NO_RE), ("issue_date", DATE_RE)):
+        line = next(lw for lw, text in zip(line_words, lines) if pattern.search(text))
+        if (c := _conf(line)) is not None:
+            conf[key] = c
     parties: dict[str, dict[str, str | None]] = {}
     current: str | None = None
     for line in lines:
@@ -289,7 +304,7 @@ def _parse_text_layer(plain: bytes) -> ParsedETax:
         if t and current and parties[current]["tax_id"] is None:
             parties[current]["tax_id"] = _tax_id(t.group(1))
     if "seller" not in parties or "buyer" not in parties:
-        raise ParseError("seller or buyer not found on the PDF")
+        raise ParseError("seller or buyer not found")
     missing = [k for k in TOTAL_LABELS if k not in amounts]
     if missing:
         raise ParseError(f"amount line(s) not found: {', '.join(missing)}")
@@ -299,11 +314,14 @@ def _parse_text_layer(plain: bytes) -> ParsedETax:
         raise ParseError(f"bad invoice date {issued.group(1)!r}") from e
 
     warnings = _check_totals(amounts["subtotal"], amounts["vat"], amounts["total"])
-    warnings.append("อ่านจากข้อความบน PDF (ไม่มีไฟล์ XML ของ e-Tax แนบ) — หลักฐานอ่อนกว่า XML")
+    warnings.append("อ่านจากภาพสแกน/รูปถ่ายด้วย OCR (ไม่มีไฟล์ XML ของ e-Tax) — หลักฐานอ่อนกว่า XML"
+                    if source == "scan_ocr" else
+                    "อ่านจากข้อความบน PDF (ไม่มีไฟล์ XML ของ e-Tax แนบ) — หลักฐานอ่อนกว่า XML")
     return ParsedETax(
-        parser="etax-pdf-text", parser_version=PARSER_VERSION, source="pdf_text", invoice_no=no.group(1),
-        type_code="388", issue_date=issue_date, seller_name=parties["seller"]["name"] or "",
-        seller_tax_id=parties["seller"]["tax_id"], buyer_name=parties["buyer"]["name"] or "",
-        buyer_tax_id=parties["buyer"]["tax_id"], subtotal=amounts["subtotal"], vat=amounts["vat"],
-        total=amounts["total"], page_width=width, page_height=height, bboxes=boxes, warnings=warnings,
+        parser="etax-ocr" if source == "scan_ocr" else "etax-pdf-text", parser_version=PARSER_VERSION,
+        source=source, invoice_no=no.group(1), type_code="388", issue_date=issue_date,
+        seller_name=parties["seller"]["name"] or "", seller_tax_id=parties["seller"]["tax_id"],
+        buyer_name=parties["buyer"]["name"] or "", buyer_tax_id=parties["buyer"]["tax_id"],
+        subtotal=amounts["subtotal"], vat=amounts["vat"], total=amounts["total"], page_width=page.width,
+        page_height=page.height, bboxes=boxes, confidence=conf, warnings=warnings,
     )

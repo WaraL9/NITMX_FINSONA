@@ -2244,6 +2244,84 @@
         }
       }
     },
+    "/api/cases/{case_id}/invoices/{invoice_id}/review": {
+      "post": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Review Invoice",
+        "description": "A CA checks a scanned e-Tax invoice against its image — confirm as read, or correct the\namounts. Audit-logged with before/after and the reason; the engine re-runs.",
+        "operationId": "review_invoice_api_cases__case_id__invoices__invoice_id__review_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Id"
+            }
+          },
+          {
+            "name": "invoice_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Invoice Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvoiceReviewIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/cases/{case_id}/watchlist/{item_id}/decision": {
       "post": {
         "tags": [
@@ -6631,7 +6709,8 @@
             "enum": [
               "xml",
               "pdf_embedded_xml",
-              "pdf_text"
+              "pdf_text",
+              "scan_ocr"
             ],
             "title": "Source"
           },
@@ -6711,6 +6790,34 @@
               "absent"
             ],
             "title": "Signature"
+          },
+          "field_confidence": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Field Confidence",
+            "default": {}
+          },
+          "low_confidence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Low Confidence",
+            "default": []
+          },
+          "ocr": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr"
           },
           "warnings": {
             "items": {
@@ -7018,15 +7125,54 @@
             "type": "string",
             "title": "Invoice No"
           },
+          "invoice_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoice Id"
+          },
           "status": {
             "type": "string",
             "enum": [
               "pending_analysis",
+              "held_review",
               "matched",
               "unmatched",
               "duplicate_of_promptbiz"
             ],
             "title": "Status"
+          },
+          "review_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "confirmed",
+                  "corrected"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Status"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
           },
           "transaction_id": {
             "anyOf": [
@@ -7070,6 +7216,78 @@
         ],
         "title": "InvoiceLinkOut",
         "description": "Where an uploaded e-Tax invoice ended up after the last analysis."
+      },
+      "InvoiceReviewIn": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "confirm",
+              "correct"
+            ],
+            "title": "Action"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,13}|(?=[\\d.]{1,16}0*$)\\d{0,13}\\.\\d{0,2}0*$)"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          },
+          "subtotal": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,13}|(?=[\\d.]{1,16}0*$)\\d{0,13}\\.\\d{0,2}0*$)"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtotal"
+          },
+          "vat": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,13}|(?=[\\d.]{1,16}0*$)\\d{0,13}\\.\\d{0,2}0*$)"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vat"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 10,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action",
+          "reason"
+        ],
+        "title": "InvoiceReviewIn"
       },
       "JobStageOut": {
         "properties": {

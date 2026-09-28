@@ -129,7 +129,7 @@ class ETaxParseReport(BaseModel):
     """E2-13: what was read from an e-Tax invoice (XML, PDF with embedded XML, or PDF text)."""
     parser: str
     parser_version: str
-    source: Literal["xml", "pdf_embedded_xml", "pdf_text"]
+    source: Literal["xml", "pdf_embedded_xml", "pdf_text", "scan_ocr"]
     invoice_no: str
     type_code: str
     type_name: str
@@ -142,6 +142,9 @@ class ETaxParseReport(BaseModel):
     amounts: dict[str, str] = Field(description="subtotal (excl. VAT), vat, total — decimal strings")
     bboxes: dict[str, list[float]]
     signature: Literal["present_unverified", "absent"]
+    field_confidence: dict[str, float] = {}
+    low_confidence: list[str] = []
+    ocr: dict[str, Any] | None = None
     warnings: list[str]
 
 
@@ -185,6 +188,14 @@ class DStatementPullIn(BaseModel):
     period_end: date | None = None
 
 
+class InvoiceReviewIn(BaseModel):
+    action: Literal["confirm", "correct"]
+    total: Decimal | None = Field(default=None, gt=0, max_digits=15, decimal_places=2)
+    subtotal: Decimal | None = Field(default=None, gt=0, max_digits=15, decimal_places=2)
+    vat: Decimal | None = Field(default=None, ge=0, max_digits=15, decimal_places=2)
+    reason: str = Field(min_length=10, max_length=2000)
+
+
 class BillReviewIn(BaseModel):
     action: Literal["confirm", "correct"]
     amount: Decimal | None = Field(default=None, gt=0, max_digits=15, decimal_places=2)
@@ -196,7 +207,10 @@ class BillReviewIn(BaseModel):
 class InvoiceLinkOut(BaseModel):
     """Where an uploaded e-Tax invoice ended up after the last analysis."""
     invoice_no: str
-    status: Literal["pending_analysis", "matched", "unmatched", "duplicate_of_promptbiz"]
+    invoice_id: int | None = None
+    status: Literal["pending_analysis", "held_review", "matched", "unmatched", "duplicate_of_promptbiz"]
+    review_status: Literal["pending", "confirmed", "corrected"] | None = None
+    total: MoneyStr | None = None
     transaction_id: int | None = None
     paid_at: datetime | None = None
     paid_amount: MoneyStr | None = None

@@ -19,12 +19,13 @@ from app.api.common import txn_out
 from app.api.deps import client_ip, current_user, require_role
 from app.db import get_db
 from app.engine.types import CREDIT_OVERRIDES, DEBIT_OVERRIDES
-from app.models import (Account, AltDataRecord, AuditEntry, Document, Page, TagOverride, Transaction, User,
-                        WatchlistItem)
+from app.models import (Account, AltDataRecord, AuditEntry, Document, Invoice, Page, TagOverride, Transaction,
+                        User, WatchlistItem)
 from app.schemas import (
     AnalysisOut,
     AuditEntryOut,
     BillReviewIn,
+    InvoiceReviewIn,
     ChainStatusOut,
     DecisionIn,
     DecisionOut,
@@ -88,6 +89,31 @@ def review_bill(case_id: int, record_id: int, body: BillReviewIn, request: Reque
                   "paid_date": r.paid_date.isoformat() if r.paid_date else None, "review_status": r.review_status})
     db.flush()
     return analysis_out(_rerun(db, case_id, user, request, trigger="bill_review"))
+
+
+@router.post("/api/cases/{case_id}/invoices/{invoice_id}/review", response_model=AnalysisOut)
+def review_invoice(case_id: int, invoice_id: int, body: InvoiceReviewIn, request: Request,
+                   db: Session = Depends(get_db), user: User = Depends(require_role("CA"))):
+    """A CA checks a scanned e-Tax invoice against its image — confirm as read, or correct the
+    amounts. Audit-logged with before/after and the reason; the engine re-runs."""
+    inv = db.get(Invoice, invoice_id)
+    if inv is None or inv.case_id != case_id or inv.source != "etax_upload":
+        raise HTTPException(404, "invoice not found")
+    before = {"total": f"{inv.amount:.2f}", "subtotal": f"{inv.subtotal:.2f}", "vat": f"{inv.vat:.2f}",
+              "review_status": inv.review_status}
+    if body.action == "correct":
+        if body.total is None and body.subtotal is None and body.vat is None:
+            raise HTTPException(422, "a correction needs at least one of total, subtotal, vat")
+        inv.amount = body.total if body.total is not None else inv.amount
+        inv.subtotal = body.subtotal if body.subtotal is not None else inv.subtotal
+        inv.vat = body.vat if body.vat is not None else inv.vat
+    inv.review_status = "corrected" if body.action == "correct" else "confirmed"
+    audit.log(db, "invoice_review", case_id=case_id, user_id=user.id, ip=client_ip(request), target_type="invoice",
+              target_id=inv.id, before=before, reason=body.reason.strip(), after={
+                  "action": body.action, "invoice_no": inv.invoice_no, "total": f"{inv.amount:.2f}",
+                  "subtotal": f"{inv.subtotal:.2f}", "vat": f"{inv.vat:.2f}", "review_status": inv.review_status})
+    db.flush()
+    return analysis_out(_rerun(db, case_id, user, request, trigger="invoice_review"))
 
 
 @router.post("/api/cases/{case_id}/watchlist/{item_id}/decision", response_model=DecisionOut)

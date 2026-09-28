@@ -111,11 +111,11 @@ def pending_count(db: Session, case_id: int) -> int:
 
 
 def pending_documents(db: Session, case_id: int) -> int:
-    """OCR-read bills (and scanned e-Tax invoices) whose key fields a CA has not checked yet."""
-    from app.models import AltDataRecord
+    """OCR-read bills and scanned e-Tax invoices whose key fields a CA has not checked yet."""
+    from app.models import AltDataRecord, Invoice
 
-    return db.scalar(select(func.count()).select_from(AltDataRecord)
-                     .where(AltDataRecord.case_id == case_id, AltDataRecord.review_status == PENDING)) or 0
+    return sum(db.scalar(select(func.count()).select_from(m).where(m.case_id == case_id, m.review_status == PENDING))
+               or 0 for m in (AltDataRecord, Invoice))
 
 
 @dataclass
