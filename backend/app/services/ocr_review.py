@@ -110,6 +110,14 @@ def pending_count(db: Session, case_id: int) -> int:
                      .where(Transaction.case_id == case_id, Transaction.review_status == PENDING)) or 0
 
 
+def pending_documents(db: Session, case_id: int) -> int:
+    """OCR-read bills (and scanned e-Tax invoices) whose key fields a CA has not checked yet."""
+    from app.models import AltDataRecord
+
+    return db.scalar(select(func.count()).select_from(AltDataRecord)
+                     .where(AltDataRecord.case_id == case_id, AltDataRecord.review_status == PENDING)) or 0
+
+
 @dataclass
 class Resolution:
     txn: Transaction

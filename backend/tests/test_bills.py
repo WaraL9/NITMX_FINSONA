@@ -264,3 +264,23 @@ def test_rent_receipt_on_the_canonical_case_cuts_the_safe_limit(client, seeded_c
             db.commit()
             run_analysis(db, seeded_case_id, sync_invoices=False)
     assert client.get(f"/api/cases/{seeded_case_id}/sizing").json()["safe_limit"] == "3500000.00"
+
+
+def test_bill_awaiting_ocr_review_blocks_signing(client, seeded_case_id, samples):
+    """Like OCR'd statement rows (E2-09): nothing read uncertainly from a photo may go into a signed memo."""
+    from app.models import Document
+    from app.services.analysis import run_analysis
+
+    r = _upload(client, seeded_case_id, BILLS / samples["water"]["file"])
+    assert r.status_code == 201, r.text
+    try:
+        client.post(f"/api/cases/{seeded_case_id}/analysis")
+        body = {"recommendation": "approve_structured", "approved_amount": "3500000", "trade_line_amount": "1000000",
+                "reason": "กระแสเงินสดจริงรองรับได้ที่วงเงินปลอดภัย พร้อม Trade Line ผูก PromptBiz"}
+        s = client.post(f"/api/cases/{seeded_case_id}/memo/sign", json=body)
+        assert s.status_code == 409 and "OCR" in s.text
+    finally:
+        with SessionLocal() as db:
+            db.delete(db.get(Document, r.json()["id"]))
+            db.commit()
+            run_analysis(db, seeded_case_id, sync_invoices=False)

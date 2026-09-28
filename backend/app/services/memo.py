@@ -188,6 +188,9 @@ def sign(db: Session, case_id: int, user: User, ip: str | None, recommendation: 
     pending = ocr_review.pending_count(db, case_id)
     if pending:
         raise MemoError(f"{pending} OCR row(s) still need review — numbers read from a scan must be checked first", 409)
+    docs = ocr_review.pending_documents(db, case_id)
+    if docs:
+        raise MemoError(f"{docs} document(s) read by OCR still need review — check them against the photo first", 409)
     if recommendation != "decline" and (approved_amount is None or approved_amount <= 0):
         raise MemoError("approved amount is required")
     if recommendation == "approve" and approved_amount != case.requested_amount:
